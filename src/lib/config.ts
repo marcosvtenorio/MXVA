@@ -12,7 +12,6 @@ export const publicConfig = Object.freeze({
   enableRealPayments: flag(process.env.NEXT_PUBLIC_ENABLE_REAL_PAYMENTS),
   enableRealAi: flag(process.env.NEXT_PUBLIC_ENABLE_REAL_AI),
   stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
-  metaPixelId: process.env.NEXT_PUBLIC_META_PIXEL_ID || "",
 });
 
 /**

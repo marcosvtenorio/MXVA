@@ -39,7 +39,22 @@ const serverEnvSchema = z.object({
     .default(8 * 1024 * 1024),
   POSTHOG_PROJECT_API_KEY: optionalSecret,
   POSTHOG_HOST: z.url().optional().or(z.literal("").transform(() => undefined)),
+  META_PIXEL_ID: z
+    .string()
+    .regex(/^\d{5,20}$/)
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
   META_CAPI_ACCESS_TOKEN: optionalSecret,
+  META_GRAPH_API_VERSION: z
+    .string()
+    .regex(/^v\d{2}\.\d$/)
+    .default("v26.0"),
+  META_TEST_EVENT_CODE: optionalSecret,
+  /** Opt-in: send SHA-256 of the buyer email with Purchase (marketing consent only). */
+  META_CAPI_SEND_HASHED_EMAIL: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import type { ApiErrorCode } from "@/lib/api-errors";
 import { serverEnv } from "@/server/config";
+import { trackServer } from "@/server/analytics";
 import { ApiError } from "@/server/http";
 import { paymentProvider, type CheckoutInit, type PaymentFact } from "@/server/payment/adapter";
 import { orderRepository } from "./repository";
@@ -119,6 +120,7 @@ export async function applyPaymentFact(fact: PaymentFact): Promise<Order | undef
       order = await mutate(target.id, (current, now) =>
         paymentSucceeded(current, { amountMinor: fact.amountMinor, currency: fact.currency, paymentIntentId: fact.paymentIntentId }, now),
       );
+      if (order.status === "paid" && target.status !== "paid") emit("payment_succeeded", {}, order);
       break;
     }
     case "checkout_expired": {
@@ -128,7 +130,10 @@ export async function applyPaymentFact(fact: PaymentFact): Promise<Order | undef
     }
     case "refunded": {
       const target = await repository.findByPaymentIntentId(fact.paymentIntentId);
-      if (target) order = await mutate(target.id, refunded);
+      if (target) {
+        order = await mutate(target.id, refunded);
+        if (target.status !== "refunded" && order.status === "refunded") emit("refund_completed", {}, order);
+      }
       break;
     }
     case "ignored":
@@ -136,6 +141,15 @@ export async function applyPaymentFact(fact: PaymentFact): Promise<Order | undef
   }
   await repository.markExternalEvent("stripe", fact.eventId);
   return order;
+}
+
+/** Fire-and-forget server analytics; never delays or fails the business operation. */
+function emit<N extends Parameters<typeof trackServer>[0]>(
+  name: N,
+  props: Parameters<typeof trackServer<N>>[1],
+  order: Order,
+): void {
+  void trackServer(name, props, order.id, order.countryHint).catch(() => undefined);
 }
 
 export const claimForFulfillment = (orderId: string) => mutate(orderId, claimFulfillment);
