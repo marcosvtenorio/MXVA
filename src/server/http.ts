@@ -67,7 +67,7 @@ export async function readTextLimited(request: Request, maxBytes: number): Promi
 }
 
 /** Streams the body and aborts as soon as it exceeds `maxBytes` (Content-Length is not trusted). */
-export async function readBytesLimited(request: Request, maxBytes: number): Promise<Uint8Array> {
+export async function readBytesLimited(request: Request, maxBytes: number): Promise<Uint8Array<ArrayBuffer>> {
   const declared = Number(request.headers.get("content-length") ?? "0");
   if (declared > maxBytes) throw new ApiError("PHOTO_TOO_LARGE", "That request is too large.");
   if (!request.body) return new Uint8Array();

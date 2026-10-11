@@ -1,0 +1,198 @@
+{
+  "version": "2026-10-11",
+  "note": "Curated, human-verified references. Every URL and date was checked on the accessedAt date (PubMed records via NCBI E-utilities). The report generator may cite ONLY ids from this file. Re-verify before each content release.",
+  "sources": [
+    {
+      "id": "aad-sunscreen-application",
+      "title": "How to apply sunscreen",
+      "publisher": "American Academy of Dermatology",
+      "url": "https://www.aad.org/public/everyday-care/sun-protection/shade-clothing-sunscreen/how-to-apply-sunscreen",
+      "kind": "professional_guidance",
+      "published": "2025-08-15",
+      "dateLabel": "Last updated 15 Aug 2025",
+      "accessedAt": "2026-10-11",
+      "limitations": "General public guidance from a dermatology association; not personalised medical advice."
+    },
+    {
+      "id": "hughes-2013-sunscreen-aging",
+      "title": "Sunscreen and prevention of skin aging: a randomized trial",
+      "publisher": "Hughes MCB, Williams GM, Baker P, Green AC. Annals of Internal Medicine 2013;158(11):781-790",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/23732711/",
+      "doi": "10.7326/0003-4819-158-11-201306040-00002",
+      "kind": "randomized_trial",
+      "published": "2013-06-04",
+      "dateLabel": "Published 4 Jun 2013",
+      "accessedAt": "2026-10-11",
+      "limitations": "903 adults under 55 in Queensland, Australia (high sun exposure); outcome was skin surface ageing over 4.5 years; the authors note missing data and modest power."
+    },
+    {
+      "id": "aad-face-washing",
+      "title": "Face washing 101",
+      "publisher": "American Academy of Dermatology",
+      "url": "https://www.aad.org/public/everyday-care/skin-care-basics/care/face-washing-101",
+      "kind": "professional_guidance",
+      "published": null,
+      "dateLabel": "Date not shown on page",
+      "accessedAt": "2026-10-11",
+      "limitations": "General guidance; skin conditions need individual assessment."
+    },
+    {
+      "id": "aad-acne-tips",
+      "title": "Acne: Tips for managing",
+      "publisher": "American Academy of Dermatology",
+      "url": "https://www.aad.org/public/diseases/acne/skin-care/tips",
+      "kind": "professional_guidance",
+      "published": "2022-11-16",
+      "dateLabel": "Last updated 16 Nov 2022",
+      "accessedAt": "2026-10-11",
+      "limitations": "Written for people managing acne; MXVA does not diagnose acne or any skin condition."
+    },
+    {
+      "id": "aad-dry-skin",
+      "title": "Dermatologists' top tips for relieving dry skin",
+      "publisher": "American Academy of Dermatology",
+      "url": "https://www.aad.org/public/everyday-care/skin-care-basics/dry/dermatologists-tips-relieve-dry-skin",
+      "kind": "professional_guidance",
+      "published": "2026-01-02",
+      "dateLabel": "Last updated 2 Jan 2026",
+      "accessedAt": "2026-10-11",
+      "limitations": "General guidance for dry skin; not a treatment plan."
+    },
+    {
+      "id": "aad-how-to-shave",
+      "title": "Hair removal: How to shave",
+      "publisher": "American Academy of Dermatology",
+      "url": "https://www.aad.org/public/everyday-care/skin-care-basics/hair/how-to-shave",
+      "kind": "professional_guidance",
+      "published": null,
+      "dateLabel": "Date not shown on page",
+      "accessedAt": "2026-10-11",
+      "limitations": "General shaving technique; persistent bumps or irritation deserve a dermatologist's view."
+    },
+    {
+      "id": "aad-healthy-hair",
+      "title": "Tips for healthy hair",
+      "publisher": "American Academy of Dermatology",
+      "url": "https://www.aad.org/public/everyday-care/hair-scalp-care/hair/healthy-hair-tips",
+      "kind": "professional_guidance",
+      "published": "2024-08-12",
+      "dateLabel": "Last updated 12 Aug 2024",
+      "accessedAt": "2026-10-11",
+      "limitations": "General hair-care guidance; does not address hair loss causes."
+    },
+    {
+      "id": "aad-hair-loss-diagnosis",
+      "title": "Hair loss: Diagnosis and treatment",
+      "publisher": "American Academy of Dermatology",
+      "url": "https://www.aad.org/public/diseases/hair-loss/treatment/diagnosis-treat",
+      "kind": "professional_guidance",
+      "published": "2022-12-13",
+      "dateLabel": "Last updated 13 Dec 2022",
+      "accessedAt": "2026-10-11",
+      "limitations": "Explains why diagnosis comes first; MXVA does not assess hair loss or recommend treatments."
+    },
+    {
+      "id": "ada-brushing",
+      "title": "Brushing Your Teeth",
+      "publisher": "American Dental Association (MouthHealthy)",
+      "url": "https://www.mouthhealthy.org/all-topics-a-z/brushing-your-teeth",
+      "kind": "professional_guidance",
+      "published": null,
+      "dateLabel": "Date not shown on page",
+      "accessedAt": "2026-10-11",
+      "limitations": "General oral-care guidance; regular dental check-ups are still needed."
+    },
+    {
+      "id": "ada-flossing",
+      "title": "Flossing",
+      "publisher": "American Dental Association (MouthHealthy)",
+      "url": "https://www.mouthhealthy.org/all-topics-a-z/flossing",
+      "kind": "professional_guidance",
+      "published": null,
+      "dateLabel": "Date not shown on page",
+      "accessedAt": "2026-10-11",
+      "limitations": "General guidance."
+    },
+    {
+      "id": "ada-whitening",
+      "title": "Teeth Whitening",
+      "publisher": "American Dental Association (MouthHealthy)",
+      "url": "https://www.mouthhealthy.org/all-topics-a-z/teeth-whitening",
+      "kind": "professional_guidance",
+      "published": null,
+      "dateLabel": "Date not shown on page",
+      "accessedAt": "2026-10-11",
+      "limitations": "Whitening suitability depends on the cause of discolouration, which only a dentist can assess."
+    },
+    {
+      "id": "nhs-teeth-whitening",
+      "title": "Teeth whitening",
+      "publisher": "NHS (UK)",
+      "url": "https://www.nhs.uk/tests-and-treatments/teeth-whitening/",
+      "kind": "professional_guidance",
+      "published": "2025-08-19",
+      "dateLabel": "Page last reviewed 19 Aug 2025",
+      "accessedAt": "2026-10-11",
+      "limitations": "Reflects UK regulation and practice; rules differ by country."
+    },
+    {
+      "id": "axelsson-2010-sleep",
+      "title": "Beauty sleep: experimental study on the perceived health and attractiveness of sleep deprived people",
+      "publisher": "Axelsson J, Sundelin T, Ingre M, et al. BMJ 2010;341:c6614",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/21156746/",
+      "doi": "10.1136/bmj.c6614",
+      "kind": "experimental_study",
+      "published": "2010-12-14",
+      "dateLabel": "Published 14 Dec 2010",
+      "accessedAt": "2026-10-11",
+      "limitations": "23 adults aged 18–31 after one night of lab sleep deprivation, rated from photos by untrained observers; small effects."
+    },
+    {
+      "id": "sundelin-2017-sleep",
+      "title": "Negative effects of restricted sleep on facial appearance and social appeal",
+      "publisher": "Sundelin T, Lekander M, Sorjonen K, Axelsson J. Royal Society Open Science 2017;4(5):160918",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28572989/",
+      "doi": "10.1098/rsos.160918",
+      "kind": "experimental_study",
+      "published": "2017-05-17",
+      "dateLabel": "Published 17 May 2017",
+      "accessedAt": "2026-10-11",
+      "limitations": "25 participants after two nights of restricted sleep, rated from photos; short-term effects only."
+    },
+    {
+      "id": "nhs-sleep-tips",
+      "title": "How to fall asleep faster and sleep better",
+      "publisher": "NHS Every Mind Matters (UK)",
+      "url": "https://www.nhs.uk/every-mind-matters/mental-wellbeing-tips/how-to-fall-asleep-faster-and-sleep-better/",
+      "kind": "professional_guidance",
+      "published": null,
+      "dateLabel": "Date not shown on page",
+      "accessedAt": "2026-10-11",
+      "limitations": "General sleep-hygiene tips; ongoing sleep problems need a clinician."
+    },
+    {
+      "id": "alam-2018-facial-exercise",
+      "title": "Association of Facial Exercise With the Appearance of Aging",
+      "publisher": "Alam M, Walter AJ, Geisler A, et al. JAMA Dermatology 2018;154(3):365-367",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/29299598/",
+      "doi": "10.1001/jamadermatol.2017.5142",
+      "kind": "pilot_study",
+      "published": "2018-03-01",
+      "dateLabel": "Published 1 Mar 2018",
+      "accessedAt": "2026-10-11",
+      "limitations": "Small pilot study of middle-aged women; a co-author founded the exercise programme used; it did not study bone structure or the jawline."
+    },
+    {
+      "id": "ward-2018-selfie-distortion",
+      "title": "Nasal Distortion in Short-Distance Photographs: The Selfie Effect",
+      "publisher": "Ward B, Ward M, Fried O, Paskhover B. JAMA Facial Plastic Surgery 2018;20(4):333-335",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/29494735/",
+      "doi": "10.1001/jamafacial.2018.0009",
+      "kind": "modelling_study",
+      "published": "2018-07-01",
+      "dateLabel": "Published 1 Jul 2018",
+      "accessedAt": "2026-10-11",
+      "limitations": "A mathematical model of camera distance and perspective; it measures geometry, not how people judge faces."
+    }
+  ]
+}

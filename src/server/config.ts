@@ -39,6 +39,8 @@ const serverEnvSchema = z.object({
     .default(8 * 1024 * 1024),
   POSTHOG_PROJECT_API_KEY: optionalSecret,
   POSTHOG_HOST: z.url().optional().or(z.literal("").transform(() => undefined)),
+  /** Development/test only: force a mock pipeline failure to exercise error paths. */
+  MOCK_FORCE_FAILURE: z.enum(["ai", "qc", "pdf", "email"]).optional().or(z.literal("").transform(() => undefined)),
   META_PIXEL_ID: z
     .string()
     .regex(/^\d{5,20}$/)
