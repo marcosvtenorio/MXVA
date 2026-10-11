@@ -26,7 +26,11 @@ export type StepDefinition = {
   /** Canonical route (spec §3). */
   path: string;
   heading: string;
+  /** Short second half of a two-tone heading (ink-2). */
+  tail?: string;
   description: string;
+  /** Mono label next to the step count. */
+  short: string;
   /** Steps 06–11 are preferences the buyer may skip. */
   skippable: boolean;
 };
@@ -36,6 +40,7 @@ export const TOTAL_STEPS = 16;
 export const STEPS: readonly StepDefinition[] = [
   {
     id: "start",
+    short: "Start",
     number: 1,
     path: "/start",
     heading: "Your face. A realistic next-step plan.",
@@ -45,62 +50,77 @@ export const STEPS: readonly StepDefinition[] = [
   },
   {
     id: "goals",
+    short: "Goals",
+    tail: "Pick one to start.",
     number: 2,
     path: "/onboarding/goals",
     heading: "What would you most like to work on?",
-    description: "Pick one to start. You'll choose specific areas next.",
+    description: "You'll choose specific areas next.",
     skippable: false,
   },
   {
     id: "focus",
+    short: "Focus",
+    tail: "Pick up to four.",
     number: 3,
     path: "/onboarding/focus",
     heading: "Which areas should your plan cover?",
-    description: "Choose 1 to 4. Your plan puts these first.",
+    description: "Your plan puts these first.",
     skippable: false,
   },
   {
     id: "timeline",
+    short: "Timeline",
+    tail: "Some changes take longer.",
     number: 4,
     path: "/onboarding/timeline",
     heading: "When do you want to see progress?",
-    description: "This sets the pace of your plan. Some changes simply take longer.",
+    description: "This sets the pace of your plan.",
     skippable: false,
   },
   {
     id: "budget",
+    short: "Budget",
+    tail: "Free options come first.",
     number: 5,
     path: "/onboarding/budget",
     heading: "What are you happy to spend?",
-    description: "Free options come first either way. Any currency.",
+    description: "Any currency. Prices vary by country.",
     skippable: false,
   },
   {
     id: "skin",
+    short: "Skin",
+    tail: "Presentation, not diagnosis.",
     number: 6,
     path: "/onboarding/skin",
     heading: "What do you want from your skin?",
-    description: "About how skin looks day to day and in photos. We don't diagnose skin conditions.",
+    description: "How your skin looks day to day and in photos.",
     skippable: true,
   },
   {
     id: "brows",
+    short: "Brows",
+    tail: "Pure preference.",
     number: 7,
     path: "/onboarding/brows",
     heading: "How about your brows?",
-    description: "Pure preference. There's no right brow.",
+    description: "There's no right brow.",
     skippable: true,
   },
   {
     id: "eyes",
+    short: "Eye area",
+    tail: "No promises about shape.",
     number: 8,
     path: "/onboarding/eyes",
     heading: "Anything for the eye area?",
-    description: "Your plan covers sleep, light and grooming. It won't promise a different eye shape.",
+    description: "Your plan covers sleep, light and grooming.",
     skippable: true,
   },
   {
     id: "hair",
+    short: "Hair",
     number: 9,
     path: "/onboarding/hair",
     heading: "What about your hair?",
@@ -109,6 +129,7 @@ export const STEPS: readonly StepDefinition[] = [
   },
   {
     id: "smile",
+    short: "Smile",
     number: 10,
     path: "/onboarding/smile",
     heading: "And your smile?",
@@ -117,6 +138,7 @@ export const STEPS: readonly StepDefinition[] = [
   },
   {
     id: "jaw",
+    short: "Jawline",
     number: 11,
     path: "/onboarding/jaw",
     heading: "How do you want to present your jawline?",
@@ -126,6 +148,7 @@ export const STEPS: readonly StepDefinition[] = [
   },
   {
     id: "constraints",
+    short: "Constraints",
     number: 12,
     path: "/onboarding/constraints",
     heading: "What should your plan work around?",
@@ -134,6 +157,7 @@ export const STEPS: readonly StepDefinition[] = [
   },
   {
     id: "photo-guide",
+    short: "Photo guide",
     number: 13,
     path: "/onboarding/photo-guide",
     heading: "How to take your photos",
@@ -142,6 +166,7 @@ export const STEPS: readonly StepDefinition[] = [
   },
   {
     id: "photos",
+    short: "Photos",
     number: 14,
     path: "/onboarding/photos",
     heading: "Add your photos",
@@ -151,6 +176,7 @@ export const STEPS: readonly StepDefinition[] = [
   },
   {
     id: "delivery",
+    short: "Delivery",
     number: 15,
     path: "/onboarding/delivery",
     heading: "Where should we send your report?",
@@ -159,10 +185,11 @@ export const STEPS: readonly StepDefinition[] = [
   },
   {
     id: "review",
+    short: "Review",
     number: 16,
     path: "/onboarding/review",
     heading: "Check everything before checkout",
-    description: "Nothing has been analysed yet. Your report is created only after payment.",
+    description: "Nothing has been analyzed yet. Your report is created only after payment.",
     skippable: false,
   },
 ] as const;

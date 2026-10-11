@@ -1,0 +1,154 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { InlineError } from "@/components/common/InlineError";
+import { Tick } from "@/components/common/icons";
+import { regionHint } from "@/features/analytics/attribution";
+import { track } from "@/features/analytics/client";
+import { useCheckoutStore } from "@/features/checkout/store";
+import { FACE_PROCESSING_CONSENT_VERSION, TERMS_VERSION } from "@/features/onboarding/schema";
+import {
+  BUDGET_OPTIONS,
+  FOCUS_OPTIONS,
+  GOAL_OPTIONS,
+  PREFERENCE_OPTIONS,
+  TIMELINE_OPTIONS,
+  type OptionCopy,
+} from "@/features/onboarding/steps";
+import { useOnboardingStore } from "@/features/onboarding/store";
+import { useStepNav } from "@/features/onboarding/use-flow";
+import { usePhotoStore } from "@/features/photos/memory-store";
+import { ApiClientError, api } from "@/lib/api-client";
+import { DISPLAY_PRICE_USD_CENTS, formatUsd } from "@/lib/config";
+import { OnboardingFrame } from "../OnboardingFrame";
+import { StepHeading } from "../StepHeading";
+import { StepActions } from "./StepBody";
+
+function labels<T extends string>(options: readonly OptionCopy<T>[], ids: readonly T[]): string {
+  return ids.map((id) => options.find((option) => option.id === id)?.label ?? id).join(", ");
+}
+
+function Row({ title, value, href }: { title: string; value: string; href: string }) {
+  return (
+    <div className="grid grid-cols-[1fr_auto] items-start gap-x-4 gap-y-1 border-t border-rule py-3.5">
+      <dt className="mono pt-0.5 text-ink-2">{title}</dt>
+      <dd className="row-start-2 text-[16px] leading-snug">{value || "—"}</dd>
+      <Link href={href} className="row-span-2 self-center text-[15px] font-semibold underline-offset-2 hover:underline" aria-label={`Edit ${title.toLowerCase()}`}>
+        Edit
+      </Link>
+    </div>
+  );
+}
+
+export function ReviewStep() {
+  const nav = useStepNav("review");
+  const router = useRouter();
+  const state = useOnboardingStore();
+  const front = usePhotoStore((s) => s.photos.front);
+  const profiles = usePhotoStore((s) => Number(Boolean(s.photos.left)) + Number(Boolean(s.photos.right)));
+  const setCheckout = useCheckoutStore((s) => s.set);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+
+  const preferenceSummary = [
+    state.preferences.skin.length ? `Skin: ${labels(PREFERENCE_OPTIONS.skin, state.preferences.skin)}` : "",
+    state.preferences.brows.length ? `Brows: ${labels(PREFERENCE_OPTIONS.brows, state.preferences.brows)}` : "",
+    state.preferences.eyes.length ? `Eye area: ${labels(PREFERENCE_OPTIONS.eyes, state.preferences.eyes)}` : "",
+    state.preferences.hair.length ? `Hair: ${labels(PREFERENCE_OPTIONS.hair, state.preferences.hair)}` : "",
+    state.preferences.facialHair.length ? `Facial hair: ${labels(PREFERENCE_OPTIONS.facialHair, state.preferences.facialHair)}` : "",
+    state.preferences.smile.length ? `Smile: ${labels(PREFERENCE_OPTIONS.smile, state.preferences.smile)}` : "",
+    state.preferences.jaw.length ? `Jawline: ${labels(PREFERENCE_OPTIONS.jaw, state.preferences.jaw)}` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  async function continueToCheckout() {
+    setBusy(true);
+    setError(undefined);
+    track("cta_clicked", { cta: "continue_to_checkout" });
+    try {
+      const response = await api.createOrder({
+        sku: "mxva_report_v1",
+        email: state.email,
+        adultConfirmed: state.adultConfirmed,
+        faceProcessingConsentVersion: FACE_PROCESSING_CONSENT_VERSION,
+        termsVersion: TERMS_VERSION,
+        marketingOptIn: state.marketingOptIn,
+        countryHint: regionHint(Intl.DateTimeFormat().resolvedOptions().timeZone, navigator.languages ?? []),
+      });
+      track("onboarding_step_completed", { step: "review" });
+      if (response.alreadyPaid) {
+        router.push("/processing");
+        return;
+      }
+      setCheckout({ checkout: response.checkout, price: response.price });
+      track("checkout_started", {});
+      router.push("/checkout");
+    } catch (caught) {
+      const apiError = caught instanceof ApiClientError ? caught : undefined;
+      if (apiError) track("checkout_failed", { code: apiError.code });
+      setError(apiError?.message ?? "Something stopped checkout from opening. Try again.");
+      setBusy(false);
+    }
+  }
+
+  return (
+    <OnboardingFrame
+      step="review"
+      onBack={nav.goBack}
+      action={<StepActions continueLabel={busy ? "Opening checkout…" : "Continue to checkout"} busy={busy} onContinue={() => void continueToCheckout()} />}
+    >
+      <div className="px-5 pb-2 pt-6">
+        <StepHeading size="title" tail="Nothing is analyzed until you pay.">
+          Check everything before checkout.
+        </StepHeading>
+
+        <div className="mt-6 flex items-center gap-4 rounded-[20px] bg-raised p-3 shadow-[inset_0_0_0_1px_var(--color-rule)]">
+          {front ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={front.previewUrl} alt="" className="h-16 w-16 flex-none rounded-[14px] object-cover" />
+          ) : null}
+          <div>
+            <p className="flex items-center gap-1.5 text-[16px] font-semibold">
+              <Tick size={16} className="text-positive" /> Front photo ready
+            </p>
+            <p className="text-[13px] text-ink-2">
+              {profiles === 0 ? "No profile photos (optional)" : `${profiles} profile photo${profiles > 1 ? "s" : ""}`} · in this tab only
+            </p>
+          </div>
+        </div>
+
+        <dl className="mt-5">
+          <Row title="Goal" value={labels(GOAL_OPTIONS, state.goals)} href="/onboarding/goals" />
+          <Row title="Focus" value={labels(FOCUS_OPTIONS, state.focusAreas)} href="/onboarding/focus" />
+          <Row
+            title="Pace and budget"
+            value={[labels(TIMELINE_OPTIONS, state.timeline ? [state.timeline] : []), labels(BUDGET_OPTIONS, state.budget ? [state.budget] : [])].filter(Boolean).join(" · ")}
+            href="/onboarding/timeline"
+          />
+          <Row title="Preferences" value={preferenceSummary || "Skipped"} href="/onboarding/skin" />
+          <Row title="Report goes to" value={state.email} href="/onboarding/delivery" />
+        </dl>
+
+        <div className="mt-6 border-t border-rule pt-5">
+          <p className="mono text-ink-2">Included</p>
+          <ul className="mt-3 grid gap-2 text-[15px] leading-[1.4]">
+            <li className="flex gap-2"><Tick size={16} className="mt-0.5 flex-none text-ink-2" />An AI concept portrait from your own front photo</li>
+            <li className="flex gap-2"><Tick size={16} className="mt-0.5 flex-none text-ink-2" />A PDF roadmap: 5 to 8 priorities, a 7, 30 and 90-day plan, every source</li>
+            <li className="flex gap-2"><Tick size={16} className="mt-0.5 flex-none text-ink-2" />Delivered by email. The email is your permanent copy.</li>
+          </ul>
+          <p className="mt-4 flex items-baseline gap-3">
+            <span className="text-[40px] leading-none tracking-[-0.03em] tabular-nums">{formatUsd(DISPLAY_PRICE_USD_CENTS)}</span>
+            <span className="text-[15px] text-ink-2">one-time · no subscription</span>
+          </p>
+          <p className="mt-3 text-[13px] leading-[1.4] text-ink-2">
+            We don&apos;t keep your photos. They stay in this tab until payment, then go to our server and AI providers only to make your report.
+          </p>
+        </div>
+        <InlineError id="review-error">{error}</InlineError>
+      </div>
+    </OnboardingFrame>
+  );
+}

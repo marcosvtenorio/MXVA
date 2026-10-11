@@ -1,1 +1,424 @@
 @import "tailwindcss";
+
+/*
+ * MXVA design tokens — "a portrait studio: a grey seamless backdrop under one softbox".
+ * Source of truth: design/DIRECTION.md. One accent (slate) with one role: selection
+ * and progress. Primary actions are ink pills.
+ */
+@theme {
+  --color-ground: #f4f5f3;
+  --color-raised: #ffffff;
+  --color-ink: #111417;
+  --color-ink-2: #56626b;
+  --color-ink-3: #76818a;
+  --color-rule: #d9dee0;
+  --color-accent: #3f5b6b;
+  --color-on-accent: #ffffff;
+  --color-positive: #2f6a50;
+  --color-negative: #a2392a;
+  --color-btn: #111417;
+  --color-on-btn: #ffffff;
+  --color-wash: #e3e9eb;
+  --color-chip-fill: #edf1f2;
+
+  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-fragment), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --radius-field: 10px;
+  --radius-panel: 26px;
+  --radius-stage: 30px;
+  --ease-spring: linear(0, 0.157, 0.438, 0.66, 0.808, 0.897, 0.948, 0.976, 0.99, 0.997, 1);
+}
+
+/* Dark mode is a second design, not an inversion (DIRECTION.md). */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-ground: #0d1012;
+    --color-raised: #161a1d;
+    --color-ink: #eceff0;
+    --color-ink-2: #a3aeb5;
+    --color-ink-3: #808b92;
+    --color-rule: #262c30;
+    --color-accent: #9cb5c3;
+    --color-on-accent: #0d1012;
+    --color-positive: #7fc4a3;
+    --color-negative: #f08c7c;
+    --color-btn: #eceff0;
+    --color-on-btn: #0d1012;
+    --color-wash: #151a1d;
+    --color-chip-fill: #20262a;
+  }
+}
+
+/* Studio materials (not utility colours: they are the lit seamless). */
+:root {
+  --bd-hi: #dce3e6;
+  --bd: #a9b7be;
+  --bd-lo: #7f909a;
+  --on-image: #111417;
+  --frost: rgba(255, 255, 255, 0.55);
+  --gutter: 20px;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bd-hi: #3b474d;
+    --bd: #242d32;
+    --bd-lo: #161c20;
+    --on-image: #eceff0;
+    --frost: rgba(20, 26, 30, 0.55);
+  }
+}
+
+@layer base {
+  html {
+    background: var(--color-ground);
+    color: var(--color-ink);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    min-height: 100dvh;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--color-accent) 25%, transparent);
+  }
+}
+
+@layer components {
+  .mono {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.3;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .display {
+    font-weight: 400;
+    font-size: 40px;
+    line-height: 1.04;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+  .title-28 {
+    font-weight: 400;
+    font-size: 28px;
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+  .two-tone > span {
+    color: var(--color-ink-2);
+  }
+
+  /* The light falloff at the top of funnel screens: the edge of the seamless. */
+  .washed {
+    background: linear-gradient(180deg, var(--color-wash) 0, var(--color-ground) 300px);
+  }
+
+  /* The lit seamless backdrop (radial softbox highlight, light falloff to the floor). */
+  .stage {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    border-radius: var(--radius-stage);
+    background:
+      radial-gradient(120% 70% at 22% 18%, var(--bd-hi) 0%, transparent 58%),
+      linear-gradient(180deg, var(--bd) 0%, var(--bd-lo) 100%);
+  }
+  .stage-off {
+    background: linear-gradient(180deg, #6f7b81, #556167);
+  }
+  .crop {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border: 0 solid rgb(255 255 255 / 0.8);
+    pointer-events: none;
+  }
+  .crop-tl { top: 16px; left: 16px; border-top-width: 1px; border-left-width: 1px; }
+  .crop-tr { top: 16px; right: 16px; border-top-width: 1px; border-right-width: 1px; }
+  .crop-bl { bottom: 16px; left: 16px; border-bottom-width: 1px; border-left-width: 1px; }
+  .crop-br { bottom: 16px; right: 16px; border-bottom-width: 1px; border-right-width: 1px; }
+  .readouts {
+    position: absolute;
+    right: 30px;
+    top: 30px;
+    display: grid;
+    gap: 6px;
+    text-align: right;
+    color: var(--on-image);
+  }
+  .frost {
+    background: var(--frost);
+    -webkit-backdrop-filter: blur(20px) saturate(1.1);
+    backdrop-filter: blur(20px) saturate(1.1);
+    color: var(--on-image);
+    box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.7);
+  }
+  .capsule {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0 12px;
+    border-radius: 999px;
+  }
+
+  /* Ink pill: the only primary action style. */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 54px;
+    width: 100%;
+    padding: 0 24px;
+    border-radius: 999px;
+    background: var(--color-btn);
+    color: var(--color-on-btn);
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    transition: transform 160ms var(--ease-spring), opacity 160ms;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled, .btn[aria-disabled="true"] { opacity: 0.38; cursor: not-allowed; transform: none; }
+  .btn-secondary {
+    background: var(--color-raised);
+    color: var(--color-ink);
+    box-shadow: inset 0 0 0 1px var(--color-rule);
+  }
+  .btn-arrow {
+    justify-content: space-between;
+    padding: 0 7px 0 24px;
+  }
+  .btn-arrow > .btn-arrow-dot {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--color-on-btn);
+    color: var(--color-btn);
+  }
+  .icon-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: inline-grid;
+    place-items: center;
+    background: var(--color-raised);
+    box-shadow: inset 0 0 0 1px var(--color-rule);
+  }
+  .pill-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 15px;
+    border-radius: 999px;
+    background: var(--color-raised);
+    box-shadow: inset 0 0 0 1px var(--color-rule);
+  }
+
+  /* 16-tick light meter (progress). */
+  .meter {
+    display: grid;
+    grid-template-columns: repeat(16, 1fr);
+    gap: 4px;
+  }
+  .meter > i {
+    height: 6px;
+    border-radius: 2px;
+    background: var(--color-rule);
+  }
+  .meter > i[data-on="true"] {
+    background: var(--color-accent);
+  }
+
+  /* Choice chip (multi-select) and option card (single-select), on native inputs. */
+  .chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 50px;
+    padding: 0 20px;
+    border-radius: 999px;
+    background: var(--color-raised);
+    box-shadow: inset 0 0 0 1px var(--color-rule);
+    font-size: 17px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 160ms, color 160ms, box-shadow 160ms;
+  }
+  .chip:has(input:checked) {
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+    box-shadow: none;
+    padding-left: 16px;
+  }
+  .chip:has(input:disabled) { opacity: 0.45; cursor: not-allowed; }
+  .chip:has(input:focus-visible) { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+  .option {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 60px;
+    padding: 14px 18px;
+    border-radius: 18px;
+    background: var(--color-raised);
+    box-shadow: inset 0 0 0 1px var(--color-rule);
+    cursor: pointer;
+    transition: box-shadow 160ms;
+  }
+  .option:has(input:checked) {
+    box-shadow: inset 0 0 0 2px var(--color-accent);
+  }
+  .option:has(input:focus-visible) { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+  .option .dot {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1.5px var(--color-ink-3);
+    display: grid;
+    place-items: center;
+  }
+  .option:has(input:checked) .dot {
+    background: var(--color-accent);
+    box-shadow: none;
+  }
+  .option:has(input:checked) .dot::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-on-accent);
+  }
+
+  .field {
+    width: 100%;
+    min-height: 50px;
+    padding: 0 14px;
+    border-radius: var(--radius-field);
+    background: var(--color-raised);
+    box-shadow: inset 0 0 0 1px var(--color-rule);
+    font-size: 16px; /* 16px stops iOS zooming into focused inputs */
+    color: var(--color-ink);
+  }
+  .field:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 1px var(--color-accent), 0 0 0 3px color-mix(in srgb, var(--color-accent) 20%, transparent);
+  }
+  .field[aria-invalid="true"] {
+    box-shadow: inset 0 0 0 1.5px var(--color-negative);
+  }
+  .checkbox {
+    appearance: none;
+    flex: none;
+    width: 22px;
+    height: 22px;
+    margin-top: 1px;
+    border-radius: 6px;
+    box-shadow: inset 0 0 0 1.5px var(--color-ink-3);
+    background: var(--color-raised);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+  }
+  .checkbox:checked {
+    background: var(--color-accent);
+    box-shadow: none;
+  }
+  .checkbox:checked::after {
+    content: "";
+    width: 11px;
+    height: 6px;
+    border: solid var(--color-on-accent);
+    border-width: 0 0 2px 2px;
+    transform: translateY(-1px) rotate(-45deg);
+  }
+
+  /* Raised sheet over a full-bleed stage (processing, result). */
+  .sheet {
+    position: relative;
+    margin-top: -28px;
+    border-radius: 28px 28px 0 0;
+    background: var(--color-raised);
+    box-shadow: 0 -8px 30px rgb(17 20 23 / 0.1);
+  }
+  .grabber {
+    width: 36px;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--color-rule);
+    margin: 8px auto 0;
+  }
+  .ev {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 0 8px;
+    border-radius: 6px;
+    background: var(--color-chip-fill);
+    color: var(--color-ink-2);
+  }
+
+  /* Sticky bottom action, clear of the home indicator. */
+  .action-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    padding: 16px var(--gutter) max(16px, calc(env(safe-area-inset-bottom) + 8px));
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-ground) 0%, transparent), var(--color-ground) 28%);
+  }
+}
+
+/* Signature: Key light. */
+@keyframes key-sweep {
+  from { background-position: -60% 0, 0 0; opacity: 0.55; }
+  to { background-position: 0 0, 0 0; opacity: 1; }
+}
+@keyframes resolve {
+  from { filter: blur(10px); opacity: 0; }
+  to { filter: blur(0); opacity: 1; }
+}
+@keyframes settle {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+.key-light-on {
+  animation: key-sweep 650ms var(--ease-spring) both;
+}
+.key-light-on .resolve {
+  animation: resolve 650ms var(--ease-spring) 80ms both;
+}
+.key-light-on .settle > * {
+  animation: settle 260ms var(--ease-spring) both;
+}
+.key-light-on .settle > *:nth-child(1) { animation-delay: 650ms; }
+.key-light-on .settle > *:nth-child(2) { animation-delay: 740ms; }
+.key-light-on .settle > *:nth-child(3) { animation-delay: 830ms; }
+.key-light-on .appear-late {
+  animation: settle 260ms var(--ease-spring) 900ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 200ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0ms !important;
+  }
+  .key-light-on, .key-light-on .resolve { animation-name: none !important; }
+}
