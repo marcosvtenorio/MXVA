@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MXVA — three directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@75..100,400..700&family=Fragment+Mono&family=Mona+Sans:wdth,wght@75..125,200..900&family=Martian+Mono:wdth,wght@75..112.5,100..800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="file:///Users/marcostenorio/.claude/skills/app-designer/assets/device.css">
+<style>
+  /* ───────────── A · Studio (light, slate seamless) ───────────── */
+  .a {
+    --ground: #F4F5F3; --ink: #111417; --ink-2: #5A6670; --ink-3: #7D8891; --rule: #D8DDDF;
+    --accent: #4E6878; --backdrop-hi: #DCE3E6; --backdrop: #A9B7BE; --backdrop-lo: #7F909A;
+    background: var(--ground); color: var(--ink);
+    font-family: "Instrument Sans", var(--sf);
+  }
+  .a .body { position: absolute; inset: var(--safe-top) 0 0; display: flex; flex-direction: column; }
+  .a .bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px 14px; }
+  .a .wordmark { font-weight: 600; font-size: 17px; letter-spacing: 0.14em; }
+  .a .pill-link { font-family: "Fragment Mono", var(--sf-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink); padding: 0 14px; height: 32px; display: inline-flex; align-items: center; border-radius: 999px; border: 1px solid var(--rule); background: #fff; }
+  .a .stage { position: relative; flex: 1; min-height: 0; margin: 0 12px; border-radius: 30px; overflow: hidden;
+    background:
+      radial-gradient(120% 70% at 22% 18%, var(--backdrop-hi) 0%, rgba(220,227,230,0) 58%),
+      linear-gradient(180deg, var(--backdrop) 0%, var(--backdrop-lo) 100%); }
+  .a .stage svg { position: absolute; inset: auto 0 0 0; width: 100%; height: 86%; }
+  .a .crop { position: absolute; width: 18px; height: 18px; border-color: rgba(255,255,255,.75); border-style: solid; border-width: 0; }
+  .a .crop.tl { top: 18px; left: 18px; border-top-width: 1px; border-left-width: 1px; }
+  .a .crop.tr { top: 18px; right: 18px; border-top-width: 1px; border-right-width: 1px; }
+  .a .crop.bl { bottom: 18px; left: 18px; border-bottom-width: 1px; border-left-width: 1px; }
+  .a .crop.br { bottom: 18px; right: 18px; border-bottom-width: 1px; border-right-width: 1px; }
+  .a .tag { position: absolute; left: 22px; bottom: 22px; font-family: "Fragment Mono", var(--sf-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #fff; padding: 7px 11px; border-radius: 999px; --glass: rgba(255,255,255,.18); }
+  .a .meter { position: absolute; right: 22px; top: 24px; display: grid; gap: 6px; font-family: "Fragment Mono", var(--sf-mono); font-size: 11px; color: rgba(255,255,255,.92); text-align: right; letter-spacing: .06em; }
+  .a .copy { padding: 26px 20px 0; }
+  .a h1 { margin: 0; font-weight: 400; font-size: 40px; line-height: 1.04; letter-spacing: -0.035em; text-wrap: balance; }
+  .a h1 span { color: var(--accent); }
+  .a .sub { margin: 14px 0 0; font-size: 16px; line-height: 1.42; color: var(--ink-2); max-width: 330px; }
+  .a .actions { padding: 22px 20px calc(var(--safe-bottom) + 6px); }
+  .a .cta { height: 54px; border-radius: 999px; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 24px; font-size: 17px; font-weight: 500; letter-spacing: -0.01em; }
+  .a .cta i { width: 40px; height: 40px; border-radius: 50%; background: #fff; display: grid; place-items: center; }
+  .a .facts { margin-top: 12px; text-align: center; font-family: "Fragment Mono", var(--sf-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); }
+
+  /* ───────────── B · Darkroom (dark, safelight) ───────────── */
+  .b {
+    --ground: #0F0E0D; --raised: #1B1917; --ink: #F1ECE6; --ink-2: #ADA49B; --ink-3: #847B73; --rule: #2B2826;
+    --accent: #E4572E; --on-accent: #160A06;
+    background: var(--ground); color: var(--ink);
+    font-family: "Mona Sans", var(--sf);
+  }
+  .b .body { position: absolute; inset: var(--safe-top) 0 0; display: flex; flex-direction: column; }
+  .b .glow { position: absolute; top: -120px; right: -140px; width: 420px; height: 420px; border-radius: 50%; background: radial-gradient(closest-side, rgba(228,87,46,.38), rgba(228,87,46,0)); pointer-events: none; }
+  .b .bar { position: relative; display: flex; align-items: baseline; justify-content: space-between; padding: 12px 20px; }
+  .b .wordmark { font-weight: 850; font-stretch: 75%; font-size: 22px; letter-spacing: 0.02em; }
+  .b .frame-no { font-family: "Martian Mono", var(--sf-mono); font-size: 11px; color: var(--ink-2); font-stretch: 87.5%; }
+  .b .strip { position: relative; display: flex; gap: 8px; padding: 6px 20px 0; font-family: "Martian Mono", var(--sf-mono); font-size: 11px; color: var(--ink-3); font-stretch: 87.5%; }
+  .b .strip b { color: var(--accent); font-weight: 500; }
+  .b .tray { position: relative; flex: 1; min-height: 0; margin: 14px 16px 0; border-radius: 22px; background: linear-gradient(180deg, #1C1A18, #141210); box-shadow: inset 0 0 0 1px #262321; overflow: hidden; }
+  .b .print { position: absolute; left: 50%; top: 50%; width: 64%; aspect-ratio: 4/5; transform: translate(-50%, -50%) rotate(-2.4deg); background: #E9E2D8; padding: 10px; box-shadow: 0 18px 40px rgba(0,0,0,.55); }
+  .b .print-inner { position: relative; width: 100%; height: 100%; background: linear-gradient(180deg, #CDBFAF, #B3A291); overflow: hidden; }
+  .b .print-inner svg { position: absolute; inset: auto 0 0 0; width: 100%; height: 88%; }
+  .b .ripple { position: absolute; inset: 0; background: linear-gradient(115deg, rgba(228,87,46,.16), rgba(228,87,46,0) 45%); mix-blend-mode: multiply; }
+  .b .copy { position: relative; padding: 22px 20px 0; }
+  .b h1 { margin: 0; font-weight: 820; font-stretch: 75%; font-size: 50px; line-height: .94; letter-spacing: -0.012em; text-transform: uppercase; }
+  .b h1 span { color: var(--accent); }
+  .b .sub { margin: 14px 0 0; font-family: "Martian Mono", var(--sf-mono); font-stretch: 87.5%; font-size: 13px; line-height: 1.55; color: var(--ink-2); }
+  .b .actions { position: relative; padding: 20px 20px calc(var(--safe-bottom) + 6px); }
+  .b .cta { height: 54px; border-radius: 14px; background: var(--accent); color: var(--on-accent); display: flex; align-items: center; justify-content: center; font-weight: 750; font-stretch: 87.5%; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; }
+  .b .facts { margin-top: 12px; display: flex; justify-content: space-between; font-family: "Martian Mono", var(--sf-mono); font-stretch: 87.5%; font-size: 11px; color: var(--ink-3); }
+
+  /* ───────────── C · Chrome mirror on jade tile (colour field) ───────────── */
+  .c {
+    --ground: #1E5A4B; --tile-line: rgba(255,255,255,.07); --ink: #F3EEE3; --ink-2: rgba(243,238,227,.78); --ink-3: rgba(243,238,227,.6);
+    --accent: #F3EEE3; --on-accent: #173F35;
+    background-color: var(--ground);
+    background-image: linear-gradient(var(--tile-line) 1px, transparent 1px), linear-gradient(90deg, var(--tile-line) 1px, transparent 1px);
+    background-size: 44px 44px; background-position: -1px -1px;
+    color: var(--ink); font-family: var(--sf);
+  }
+  .c .body { position: absolute; inset: var(--safe-top) 0 0; display: flex; flex-direction: column; }
+  .c .bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; }
+  .c .wordmark { font-family: "Instrument Serif", var(--ny); font-size: 26px; letter-spacing: .02em; }
+  .c .menu { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; --glass: rgba(255,255,255,.16); }
+  .c .object { position: relative; flex: 1; min-height: 0; }
+  .c .object svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .c .copy { padding: 4px 22px 0; }
+  .c h1 { margin: 0; font-family: "Instrument Serif", var(--ny); font-weight: 400; font-size: 50px; line-height: .98; letter-spacing: -0.012em; }
+  .c h1 em { font-style: italic; }
+  .c .sub { margin: 14px 0 0; font-size: 16px; line-height: 1.4; color: var(--ink-2); max-width: 320px; }
+  .c .actions { padding: 22px 22px calc(var(--safe-bottom) + 6px); display: flex; align-items: center; gap: 16px; }
+  .c .cta { flex: 1; height: 54px; border-radius: 999px; background: var(--accent); color: var(--on-accent); display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+  .c .price { font-size: 13px; line-height: 1.25; color: var(--ink-2); }
+  .c .price b { display: block; font-family: "Instrument Serif", var(--ny); font-weight: 400; font-size: 26px; color: var(--ink); }
+</style>
+</head>
+<body>
+
+<!-- A · Studio -->
+<section class="screen a" data-name="a-studio" data-time="21:14">
+  <div class="body">
+    <div class="bar">
+      <span class="wordmark">MXVA</span>
+      <span class="pill-link">Sample report</span>
+    </div>
+    <div class="stage">
+      <svg viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+        <defs>
+          <radialGradient id="a-head" cx=".34" cy=".3" r=".78">
+            <stop offset="0" stop-color="#F1F2EF"/><stop offset=".45" stop-color="#CDD2D1"/><stop offset="1" stop-color="#7F8B90"/>
+          </radialGradient>
+          <linearGradient id="a-neck" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#E4E7E4"/><stop offset=".55" stop-color="#B7BEBF"/><stop offset="1" stop-color="#7C878C"/>
+          </linearGradient>
+          <linearGradient id="a-plinth" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#E9ECEA"/><stop offset=".18" stop-color="#C5CBCB"/><stop offset="1" stop-color="#8F9A9E"/>
+          </linearGradient>
+          <radialGradient id="a-cast" cx=".5" cy=".5" r=".5">
+            <stop offset="0" stop-color="#55656E" stop-opacity=".42"/><stop offset="1" stop-color="#55656E" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <ellipse cx="246" cy="196" rx="96" ry="132" fill="url(#a-cast)"/>
+        <ellipse cx="189" cy="334" rx="120" ry="10" fill="#5B6B74" opacity=".35"/>
+        <rect x="129" y="282" width="120" height="52" rx="6" fill="url(#a-plinth)"/>
+        <rect x="166" y="196" width="46" height="92" rx="20" fill="url(#a-neck)"/>
+        <g transform="rotate(-7 189 140)">
+          <ellipse cx="189" cy="140" rx="64" ry="84" fill="url(#a-head)"/>
+          <path d="M243 96c10 20 12 52 2 82" stroke="#F4F6F4" stroke-opacity=".55" stroke-width="2" fill="none" stroke-linecap="round"/>
+        </g>
+      </svg>
+      <i class="crop tl"></i><i class="crop tr"></i><i class="crop bl"></i><i class="crop br"></i>
+      <div class="meter"><span>LIGHT  SOFT · LEFT</span><span>EYE LEVEL</span><span>1 FRONT · 2 OPTIONAL</span></div>
+      <span class="tag glass">Light test · your photo replaces this</span>
+    </div>
+    <div class="copy">
+      <h1>Your face. <span>A realistic next&#8209;step plan.</span></h1>
+      <p class="sub">A personalised looksmaxxing roadmap and an AI concept portrait, built from your own photos.</p>
+    </div>
+    <div class="actions">
+      <div class="cta">Start <i><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111417" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></i></div>
+      <div class="facts">$29 once · PDF by email · photos not kept</div>
+    </div>
+  </div>
+</section>
+
+<!-- B · Darkroom -->
+<section class="screen b" data-name="b-darkroom" data-theme="dark" data-time="21:14">
+  <div class="glow"></div>
+  <div class="body">
+    <div class="bar">
+      <span class="wordmark">MXVA</span>
+      <span class="frame-no">SAMPLE ▸</span>
+    </div>
+    <div class="strip"><span>14</span><span>15</span><b>16 — YOU</b></div>
+    <div class="tray">
+      <div class="print"><div class="print-inner">
+        <svg viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+          <path d="M189 58c-33 0-56 27-56 63 0 26 11 48 28 59l-4 22c-34 8-71 26-87 58-6 12-9 25-10 40h258c-1-15-4-28-10-40-16-32-53-50-87-58l-4-22c17-11 28-33 28-59 0-36-23-63-56-63z" fill="#8E7D6D" opacity=".75"/>
+        </svg>
+        <div class="ripple"></div>
+      </div></div>
+    </div>
+    <div class="copy">
+      <h1>Your face. <span>A realistic next step.</span></h1>
+      <p class="sub">Your photos in, a concept portrait and a 90-day plan out. Developed once, then the negatives are destroyed.</p>
+    </div>
+    <div class="actions">
+      <div class="cta">Start</div>
+      <div class="facts"><span>$29 ONCE</span><span>PDF BY EMAIL</span><span>18+</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- C · Chrome mirror -->
+<section class="screen c" data-name="c-mirror" data-chrome="light" data-time="21:14">
+  <div class="body">
+    <div class="bar">
+      <span class="wordmark">MXVA</span>
+      <span class="menu glass"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F3EEE3" stroke-width="1.8" stroke-linecap="round"><path d="M5 9h14M5 15h14"/></svg></span>
+    </div>
+    <div class="object">
+      <svg viewBox="0 0 402 380" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <defs>
+          <linearGradient id="c-chrome" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#F7F8F6"/><stop offset=".28" stop-color="#9BA3A0"/><stop offset=".5" stop-color="#ECEFED"/><stop offset=".72" stop-color="#7E8885"/><stop offset="1" stop-color="#E4E8E6"/>
+          </linearGradient>
+          <radialGradient id="c-fog" cx=".4" cy=".35" r=".75">
+            <stop offset="0" stop-color="#F2F4F1"/><stop offset="1" stop-color="#C9D1CD"/>
+          </radialGradient>
+          <linearGradient id="c-glass" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#7C9590"/><stop offset="1" stop-color="#3D5751"/>
+          </linearGradient>
+          <clipPath id="c-oval"><ellipse cx="201" cy="168" rx="104" ry="136"/></clipPath>
+          <clipPath id="c-wipe"><path d="M70 200c40-36 140-70 268-74v58c-120 6-220 40-268 74z"/></clipPath>
+        </defs>
+        <g transform="rotate(-8 201 200)">
+          <rect x="187" y="296" width="28" height="78" rx="14" fill="url(#c-chrome)"/>
+          <ellipse cx="201" cy="168" rx="118" ry="150" fill="url(#c-chrome)"/>
+          <ellipse cx="201" cy="168" rx="104" ry="136" fill="url(#c-fog)"/>
+          <g clip-path="url(#c-oval)">
+            <g clip-path="url(#c-wipe)">
+              <rect x="90" y="20" width="230" height="300" fill="url(#c-glass)"/>
+              <path d="M201 92c-24 0-41 20-41 46 0 19 8 35 20 43l-3 16c-25 6-52 19-64 42-4 9-7 18-7 29h190c0-11-3-20-7-29-12-23-39-36-64-42l-3-16c12-8 20-24 20-43 0-26-17-46-41-46z" fill="#2E4741"/>
+            </g>
+          </g>
+          <ellipse cx="160" cy="92" rx="34" ry="12" fill="#fff" opacity=".35" transform="rotate(-30 160 92)"/>
+        </g>
+      </svg>
+    </div>
+    <div class="copy">
+      <h1>Your face. A realistic <em>next step.</em></h1>
+      <p class="sub">A personalised looksmaxxing roadmap and an AI concept portrait, from your own photos.</p>
+    </div>
+    <div class="actions">
+      <div class="cta">Start</div>
+      <div class="price"><b>$29</b>once, by email</div>
+    </div>
+  </div>
+</section>
+
+<script src="file:///Users/marcostenorio/.claude/skills/app-designer/assets/device.js"></script>
+</body>
+</html>
