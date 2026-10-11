@@ -11,21 +11,27 @@
   :root {
     --ground: #F4F5F3; --raised: #FFFFFF; --ink: #111417; --ink-2: #56626B; --ink-3: #76818A; --rule: #D9DEE0;
     --accent: #3F5B6B; --on-accent: #FFFFFF; --positive: #2F6A50; --negative: #A2392A;
-    --bd-hi: #DCE3E6; --bd: #A9B7BE; --bd-lo: #7F909A;
+    --bd-hi: #DCE3E6; --bd: #A9B7BE; --bd-lo: #7F909A; --wash: #E3E9EB;
     --btn: #111417; --on-btn: #FFFFFF;
+    --on-image: #111417; --frost: rgba(255,255,255,.55);
     --sans: "Instrument Sans", var(--sf); --mono: "Fragment Mono", var(--sf-mono);
-    --spring: linear(0, 0.157, 0.438, 0.66, 0.808, 0.897, 0.948, 0.976, 0.99, 0.997, 1);
   }
   .screen[data-theme="dark"] {
     --ground: #0D1012; --raised: #161A1D; --ink: #ECEFF0; --ink-2: #A3AEB5; --ink-3: #808B92; --rule: #262C30;
     --accent: #9CB5C3; --on-accent: #0D1012; --positive: #7FC4A3; --negative: #F08C7C;
-    --bd-hi: #3B474D; --bd: #242D32; --bd-lo: #161C20; --btn: #ECEFF0; --on-btn: #0D1012;
-    --glass-dark: rgba(30,36,40,.6);
+    --bd-hi: #3B474D; --bd: #242D32; --bd-lo: #161C20; --wash: #151A1D; --btn: #ECEFF0; --on-btn: #0D1012;
+    --on-image: #ECEFF0; --frost: rgba(20,26,30,.55);
     background: var(--ground); color: var(--ink);
   }
   .screen { background: var(--ground); color: var(--ink); font-family: var(--sans); }
+  /* The edge of the seamless: a light falloff at the top of funnel screens. */
+  .screen.washed { background: linear-gradient(180deg, var(--wash) 0, var(--ground) 300px); }
   .body { position: absolute; inset: var(--safe-top) 0 0; display: flex; flex-direction: column; }
   .mono { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+  .spacer { flex: 1; min-height: 0; }
+
+  /* Frost pills over imagery: ink text on white frost (light), light text on dark frost (dark). */
+  .frost { background: var(--frost); -webkit-backdrop-filter: blur(20px) saturate(1.1); backdrop-filter: blur(20px) saturate(1.1); color: var(--on-image); box-shadow: inset 0 0.5px 0 rgba(255,255,255,.7); }
 
   /* Bars */
   .bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px 14px; min-height: 64px; }
@@ -40,26 +46,27 @@
   .meter-ticks { display: grid; grid-template-columns: repeat(16, 1fr); gap: 4px; margin-top: 14px; }
   .meter-ticks i { height: 6px; border-radius: 2px; background: var(--rule); }
   .meter-ticks i.on { background: var(--accent); }
-  .step-title { margin: 26px 20px 0; font-weight: 400; font-size: 28px; line-height: 1.1; letter-spacing: -0.025em; text-wrap: balance; }
-  .step-desc { margin: 10px 20px 0; font-size: 15px; line-height: 1.4; color: var(--ink-2); }
+  .q { margin: 26px 20px 0; font-weight: 400; font-size: 40px; line-height: 1.04; letter-spacing: -0.035em; text-wrap: balance; }
+  .q span, .display span, .h28 span { color: var(--ink-2); }
+  .h28 { margin: 0; font-weight: 400; font-size: 28px; line-height: 1.1; letter-spacing: -0.025em; text-wrap: balance; }
 
   /* Stage (the lit seamless) */
-  .stage { position: relative; border-radius: 30px; overflow: hidden;
+  .stage { position: relative; overflow: hidden; border-radius: 30px;
     background: radial-gradient(120% 70% at 22% 18%, var(--bd-hi) 0%, transparent 58%), linear-gradient(180deg, var(--bd) 0%, var(--bd-lo) 100%); }
   .stage > svg.head { position: absolute; inset: auto 0 0 0; width: 100%; height: 88%; }
-  .crop { position: absolute; width: 18px; height: 18px; border: 0 solid rgba(255,255,255,.75); }
+  .crop { position: absolute; width: 18px; height: 18px; border: 0 solid rgba(255,255,255,.8); }
   .crop.tl { top: 16px; left: 16px; border-top-width: 1px; border-left-width: 1px; }
   .crop.tr { top: 16px; right: 16px; border-top-width: 1px; border-right-width: 1px; }
   .crop.bl { bottom: 16px; left: 16px; border-bottom-width: 1px; border-left-width: 1px; }
   .crop.br { bottom: 16px; right: 16px; border-bottom-width: 1px; border-right-width: 1px; }
-  .readouts { position: absolute; right: 20px; top: 22px; display: grid; gap: 6px; text-align: right; color: #fff; }
+  .readouts { position: absolute; right: 30px; top: 30px; display: grid; gap: 6px; text-align: right; color: var(--on-image); }
   .readouts span { display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; }
-  .tag { position: absolute; left: 20px; top: 20px; color: #fff; height: 30px; padding: 0 12px; display: inline-flex; align-items: center; border-radius: 999px; --glass: rgba(255,255,255,.2); }
-  .stage .glass { box-shadow: inset 0 0.5px 0 rgba(255,255,255,.6), inset 0 0 0 0.5px rgba(255,255,255,.25); }
+  .readouts .ok { color: var(--positive); }
+  .capsule { height: 30px; padding: 0 12px; display: inline-flex; align-items: center; border-radius: 999px; }
 
   /* Actions */
   .actions { padding: 16px 20px calc(var(--safe-bottom) + 8px); }
-  .cta { height: 54px; border-radius: 999px; background: var(--btn); color: var(--on-btn); display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 600; letter-spacing: -0.005em; }
+  .cta { height: 54px; border-radius: 999px; background: var(--btn); color: var(--on-btn); display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 17px; font-weight: 600; letter-spacing: -0.005em; }
   .cta.arrow { justify-content: space-between; padding: 0 7px 0 24px; }
   .cta.arrow i { width: 40px; height: 40px; border-radius: 50%; background: var(--on-btn); display: grid; place-items: center; }
   .cta.arrow i svg { stroke: var(--btn); }
@@ -67,103 +74,123 @@
 
   /* ───── 1 · Landing ───── */
   .landing .stage { flex: 1; min-height: 0; margin: 0 12px; }
-  .landing .tag { top: auto; bottom: 20px; }
+  .landing .stage .capsule { position: absolute; left: 16px; bottom: 48px; }
   .landing .copy { padding: 26px 20px 0; }
   .display { margin: 0; font-weight: 400; font-size: 40px; line-height: 1.04; letter-spacing: -0.035em; text-wrap: balance; }
-  .display span { color: var(--ink-2); }
   .landing .sub { margin: 14px 0 0; font-size: 17px; line-height: 1.38; color: var(--ink-2); max-width: 330px; }
-  @container (max-height: 700px) { .screen.landing .sub { display: none; } }
+  @container (max-height: 700px) { .screen.landing .sub { display: none; } .screen.landing .readouts span:nth-child(3) { display: none; } }
 
   /* ───── 2 · Focus step ───── */
-  .chips { display: flex; flex-wrap: wrap; gap: 10px; padding: 28px 20px 0; }
-  .chip { height: 48px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--rule); background: var(--raised); display: inline-flex; align-items: center; gap: 10px; font-size: 17px; }
-  .chip.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-  .chip .box { width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid var(--ink-3); display: grid; place-items: center; }
-  .chip.on .box { background: var(--accent); border-color: var(--accent); }
-  .counter { padding: 18px 20px 0; color: var(--ink-2); }
-  .spacer { flex: 1; }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; padding: 0 20px; }
+  .chip { height: 50px; padding: 0 20px; border-radius: 999px; border: 1px solid var(--rule); background: var(--raised); display: inline-flex; align-items: center; gap: 8px; font-size: 17px; }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); padding-left: 16px; }
+  .counter { padding: 16px 20px 0; color: var(--ink-2); display: flex; justify-content: space-between; }
 
   /* ───── 3 · Photos step ───── */
-  .photos .front { position: relative; height: 330px; margin: 22px 20px 0; border-radius: 24px; }
-  @container (max-height: 700px) { .screen.photos .front { height: 220px; } .screen.photos .step-desc { display: none; } }
-  .retake { position: absolute; right: 14px; bottom: 14px; height: 36px; padding: 0 14px; border-radius: 999px; display: inline-flex; align-items: center; gap: 8px; color: #fff; font-size: 15px; font-weight: 600; --glass: rgba(255,255,255,.22); }
+  .photos .lead { margin: 10px 20px 0; font-size: 15px; color: var(--ink-2); }
+  .photos .front { height: 318px; margin: 20px 20px 0; border-radius: 26px; }
+  .photos .front > svg.head { height: 74%; }
+  .photos .front .capsule { position: absolute; bottom: 16px; }
+  @container (max-height: 700px) {
+    .screen.photos .front { height: auto; flex: 1; min-height: 236px; }
+    .screen.photos .profiles { display: none; }
+    .screen.photos .profile-caps { display: flex; }
+    .screen.photos .fine { display: none; }
+    .screen.photos .lead { display: none; }
+  }
+  .profile-caps { display: none; gap: 10px; margin: 10px 20px 0; }
+  .profile-caps span { height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--rule); background: var(--raised); display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; }
   .profiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 20px 0; }
-  .slot { height: 76px; border-radius: 16px; border: 1px dashed var(--ink-3); display: flex; align-items: center; justify-content: space-between; padding: 0 14px; }
-  .slot b { display: block; font-weight: 600; font-size: 15px; }
-  .slot small { font-size: 13px; color: var(--ink-2); }
-  .slot .add { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--rule); display: grid; place-items: center; background: var(--raised); }
+  .tile { position: relative; height: 112px; border-radius: 20px; }
+  .tile > svg.head { opacity: .35; height: 92%; }
+  .tile .plus { position: absolute; right: 10px; bottom: 10px; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; }
+  .tile .lbl { position: absolute; left: 12px; top: 10px; color: var(--on-image); }
   .check { display: flex; gap: 12px; align-items: flex-start; margin: 18px 20px 0; font-size: 15px; line-height: 1.4; }
   .check .box { flex: none; width: 22px; height: 22px; border-radius: 6px; background: var(--accent); display: grid; place-items: center; margin-top: 1px; }
-  .notice { display: flex; gap: 8px; align-items: center; margin: 12px 20px 0; color: var(--ink-2); font-size: 13px; }
+  .fine { margin: 10px 20px 0; font-size: 13px; line-height: 1.38; color: var(--ink-2); }
+  .fine u { text-underline-offset: 2px; }
 
   /* ───── 4 · Checkout ───── */
-  .checkout .title { margin: 14px 20px 0; font-weight: 400; font-size: 28px; line-height: 1.1; letter-spacing: -0.025em; }
-  .included { list-style: none; margin: 18px 20px 0; padding: 0; }
-  .included li { display: grid; grid-template-columns: 30px 1fr; gap: 2px 6px; padding: 9px 0; border-top: 1px solid var(--rule); }
-  .included li:last-child { border-bottom: 1px solid var(--rule); }
-  .included .n { grid-column: 1; grid-row: 1 / span 2; color: var(--ink-2); padding-top: 3px; }
-  .included b { grid-column: 2; font-weight: 600; font-size: 15px; }
-  .included .d { grid-column: 2; font-size: 13px; line-height: 1.35; color: var(--ink-2); }
-  .price { display: flex; align-items: flex-end; gap: 12px; margin: 16px 20px 0; }
-  .price .fig { font-size: 56px; line-height: .9; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
-  .price .what { font-size: 15px; line-height: 1.3; color: var(--ink-2); padding-bottom: 4px; }
-  .pay { margin: 14px 20px 0; display: grid; gap: 8px; }
-  .field { height: 46px; border-radius: 10px; border: 1px solid var(--rule); background: var(--raised); display: flex; align-items: center; justify-content: space-between; padding: 0 14px; font-size: 16px; color: var(--ink); font-variant-numeric: tabular-nums; }
-  .field.ph { color: var(--ink-2); }
-  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .disclose { margin: 12px 20px 0; font-size: 13px; line-height: 1.38; color: var(--ink-2); }
-  .links { display: flex; justify-content: center; gap: 22px; margin-top: 10px; color: var(--ink-2); }
-  .checkout .actions { padding-top: 12px; }
-  @container (max-height: 700px) { .screen.checkout .included span { display: none; } .screen.checkout .disclose { display: none; } }
+  .checkout .head { margin: 16px 20px 0; }
+  .deliver { height: 196px; margin: 18px 20px 0; border-radius: 26px; }
+  .deliver .page { position: absolute; right: 26px; top: 26px; width: 112px; height: 148px; background: #FBFBFA; border-radius: 4px; transform: rotate(3deg); box-shadow: 0 10px 24px rgba(40,55,62,.28); padding: 12px 10px; display: grid; align-content: start; gap: 5px; }
+  .deliver .page i { display: block; height: 4px; border-radius: 2px; background: #D3D9DB; }
+  .deliver .page .thumb { height: 52px; border-radius: 3px; margin-bottom: 4px; overflow: hidden; background: radial-gradient(80% 70% at 25% 20%, #DCE3E6, transparent 60%), linear-gradient(180deg, #A9B7BE, #7F909A); }
+  .deliver .price { position: absolute; left: 22px; bottom: 20px; color: var(--on-image); }
+  .deliver .fig { display: block; font-size: 56px; line-height: .9; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; margin-bottom: 8px; }
+  .deliver .capsule { position: absolute; left: 16px; top: 16px; }
+  .incl { list-style: none; margin: 16px 20px 0; padding: 0; display: grid; gap: 9px; }
+  .incl li { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; line-height: 1.35; }
+  .incl svg { flex: none; margin-top: 2px; color: var(--ink-2); }
+  .wallet { margin: 20px 20px 0; height: 50px; border-radius: 999px; background: #000; color: #fff; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 18px; font-weight: 600; font-family: var(--sf); letter-spacing: -0.01em; }
+  .or { margin: 14px 20px 0; display: flex; align-items: center; gap: 12px; color: var(--ink-2); }
+  .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+  .form { margin: 12px 20px 0; display: grid; gap: 12px; }
+  .lab { display: grid; gap: 6px; font-size: 13px; color: var(--ink-2); }
+  .field { height: 48px; border-radius: 10px; border: 1px solid var(--rule); background: var(--raised); display: flex; align-items: center; justify-content: space-between; padding: 0 14px; font-size: 16px; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .field.focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(63,91,107,.18); }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .disclose { margin: 16px 20px 0; font-size: 13px; line-height: 1.4; color: var(--ink-2); }
+  .links { display: flex; justify-content: center; gap: 22px; margin-top: 12px; color: var(--ink-2); }
 
-  /* ───── 5 · Processing ───── */
-  .processing .status { margin: 26px 20px 0; }
-  .phases { list-style: none; padding: 0; margin: 30px 20px 0; }
-  .phases li { display: grid; grid-template-columns: 36px 1fr auto; align-items: center; min-height: 52px; border-top: 1px solid var(--rule); font-size: 17px; }
-  .phases li:last-child { border-bottom: 1px solid var(--rule); }
-  .phases .n { color: var(--ink-2); }
-  .phases li.todo { color: var(--ink-2); }
-  .phases li.active { position: relative; }
-  .phases li.active::after { content: ""; position: absolute; left: 36px; right: 0; bottom: -1px; height: 2px; background: linear-gradient(90deg, var(--accent) 55%, transparent 55%); }
-  .phases .state { color: var(--ink-2); }
-  .phases .done { color: var(--positive); }
-  .mini-stage { height: 168px; margin: 22px 20px 0; filter: saturate(.9); }
-  .guide { margin: 20px 20px 0; font-size: 15px; color: var(--ink-2); }
+  /* ───── 5 · Processing (the studio before the light) ───── */
+  .processing .stage { flex: 1; min-height: 0; margin: 0 12px; filter: none; }
+  .processing .dim { position: absolute; inset: 0; background: rgba(24,32,37,.46); }
+  .processing .stage > svg.head { filter: brightness(.62) saturate(.8); }
+  .phase-list { position: absolute; left: 22px; right: 22px; bottom: 22px; display: grid; gap: 9px; color: #EEF2F3; }
+  .phase-list li { list-style: none; display: grid; grid-template-columns: 30px 1fr auto; align-items: center; }
+  .phase-list .todo { color: rgba(238,242,243,.62); }
+  .phase-list .now b { font-weight: 400; }
+  .phase-list .bar-now { grid-column: 2 / 4; height: 2px; margin-top: 7px; background: linear-gradient(90deg, #EEF2F3 48%, rgba(238,242,243,.25) 48%); }
+  .processing .copy { padding: 22px 20px 0; }
+  .processing .guide { margin: 10px 0 0; font-size: 15px; color: var(--ink-2); }
+
+  /* ───── 5 · Processing on the result layout ───── */
+  .steps { list-style: none; padding: 0; margin: 16px 20px 0; display: grid; gap: 4px; }
+  .steps li { position: relative; display: grid; grid-template-columns: 30px 1fr auto; align-items: center; height: 34px; padding: 0 10px; border-radius: 8px; color: var(--ink-2); }
+  .steps li.done { color: var(--ink); }
+  .steps li.done svg { color: var(--positive); }
+  .steps li.now { color: var(--on-accent); background: var(--accent); }
+  .guide2 { margin: 0 0 4px; font-size: 15px; line-height: 1.4; color: var(--ink-2); text-align: center; }
 
   /* ───── 6 · Result ───── */
-  .result .disclosure { margin: 2px 20px 0; height: 30px; display: inline-flex; align-items: center; align-self: flex-start; padding: 0 12px; border-radius: 999px; border: 1px solid var(--rule); color: var(--ink-2); }
-  .result .stage { height: 318px; margin: 12px 12px 0; flex: none; }
-  .compare { position: absolute; inset: 0; }
-  .compare .today { position: absolute; inset: 0; clip-path: inset(0 50% 0 0); filter: grayscale(.25) brightness(.86); }
-  .compare .line { position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: rgba(255,255,255,.85); }
-  .compare .handle { position: absolute; top: 50%; left: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; display: grid; place-items: center; --glass: rgba(255,255,255,.35); }
-  .seg { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; padding: 4px; border-radius: 999px; color: #fff; --glass: rgba(255,255,255,.22); }
-  .seg span { height: 30px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: 999px; }
-  .seg span.on { background: rgba(255,255,255,.9); color: #111417; }
-  .result h2 { margin: 18px 20px 0; font-weight: 400; font-size: 28px; line-height: 1.1; letter-spacing: -0.025em; }
-  .result .meta { margin: 8px 20px 0; color: var(--ink-2); }
-  .top3 { list-style: none; padding: 0; margin: 16px 20px 0; }
-  .top3 li { display: grid; grid-template-columns: 26px 1fr; gap: 2px 4px; padding: 9px 0; border-top: 1px solid var(--rule); }
-  .top3 .n { grid-column: 1; grid-row: 1 / span 2; color: var(--ink-2); padding-top: 3px; }
-  .top3 b { grid-column: 2; font-weight: 600; font-size: 16px; line-height: 1.3; }
-  .top3 .tags { grid-column: 2; color: var(--ink-2); }
-  .result .actions { padding-top: 14px; }
-  .sent { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; font-size: 13px; color: var(--ink-2); }
-  @container (max-height: 700px) { .screen.result .stage { height: 220px; } .screen.result .top3 li:nth-child(3) { display: none; } }
+  .result .hero { position: absolute; left: 0; right: 0; top: 0; height: 60%; border-radius: 0; }
+  .result .hero .head-wrap { position: absolute; inset: 0; }
+  .result .hero .today { position: absolute; inset: 0; clip-path: inset(0 50% 0 0);
+    background: linear-gradient(180deg, #A3ADB2 0%, #8A969C 100%); }
+  .result .hero .today svg.head { filter: contrast(.82) brightness(.9) saturate(.85); }
+  .result .split { position: absolute; top: calc(var(--safe-top) + 46px); bottom: 0; left: 50%; width: 1px; background: rgba(255,255,255,.9); }
+  .result .handle { position: absolute; top: 56%; left: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; display: grid; place-items: center; }
+  .result .tl-cap { position: absolute; left: 16px; bottom: 44px; }
+  .result .tr-cap { position: absolute; right: 16px; bottom: 44px; }
+  .result .topbar { position: absolute; left: 0; right: 0; top: var(--safe-top); display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; }
+  .result .readouts { top: calc(var(--safe-top) + 60px); }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; top: calc(60% - 28px); background: var(--raised); border-radius: 28px 28px 0 0; box-shadow: 0 -8px 30px rgba(17,20,23,.10); display: flex; flex-direction: column; }
+  .grabber { width: 36px; height: 5px; border-radius: 3px; background: var(--rule); margin: 8px auto 0; }
+  .sheet .h28 { margin: 14px 20px 0; }
+  .sheet .meta { margin: 6px 20px 0; color: var(--ink-2); }
+  .rows { list-style: none; padding: 0; margin: 14px 20px 0; display: grid; gap: 12px; }
+  .rows li { display: grid; gap: 5px; }
+  .rows .ev { justify-self: start; height: 22px; padding: 0 8px; border-radius: 6px; display: inline-flex; align-items: center; background: #EDF1F2; color: var(--ink-2); }
+  .rows b { font-weight: 600; font-size: 16px; line-height: 1.3; }
+  .sheet .actions { padding-top: 12px; position: relative; background: var(--raised); }
+  .sheet .actions.fade-top::before { content: ""; position: absolute; left: 0; right: 0; top: -24px; height: 24px; background: linear-gradient(180deg, rgba(255,255,255,0), var(--raised)); }
+  .sheet .rows { overflow: hidden; }
+  .result .sent { padding-bottom: 12px; }
+  .disc-short { display: none; }
+  @container (max-height: 700px) { .screen.result .disc-full { display: none; } .screen.result .disc-short { display: inline-flex; } .screen.result .rows li:nth-child(n+2) { display: none; } }
+  .sent { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; font-size: 13px; color: var(--ink-2); }
 
   /* ───── 7 · Signature storyboard ───── */
-  .board { background: #E6E9E8; display: flex; flex-direction: column; justify-content: center; gap: 18px; padding: 28px 20px; }
+  .board { background: #E6E9E8; display: flex; flex-direction: column; gap: 14px; padding: 30px 20px; }
   .board h3 { margin: 0; font-weight: 400; font-size: 28px; letter-spacing: -0.025em; color: #111417; }
   .board p { margin: 0; font-size: 13px; color: #56626B; line-height: 1.4; }
-  .frames { display: grid; grid-template-columns: repeat(2, max-content); justify-content: center; gap: 12px 16px; }
+  .frames { display: grid; grid-template-columns: repeat(2, max-content); justify-content: center; gap: 12px 16px; margin-top: 4px; }
   .frame { display: flex; flex-direction: column; gap: 6px; }
   .frame .cap { color: #56626B; }
-  .mini-screen.res { background: var(--ground); font-family: var(--sans); }
-  .mini-screen .stage { position: absolute; left: 12px; right: 12px; top: 120px; height: 520px; }
-  .mini-screen .lbl { position: absolute; left: 20px; top: 74px; font-family: var(--mono); font-size: 22px; letter-spacing: .06em; color: #56626B; }
-  .dim { filter: brightness(.55) saturate(.8); }
-  .sweep { position: absolute; inset: 0; background: radial-gradient(60% 50% at var(--x, 22%) 26%, rgba(236,241,243,.85), transparent 70%); }
-  .blurred { filter: blur(10px); opacity: .5; }
+  .mini-screen.res { background: #FFFFFF; font-family: var(--sans); }
+  .sweep { position: absolute; inset: 0; background: radial-gradient(55% 45% at var(--x, 22%) 24%, rgba(236,241,243,.9), transparent 70%); }
+  .soft { filter: blur(10px); opacity: .55; }
 
   /* ───── Icon ───── */
   .app-icon.mx { background: radial-gradient(90% 80% at 24% 18%, #DCE3E6 0%, transparent 60%), linear-gradient(180deg, #A9B7BE, #6F818B); }
@@ -172,34 +199,50 @@
 </head>
 <body>
 
-<!-- Shared art: the plaster light-test head on its plinth -->
+<!-- Shared art -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <radialGradient id="g-head" cx=".34" cy=".3" r=".78">
-      <stop offset="0" stop-color="#F1F2EF"/><stop offset=".45" stop-color="#CDD2D1"/><stop offset="1" stop-color="#7F8B90"/>
+    <radialGradient id="g-head" cx=".36" cy=".3" r=".8">
+      <stop offset="0" stop-color="#F2F3F0"/><stop offset=".5" stop-color="#D3D8D6"/><stop offset="1" stop-color="#9AA5A9"/>
+    </radialGradient>
+    <radialGradient id="g-term" cx=".3" cy=".26" r=".95">
+      <stop offset="0" stop-color="#8E9AA0" stop-opacity="0"/><stop offset=".58" stop-color="#8E9AA0" stop-opacity="0"/><stop offset=".86" stop-color="#8E9AA0" stop-opacity=".75"/><stop offset="1" stop-color="#7E8A90" stop-opacity=".95"/>
     </radialGradient>
     <linearGradient id="g-neck" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#E4E7E4"/><stop offset=".55" stop-color="#B7BEBF"/><stop offset="1" stop-color="#7C878C"/>
+      <stop offset="0" stop-color="#E4E7E4"/><stop offset=".55" stop-color="#BAC1C2"/><stop offset="1" stop-color="#848F94"/>
     </linearGradient>
     <linearGradient id="g-plinth" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#E9ECEA"/><stop offset=".18" stop-color="#C5CBCB"/><stop offset="1" stop-color="#8F9A9E"/>
+      <stop offset="0" stop-color="#E9ECEA"/><stop offset=".16" stop-color="#C7CDCD"/><stop offset="1" stop-color="#919CA0"/>
     </linearGradient>
     <radialGradient id="g-cast" cx=".5" cy=".5" r=".5">
       <stop offset="0" stop-color="#55656E" stop-opacity=".42"/><stop offset="1" stop-color="#55656E" stop-opacity="0"/>
     </radialGradient>
+    <filter id="f-soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+    <!-- Front: a matte plaster light-test head, keyed from the left -->
     <symbol id="head" viewBox="0 0 378 340">
-      <ellipse cx="246" cy="196" rx="96" ry="132" fill="url(#g-cast)"/>
-      <ellipse cx="189" cy="334" rx="120" ry="10" fill="#5B6B74" opacity=".32"/>
+      <ellipse cx="248" cy="196" rx="96" ry="132" fill="url(#g-cast)"/>
+      <ellipse cx="189" cy="334" rx="120" ry="10" fill="#5B6B74" opacity=".3"/>
       <rect x="129" y="282" width="120" height="52" rx="6" fill="url(#g-plinth)"/>
-      <rect x="166" y="196" width="46" height="92" rx="20" fill="url(#g-neck)"/>
-      <g transform="rotate(-7 189 140)">
-        <ellipse cx="189" cy="140" rx="64" ry="84" fill="url(#g-head)"/>
-        <path d="M244 100c8 18 10 46 2 72" stroke="#F4F6F4" stroke-opacity=".35" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <ellipse cx="190" cy="284" rx="34" ry="6" fill="#6A777D" opacity=".55" filter="url(#f-soft)"/>
+      <rect x="167" y="200" width="44" height="88" rx="19" fill="url(#g-neck)"/>
+      <ellipse cx="192" cy="210" rx="26" ry="8" fill="#6A777D" opacity=".6" filter="url(#f-soft)"/>
+      <g transform="rotate(-6 189 140)">
+        <path d="M189 54C229 54 255 90 254 133C253 172 233 204 205 219C197 224 181 224 173 219C145 204 125 172 124 133C123 90 149 54 189 54Z" fill="url(#g-head)"/>
+        <path d="M189 54C229 54 255 90 254 133C253 172 233 204 205 219C197 224 181 224 173 219C145 204 125 172 124 133C123 90 149 54 189 54Z" fill="url(#g-term)"/>
       </g>
+    </symbol>
+    <!-- Profile hint for the optional side photos -->
+    <symbol id="head-side" viewBox="0 0 378 340">
+      <rect x="139" y="282" width="100" height="52" rx="6" fill="url(#g-plinth)"/>
+      <rect x="170" y="204" width="40" height="84" rx="18" fill="url(#g-neck)"/>
+      <path d="M200 58C240 58 262 94 260 136C258 174 240 204 214 218C204 223 190 223 182 217L176 196C171 193 169 187 172 183L166 170C162 166 164 160 169 158L160 139C154 94 166 58 200 58Z" fill="url(#g-head)"/>
     </symbol>
     <symbol id="tick" viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="apple" viewBox="0 0 24 24"><path fill="currentColor" d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.6s-2.5-1-2.5-3.8zM14.1 5.8c.6-.8 1.1-1.8 1-2.9-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.7-1 2.8 1 .1 2.1-.5 2.7-1.3z"/></symbol>
   </defs>
 </svg>
 
@@ -211,7 +254,7 @@
       <svg class="head" viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet"><use href="#head"/></svg>
       <i class="crop tl"></i><i class="crop tr"></i><i class="crop bl"></i><i class="crop br"></i>
       <div class="readouts mono"><span>Light soft · left</span><span>Eye level</span><span>1 front · 2 optional</span></div>
-      <span class="tag glass mono">Light test · your photo replaces this</span>
+      <span class="capsule frost mono">Light test · your photo replaces this</span>
     </div>
     <div class="copy">
       <h1 class="display">Your face. <span>A realistic next&#8209;step plan.</span></h1>
@@ -225,7 +268,7 @@
 </section>
 
 <!-- 2 · Step 03 Focus -->
-<section class="screen focus" data-name="step-focus" data-time="21:15" style="container-type:size">
+<section class="screen focus washed" data-name="step-focus" data-time="21:15" style="container-type:size">
   <div class="body">
     <div class="stephead">
       <div class="row">
@@ -235,25 +278,24 @@
       </div>
       <div class="meter-ticks"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     </div>
-    <h1 class="step-title">Which areas should your plan cover?</h1>
-    <p class="step-desc">Choose 1 to 4. Your plan puts these first.</p>
-    <div class="chips">
-      <span class="chip on"><span class="box"><svg width="14" height="14" style="color:#fff"><use href="#tick"/></svg></span>Skin</span>
-      <span class="chip on"><span class="box"><svg width="14" height="14" style="color:#fff"><use href="#tick"/></svg></span>Brows</span>
-      <span class="chip"><span class="box"></span>Eye area</span>
-      <span class="chip"><span class="box"></span>Hair</span>
-      <span class="chip"><span class="box"></span>Facial hair</span>
-      <span class="chip"><span class="box"></span>Smile</span>
-      <span class="chip"><span class="box"></span>Jawline presentation</span>
-    </div>
-    <div class="counter mono">2 of 4 chosen</div>
     <div class="spacer"></div>
-    <div class="actions"><div class="cta">Continue</div></div>
+    <h1 class="q" style="margin-bottom:24px">Which areas should your plan cover? <span>Pick up to four.</span></h1>
+    <div class="chips">
+      <span class="chip on"><svg width="16" height="16"><use href="#tick"/></svg>Skin</span>
+      <span class="chip on"><svg width="16" height="16"><use href="#tick"/></svg>Brows</span>
+      <span class="chip">Eye area</span>
+      <span class="chip">Hair</span>
+      <span class="chip">Facial hair</span>
+      <span class="chip">Smile</span>
+      <span class="chip">Jawline presentation</span>
+    </div>
+    <div class="counter mono"><span>2 of 4 chosen</span><span>Your plan puts these first</span></div>
+    <div class="actions" style="padding-top:24px"><div class="cta">Continue</div></div>
   </div>
 </section>
 
 <!-- 3 · Step 14 Photos -->
-<section class="screen photos" data-name="step-photos" data-time="21:17" style="container-type:size">
+<section class="screen photos washed" data-name="step-photos" data-time="21:17" style="container-type:size">
   <div class="body">
     <div class="stephead">
       <div class="row">
@@ -263,135 +305,160 @@
       </div>
       <div class="meter-ticks"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div>
     </div>
-    <h1 class="step-title">Add your photos</h1>
-    <p class="step-desc">Used temporarily to create your report and not saved in our photo database. AI and email services handle data as our Privacy Policy explains.</p>
+    <h1 class="h28" style="margin:24px 20px 0">Add your photos</h1>
+    <p class="lead">Used temporarily to create your report.</p>
     <div class="stage front">
       <svg class="head" viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet"><use href="#head"/></svg>
       <i class="crop tl"></i><i class="crop tr"></i>
       <div class="readouts mono">
-        <span>Light · ok <svg width="13" height="13"><use href="#tick"/></svg></span>
-        <span>Focus · sharp <svg width="13" height="13"><use href="#tick"/></svg></span>
-        <span>Framing · centered <svg width="13" height="13"><use href="#tick"/></svg></span>
+        <span>Light · ok <svg class="ok" width="13" height="13"><use href="#tick"/></svg></span>
+        <span>Focus · sharp <svg class="ok" width="13" height="13"><use href="#tick"/></svg></span>
+        <span>Framing · centered <svg class="ok" width="13" height="13"><use href="#tick"/></svg></span>
       </div>
-      <span class="tag glass mono" style="top:auto;bottom:17px;left:16px">Front</span>
-      <span class="retake glass">Retake</span>
+      <span class="capsule frost mono" style="left:16px">Front</span>
+      <span class="capsule frost" style="right:16px;font-size:15px;font-weight:600;height:36px;padding:0 16px">Retake</span>
     </div>
     <div class="profiles">
-      <div class="slot"><div><b>Left profile</b><small>Optional</small></div><span class="add"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></div>
-      <div class="slot"><div><b>Right profile</b><small>Optional</small></div><span class="add"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></div>
+      <div class="stage tile"><svg class="head" viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet"><use href="#head-side"/></svg><span class="lbl mono">Left · optional</span><span class="plus frost"><svg width="18" height="18"><use href="#plus"/></svg></span></div>
+      <div class="stage tile"><svg class="head" viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet"><g transform="translate(378,0) scale(-1,1)"><use href="#head-side"/></g></svg><span class="lbl mono">Right · optional</span><span class="plus frost"><svg width="18" height="18"><use href="#plus"/></svg></span></div>
     </div>
+    <div class="profile-caps"><span><svg width="16" height="16"><use href="#plus"/></svg>Left profile</span><span><svg width="16" height="16"><use href="#plus"/></svg>Right profile</span></div>
     <div class="check"><span class="box"><svg width="14" height="14" style="color:#fff"><use href="#tick"/></svg></span><span>These are photos of me, and I'm 18 or older.</span></div>
-    <div class="notice"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01" stroke-linecap="round"/></svg>Your photos only live in this tab. Reloading clears them.</div>
+    <p class="fine">Not saved in our photo database. AI and email services handle data as our <u>Privacy Policy</u> explains. Reloading this tab clears your photos.</p>
     <div class="spacer"></div>
     <div class="actions"><div class="cta">Use these photos</div></div>
   </div>
 </section>
 
-<!-- 4 · Checkout -->
-<section class="screen checkout" data-name="checkout" data-time="21:18" style="container-type:size">
-  <div class="body">
+<!-- 4 · Checkout (scrolls) -->
+<section class="screen checkout washed" data-name="checkout" data-time="21:18" data-scroll style="container-type:inline-size">
+  <div class="body" style="position:relative;padding-top:var(--safe-top);inset:auto">
     <div class="stephead">
       <div class="row">
         <span class="icon-btn" data-hit-expanded><svg width="20" height="20"><use href="#back"/></svg></span>
         <span class="mono" style="color:var(--ink-2)">Checkout</span>
-        <span class="mono" style="display:inline-flex;gap:6px;align-items:center;color:var(--ink-2)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Secure</span>
+        <span class="mono" style="display:inline-flex;gap:6px;align-items:center;color:var(--ink-2)"><svg width="13" height="13"><use href="#lock"/></svg>Secure</span>
       </div>
     </div>
-    <h1 class="title">One report, made after you pay.</h1>
-    <ol class="included">
-      <li><span class="n mono">[1]</span><b>AI concept portrait</b><span class="d">Your own front photo, edited: same face, groomed and well lit.</span></li>
-      <li><span class="n mono">[2]</span><b>PDF roadmap</b><span class="d">6 priorities, a 7, 30 and 90-day plan, every source.</span></li>
-      <li><span class="n mono">[3]</span><b>By email</b><span class="d">To m&#8226;&#8226;&#8226;@gmail.com, usually within minutes.</span></li>
-    </ol>
-    <div class="price"><span class="fig">$29</span><span class="what">one-time<br>no subscription</span></div>
-    <div class="pay">
-      <div class="field ph">Card number<span class="mono" style="color:var(--ink-2)">Visa · MC · Amex</span></div>
-      <div class="field-row"><div class="field ph">MM / YY</div><div class="field ph">CVC</div></div>
-      <div class="field" style="display:none">Brazil<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></div>
+    <h1 class="h28 head">One report.<br><span>Made after you pay.</span></h1>
+    <div class="stage deliver">
+      <span class="capsule frost mono">Sample</span>
+      <div class="page"><div class="thumb"><svg viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet" style="width:100%;height:100%;display:block"><use href="#head"/></svg></div><i style="width:84%"></i><i style="width:64%"></i><i style="width:76%"></i><i style="width:50%"></i><i style="width:70%"></i></div>
+      <div class="price"><span class="fig">$29</span><span class="mono">One-time · no subscription</span></div>
+    </div>
+    <ul class="incl">
+      <li><svg width="16" height="16"><use href="#tick"/></svg>An AI concept portrait from your own front photo</li>
+      <li><svg width="16" height="16"><use href="#tick"/></svg>A PDF roadmap: 6 priorities, a 7, 30 and 90-day plan, every source</li>
+      <li><svg width="16" height="16"><use href="#tick"/></svg>Sent to m&#8226;&#8226;&#8226;@gmail.com, usually within minutes</li>
+    </ul>
+    <div class="wallet"><svg width="20" height="20"><use href="#apple"/></svg>Pay</div>
+    <div class="or mono">or pay by card</div>
+    <div class="form">
+      <label class="lab">Card number<div class="field focus" style="color:var(--ink-2)">1234 1234 1234 1234<span class="mono">Visa · MC · Amex</span></div></label>
+      <div class="field-row">
+        <label class="lab">Expiry<div class="field" style="color:var(--ink-2)">MM / YY</div></label>
+        <label class="lab">CVC<div class="field" style="color:var(--ink-2)">CVC</div></label>
+      </div>
+      <label class="lab">Country<div class="field">Brazil<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></div></label>
     </div>
     <p class="disclose">We don't save face photos. If your payment opens another page, we may ask you to select your photo again after payment. You won't be charged twice.</p>
-    <div class="spacer"></div>
     <div class="actions">
-      <div class="cta">Pay $29</div>
+      <div class="cta"><svg width="15" height="15"><use href="#lock"/></svg>Pay $29</div>
       <div class="links mono"><span>Refunds</span><span>Help</span><span>Privacy</span></div>
     </div>
   </div>
 </section>
 
-<!-- 5 · Processing -->
-<section class="screen processing" data-name="processing" data-time="21:19" style="container-type:size">
-  <div class="body">
-    <div class="bar"><span class="wordmark">MXVA</span><span class="mono" style="color:var(--positive);display:inline-flex;gap:6px;align-items:center"><svg width="14" height="14"><use href="#tick"/></svg>Paid · $29</span></div>
-    <h1 class="display status">Payment confirmed. <span>Let's create your report.</span></h1>
-    <div class="stage mini-stage">
-      <svg class="head" viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet" style="filter:blur(3px);opacity:.85"><use href="#head"/></svg>
-      <div class="readouts mono"><span>Preparing image</span></div>
-    </div>
-    <ol class="phases">
-      <li><span class="n mono">01</span>Reading your photo<span class="done"><svg width="18" height="18"><use href="#tick"/></svg></span></li>
-      <li class="active"><span class="n mono">02</span>Preparing image<span class="state mono">Now</span></li>
-      <li class="todo"><span class="n mono">03</span>Checking likeness<span></span></li>
-      <li class="todo"><span class="n mono">04</span>Building report<span></span></li>
-      <li class="todo"><span class="n mono">05</span>Sending email<span></span></li>
+<!-- 5 · Processing (the result layout, key light off) -->
+<section class="screen result processing2" data-name="processing" data-time="21:19" style="container-type:size">
+  <div class="stage hero" style="background:linear-gradient(180deg,#6F7B81,#556167)">
+    <svg class="head" viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet" style="position:absolute;inset:auto 0 30px 0;width:100%;height:78%;filter:brightness(.6) saturate(.8)"><use href="#head"/></svg>
+    <i class="crop tl" style="top:calc(var(--safe-top) + 12px)"></i><i class="crop tr" style="top:calc(var(--safe-top) + 12px)"></i>
+    <div class="readouts mono" style="color:#EEF2F3"><span>Light · off</span></div>
+  </div>
+  <div class="sheet">
+    <div class="grabber"></div>
+    <h2 class="h28">Payment confirmed. <span>Creating your report.</span></h2>
+    <ol class="steps mono">
+      <li class="done"><span>01</span><span>Reading your photo</span><svg width="14" height="14"><use href="#tick"/></svg></li>
+      <li class="now"><span>02</span><span>Preparing image</span><span>Now</span><i></i></li>
+      <li><span>03</span><span>Checking likeness</span><span></span></li>
+      <li><span>04</span><span>Building report</span><span></span></li>
+      <li><span>05</span><span>Sending email</span><span></span></li>
     </ol>
-    <p class="guide">Keep this tab open until it finishes.</p>
     <div class="spacer"></div>
-    <div class="actions"><div class="under mono" style="margin:0">Photos are processed in memory, not stored</div></div>
+    <div class="actions">
+      <p class="guide2">Keep this tab open until it finishes. Photos are processed in memory, never stored.</p>
+      <div class="under mono" style="margin-top:8px">Problem? Contact support. You won't pay again.</div>
+    </div>
   </div>
 </section>
 
 <!-- 6 · Result -->
-<section class="screen result" data-name="result" data-time="21:21" style="container-type:size">
-  <div class="body">
-    <div class="bar"><span class="wordmark">MXVA</span><span class="pill-link mono">Help</span></div>
-    <span class="disclosure mono">AI concept preview · not a guaranteed result</span>
-    <div class="stage">
-      <svg class="head" viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet"><use href="#head"/></svg>
-      <div class="compare">
-        <div class="today stage" style="border-radius:0"><svg class="head" viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet"><use href="#head"/></svg></div>
-        <div class="line"></div>
-        <div class="handle glass"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7l-5 5 5 5M15 7l5 5-5 5"/></svg></div>
-      </div>
-      <div class="readouts mono"><span>Concept</span><span>Same framing</span><span>Same light</span></div>
-      <div class="seg glass mono"><span>Today</span><span class="on">Concept</span></div>
-    </div>
-    <h2>Your concept and plan</h2>
-    <div class="meta mono">11 Oct 2026 · Report sent</div>
-    <ol class="top3">
-      <li><span class="n mono">01</span><b>Daily broad-spectrum SPF 30+</b><span class="tags mono">Established · low effort · start now</span></li>
-      <li><span class="n mono">02</span><b>Clean up strays, keep your natural shape</b><span class="tags mono">Styling opinion · low effort</span></li>
-      <li><span class="n mono">03</span><b>Take photos from further away</b><span class="tags mono">Limited evidence · free</span></li>
+<section class="screen result" data-name="result" data-home="dark" data-time="21:21" style="container-type:size">
+  <div class="stage hero">
+    <div class="head-wrap"><svg class="head" viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet" style="position:absolute;inset:auto 0 30px 0;width:100%;height:78%"><use href="#head"/></svg></div>
+    <div class="today"><svg class="head" viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet" style="position:absolute;inset:auto 0 30px 0;width:100%;height:78%"><use href="#head"/></svg></div>
+    <div class="split"></div>
+    <div class="handle frost"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7l-5 5 5 5M15 7l5 5-5 5"/></svg></div>
+    <span class="capsule frost mono tl-cap">Today</span>
+    <span class="capsule frost mono tr-cap">Concept</span>
+    <div class="readouts mono"><span>Same face</span><span>Same framing</span><span>Key left</span></div>
+  </div>
+  <div class="topbar">
+    <span class="capsule frost mono disc-full">AI concept preview · not a guaranteed result</span>
+    <span class="capsule frost mono disc-short">AI concept · not a guarantee</span>
+  </div>
+  <div class="sheet">
+    <div class="grabber"></div>
+    <h2 class="h28">Your concept and plan</h2>
+    <div class="meta mono">11 Oct 2026 · 6 priorities · 10 sources</div>
+    <ol class="rows" data-scrolls>
+      <li><span class="ev mono">Established</span><b>Daily broad-spectrum SPF 30+</b></li>
+      <li><span class="ev mono">Styling opinion</span><b>Clean up strays, keep your natural shape</b></li>
+      <li><span class="ev mono">Limited evidence</span><b>Take photos from further away</b></li>
     </ol>
     <div class="spacer"></div>
-    <div class="actions">
+    <div class="actions fade-top">
       <div class="cta">Download PDF</div>
-      <div class="sent"><svg width="14" height="14" style="color:var(--positive)"><use href="#tick"/></svg>Sent to m&#8226;&#8226;&#8226;@gmail.com · 10 sources</div>
+      <div class="sent"><svg width="14" height="14" style="color:var(--positive)"><use href="#tick"/></svg>Also sent to m&#8226;&#8226;&#8226;@gmail.com · <u>Help</u></div>
     </div>
   </div>
 </section>
 
-<!-- 7 · Signature storyboard -->
+<!-- 7 · Signature storyboard (inside the real result screen) -->
 <section class="screen board" data-name="signature" data-chrome="none">
   <h3>Key light</h3>
-  <p>The concept arrives the way a studio light comes on: the softbox sweeps in from the left, the portrait resolves under it, the readouts settle, then the compare handle appears. 900 ms, interruptible. Reduced motion: a 200 ms cross-fade.</p>
+  <p>The concept arrives the way a studio light comes on. The softbox sweeps in from the left, the portrait resolves under it, the readouts settle one by one, then the compare handle appears. 900 ms, interruptible. Reduced motion: a 200 ms cross-fade.</p>
   <div class="frames">
-    <div class="frame"><div class="mini" style="--mini:.34"><div class="mini-screen res" data-time="21:21">
-      <span class="lbl">Light —</span>
-      <div class="stage dim"><svg class="head" viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet"><use href="#head"/></svg></div>
+    <!-- 0 ms -->
+    <div class="frame"><div class="mini" style="--mini:.34"><div class="mini-screen res result" data-chrome="none">
+      <div class="stage hero" style="filter:brightness(.55) saturate(.8)"><svg class="head" viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet" style="position:absolute;inset:auto 0 30px 0;width:100%;height:78%"><use href="#head"/></svg></div>
+      <div class="readouts mono" style="top:120px;color:#EEF2F3;font-size:22px"><span>Light · off</span></div>
+      <div class="sheet"><div class="grabber"></div><h2 class="h28">Payment confirmed. <span>Creating your report.</span></h2>
+        <ol class="steps mono"><li class="done"><span>01</span><span>Reading your photo</span><span></span></li><li class="done"><span>02</span><span>Preparing image</span><span></span></li><li class="done"><span>03</span><span>Checking likeness</span><span></span></li><li class="done"><span>04</span><span>Building report</span><span></span></li><li class="now"><span>05</span><span>Sending email</span><span>Now</span></li></ol></div>
     </div></div><span class="cap mono">0 ms · dim</span></div>
-    <div class="frame"><div class="mini" style="--mini:.34"><div class="mini-screen res" data-time="21:21">
-      <span class="lbl">Light ·</span>
-      <div class="stage"><div class="stage dim" style="position:absolute;inset:0;border-radius:0"></div><div class="sweep" style="--x:8%"></div><svg class="head blurred" viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet"><use href="#head"/></svg></div>
+    <!-- 300 ms -->
+    <div class="frame"><div class="mini" style="--mini:.34"><div class="mini-screen res result" data-chrome="none">
+      <div class="stage hero" style="background:linear-gradient(180deg,#7E8A90,#5F6B71)"><div class="sweep" style="--x:6%"></div><svg class="head soft" viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet" style="position:absolute;inset:auto 0 30px 0;width:100%;height:78%"><use href="#head"/></svg></div>
+      <div class="readouts mono" style="top:120px;color:#EEF2F3;font-size:22px"><span>Light ·</span></div>
+      <div class="sheet"><div class="grabber"></div><h2 class="h28">Your concept and plan</h2><div class="meta mono">11 Oct 2026 · 6 priorities · 10 sources</div><ol class="rows"><li><span class="ev mono">Established</span><b>Daily broad-spectrum SPF 30+</b></li><li><span class="ev mono">Styling opinion</span><b>Clean up strays, keep your natural shape</b></li></ol></div>
     </div></div><span class="cap mono">300 ms · sweep</span></div>
-    <div class="frame"><div class="mini" style="--mini:.34"><div class="mini-screen res" data-time="21:21">
-      <span class="lbl">Concept · same framing</span>
-      <div class="stage"><svg class="head" viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet"><use href="#head"/></svg></div>
+    <!-- 650 ms -->
+    <div class="frame"><div class="mini" style="--mini:.34"><div class="mini-screen res result" data-chrome="none">
+      <div class="stage hero"><svg class="head" viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet" style="position:absolute;inset:auto 0 30px 0;width:100%;height:78%"><use href="#head"/></svg></div>
+      <div class="readouts mono" style="top:120px;font-size:22px"><span>Same face</span><span>Same framing</span><span>Key left</span></div>
+      <div class="sheet"><div class="grabber"></div><h2 class="h28">Your concept and plan</h2><div class="meta mono">11 Oct 2026 · 6 priorities · 10 sources</div><ol class="rows"><li><span class="ev mono">Established</span><b>Daily broad-spectrum SPF 30+</b></li><li><span class="ev mono">Styling opinion</span><b>Clean up strays, keep your natural shape</b></li></ol></div>
     </div></div><span class="cap mono">650 ms · landed</span></div>
-    <div class="frame"><div class="mini" style="--mini:.34"><div class="mini-screen res" data-time="21:21">
-      <span class="lbl">Today | Concept</span>
-      <div class="stage"><svg class="head" viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet"><use href="#head"/></svg>
-        <div class="compare"><div class="today stage" style="border-radius:0"><svg class="head" viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet"><use href="#head"/></svg></div><div class="line"></div><div class="handle glass"></div></div>
+    <!-- 900 ms -->
+    <div class="frame"><div class="mini" style="--mini:.34"><div class="mini-screen res result" data-chrome="none">
+      <div class="stage hero">
+        <svg class="head" viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet" style="position:absolute;inset:auto 0 30px 0;width:100%;height:78%"><use href="#head"/></svg>
+        <div class="today"><svg class="head" viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet" style="position:absolute;inset:auto 0 30px 0;width:100%;height:78%"><use href="#head"/></svg></div>
+        <div class="split"></div><div class="handle frost"></div>
       </div>
+      <div class="readouts mono" style="top:120px;font-size:22px"><span>Same face</span><span>Same framing</span><span>Key left</span></div>
+      <div class="sheet"><div class="grabber"></div><h2 class="h28">Your concept and plan</h2><div class="meta mono">11 Oct 2026 · 6 priorities · 10 sources</div><ol class="rows"><li><span class="ev mono">Established</span><b>Daily broad-spectrum SPF 30+</b></li><li><span class="ev mono">Styling opinion</span><b>Clean up strays, keep your natural shape</b></li></ol></div>
     </div></div><span class="cap mono">900 ms · compare</span></div>
   </div>
 </section>
@@ -404,7 +471,7 @@
       <svg class="head" viewBox="0 0 378 340" preserveAspectRatio="xMidYMax meet" style="filter:brightness(.78)"><use href="#head"/></svg>
       <i class="crop tl"></i><i class="crop tr"></i><i class="crop bl"></i><i class="crop br"></i>
       <div class="readouts mono"><span>Light soft · left</span><span>Eye level</span><span>1 front · 2 optional</span></div>
-      <span class="tag glass mono" style="--glass:rgba(255,255,255,.12)">Light test · your photo replaces this</span>
+      <span class="capsule frost mono">Light test · your photo replaces this</span>
     </div>
     <div class="copy">
       <h1 class="display">Your face. <span>A realistic next&#8209;step plan.</span></h1>
@@ -417,18 +484,17 @@
   </div>
 </section>
 
-<!-- Icon -->
+<!-- Icon: the profile head facing the key light, cut at the neck -->
 <section class="app-icon mx" data-name="icon">
   <svg viewBox="0 0 344 344" aria-hidden="true">
     <defs>
-      <radialGradient id="ic-head" cx=".33" cy=".3" r=".8"><stop offset="0" stop-color="#F3F4F1"/><stop offset=".5" stop-color="#C9D0D0"/><stop offset="1" stop-color="#76838A"/></radialGradient>
+      <radialGradient id="ic-head" cx=".3" cy=".3" r=".85"><stop offset="0" stop-color="#F3F4F1"/><stop offset=".55" stop-color="#D0D6D5"/><stop offset="1" stop-color="#8D999F"/></radialGradient>
       <radialGradient id="ic-cast" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#4E5E67" stop-opacity=".5"/><stop offset="1" stop-color="#4E5E67" stop-opacity="0"/></radialGradient>
-      <linearGradient id="ic-neck" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#E6E9E6"/><stop offset=".55" stop-color="#B4BCBD"/><stop offset="1" stop-color="#76838A"/></linearGradient>
     </defs>
-    <ellipse cx="214" cy="196" rx="96" ry="124" fill="url(#ic-cast)"/>
-    <rect x="148" y="214" width="46" height="130" rx="20" fill="#B9C1C2"/>
-    <rect x="148" y="214" width="46" height="130" rx="20" fill="url(#ic-neck)"/>
-    <g transform="rotate(-8 172 150)"><ellipse cx="172" cy="150" rx="78" ry="102" fill="url(#ic-head)"/></g>
+    <ellipse cx="226" cy="196" rx="100" ry="128" fill="url(#ic-cast)"/>
+    <g transform="translate(-28,18) scale(1.18)">
+      <path d="M200 58C240 58 262 94 260 136C258 174 240 204 214 218C214 236 216 254 222 272L160 272C166 252 170 236 170 222L176 196C171 193 169 187 172 183L166 170C162 166 164 160 169 158L160 139C154 94 166 58 200 58Z" fill="url(#ic-head)"/>
+    </g>
   </svg>
 </section>
 

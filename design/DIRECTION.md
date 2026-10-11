@@ -95,6 +95,7 @@ The reveal of the paid concept portrait (result screen), born from the studio:
 3. **0–650 ms:** the softbox highlight sweeps in from the left edge to its resting spot (spring-smooth); the concept image resolves under the light (blur 10 → 0, opacity 0 → 1) a beat behind it.
 4. **650 ms:** readouts settle one by one, 90 ms apart: `CONCEPT` · `SAME FRAMING` · `SAME LIGHT`. Light haptic where the browser supports it (Android `vibrate(12)`).
 5. **900 ms:** the compare handle fades in ("Today | Concept"); dragging it scrubs between the original and the concept, 1:1 with the finger, rubber-banding at the edges.
+- **Processing is the same screen with the key light off:** the result layout (full-bleed stage over a raised sheet) with the stage dimmed and `LIGHT · OFF`; the sheet lists the five real server phases, the active one filled slate. When the result arrives, the light comes on in place.
 - **Echo on the photo step:** when a photo passes the on-device checks, the same readouts tick in (LIGHT · FOCUS · FRAMING), one by one.
 - **Reduced motion:** a 200 ms cross-fade; readouts appear together; no sweep.
 
@@ -154,3 +155,7 @@ US English across the product (the spec writes "personalized").
 **8 · Landing, dark** — same content as 1
 
 **Icon** — the plaster ovoid lit from the left on a slate field; no letters.
+
+
+## Status
+Design done (critique rounds 1–2, stop rule met; post-critique fixes in shots/r3). Latest sheet: `design/shots/r3/sheet.png`, small phone: `design/shots/r3-se/sheet.png`. History row appended.
