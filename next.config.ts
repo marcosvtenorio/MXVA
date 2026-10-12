@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   poweredByHeader: false,
+  devIndicators: false,
   reactStrictMode: true,
   // Photos are never served through the image optimizer; only first-party brand assets.
   images: {

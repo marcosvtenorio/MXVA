@@ -72,7 +72,7 @@ export default function LandingPage() {
               <p className="mono mt-3 text-center text-ink-2 min-[960px]:text-left">{price} once · PDF by email · photos not kept</p>
             </div>
           </div>
-          <div className="stage order-1 mx-3 h-[min(58dvh,520px)] min-[960px]:order-2 min-[960px]:mx-0 min-[960px]:h-[600px]">
+          <div className="stage order-1 mx-3 h-[min(46dvh,520px)] min-h-[300px] min-[960px]:order-2 min-[960px]:mx-0 min-[960px]:h-[600px]">
             <PlasterHead className="absolute inset-x-0 bottom-0 h-[88%] w-full" />
             <CropMarks />
             <div className="readouts mono" aria-hidden="true">

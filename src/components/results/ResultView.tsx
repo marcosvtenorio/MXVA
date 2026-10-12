@@ -73,7 +73,7 @@ function CompareHero({ conceptUrl, originalUrl }: { conceptUrl: string; original
           <span className="capsule frost mono appear-late absolute bottom-11 right-4">Concept</span>
         </>
       ) : null}
-      <div className="readouts mono" style={{ top: "calc(env(safe-area-inset-top) + 64px)" }}>
+      <div className="readouts mono frost right-4 rounded-[14px] px-3 py-2.5" style={{ top: "calc(env(safe-area-inset-top) + 56px)" }}>
         <span className="settle grid gap-1.5">
           <span>Same face</span>
           <span>Same framing</span>

@@ -81,7 +81,7 @@ function FrontSlot() {
         )}
         <CropMarks corners={["tl", "tr"]} />
         {photo ? (
-          <div className="readouts mono key-light-on">
+          <div className="readouts mono frost key-light-on right-4 top-4 rounded-[14px] px-3 py-2.5">
             <span className="settle grid gap-1.5">
               {readouts.map((line) => (
                 <span key={line.label} className="inline-flex items-center justify-end gap-1.5">
