@@ -17,6 +17,7 @@ export function PhotoGuideStep() {
       action={
         <StepActions
           continueLabel="Got it"
+          busy={nav.pending}
           onContinue={() => {
             set({ photoGuideAcknowledged: true });
             nav.goNext({ validate: false });

@@ -32,7 +32,7 @@ export function ConstraintsStep() {
   });
 
   return (
-    <OnboardingFrame step="constraints" onBack={nav.goBack} action={<StepActions onContinue={() => void submit()} />}>
+    <OnboardingFrame step="constraints" onBack={nav.goBack} action={<StepActions busy={nav.pending} onContinue={() => void submit()} />}>
       <StepBody definition={nav.definition} error={nav.error}>
         <h2 className="text-[17px] font-semibold">Things to avoid</h2>
         <div className="mt-3">

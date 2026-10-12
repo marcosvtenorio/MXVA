@@ -14,7 +14,7 @@ export function PhotosStep() {
   const nav = useStepNav("photos");
   const cleared = usePhotoStore((state) => state.clearedNotice);
   return (
-    <OnboardingFrame step="photos" onBack={nav.goBack} action={<StepActions continueLabel="Use these photos" onContinue={() => nav.goNext()} />}>
+    <OnboardingFrame step="photos" onBack={nav.goBack} action={<StepActions continueLabel="Use these photos" busy={nav.pending} onContinue={() => nav.goNext()} />}>
       <div className="px-5 pb-2 pt-6">
         <StepHeading size="title">{nav.definition.heading}</StepHeading>
         <p className="mt-2 text-[15px] leading-[1.4] text-ink-2">Used temporarily to create your report.</p>

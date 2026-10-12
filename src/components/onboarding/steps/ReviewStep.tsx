@@ -1,8 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { Tick } from "@/components/common/icons";
 import { track } from "@/features/analytics/client";
 import { useDisplayPrice } from "@/features/checkout/use-offers";
@@ -32,28 +30,23 @@ function Row({ title, value, href }: { title: string; value: string; href: strin
 
 export function ReviewStep() {
   const nav = useStepNav("review");
-  const router = useRouter();
   const state = useOnboardingStore();
   const front = usePhotoStore((s) => s.photos.front);
   const profiles = usePhotoStore((s) => Number(Boolean(s.photos.left)) + Number(Boolean(s.photos.right)));
   const price = useDisplayPrice();
-  const [busy, setBusy] = useState(false);
 
   const avoid = labels(AVOID_OPTIONS_COPY, state.constraints.avoid.filter((value) => value !== "none"));
 
   // The order (and its Pix code or card session) is created at checkout, once the method is chosen.
   function continueToCheckout() {
-    setBusy(true);
-    track("cta_clicked", { cta: "continue_to_checkout" });
-    track("onboarding_step_completed", { step: "review" });
-    router.push("/checkout");
+    if (nav.goNext({ validate: false })) track("cta_clicked", { cta: "continue_to_checkout" });
   }
 
   return (
     <OnboardingFrame
       step="review"
       onBack={nav.goBack}
-      action={<StepActions continueLabel={busy ? "Opening checkout…" : "Continue to checkout"} busy={busy} onContinue={continueToCheckout} />}
+      action={<StepActions continueLabel={nav.pending ? "Opening checkout…" : "Continue to checkout"} busy={nav.pending} onContinue={continueToCheckout} />}
     >
       <div className="px-5 pb-2 pt-6">
         <StepHeading size="title" tail="Nothing is analyzed until you pay.">

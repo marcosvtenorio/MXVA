@@ -45,7 +45,7 @@ export function DeliveryStep() {
   });
 
   return (
-    <OnboardingFrame step="delivery" onBack={nav.goBack} action={<StepActions onContinue={() => void submit()} />}>
+    <OnboardingFrame step="delivery" onBack={nav.goBack} action={<StepActions busy={nav.pending} onContinue={() => void submit()} />}>
       <StepBody definition={nav.definition}>
         <form noValidate onSubmit={(event) => { event.preventDefault(); void submit(); }}>
           <label htmlFor="email" className="block text-[13px] text-ink-2">

@@ -38,6 +38,7 @@ export function StepActions({
   onContinue: () => void;
   onSkip?: () => void;
   continueLabel?: string;
+  /** The next screen is loading: the tap registered, further taps are ignored. */
   busy?: boolean;
 }) {
   return (
@@ -47,7 +48,8 @@ export function StepActions({
           Skip
         </button>
       ) : null}
-      <button type="button" className="btn" onClick={onContinue} aria-disabled={busy} disabled={busy}>
+      <button type="button" className="btn" onClick={busy ? undefined : onContinue} aria-busy={busy || undefined}>
+        {busy ? <span className="btn-spinner" aria-hidden="true" /> : null}
         {continueLabel}
       </button>
     </div>

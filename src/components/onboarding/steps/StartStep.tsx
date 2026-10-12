@@ -34,6 +34,7 @@ export function StartStep() {
       action={
         <StepActions
           continueLabel="Start"
+          busy={nav.pending}
           onContinue={() => {
             // Starting is the confirmation (owner decision): 18 or older, Terms and Privacy read.
             set({ adultConfirmed: true });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { track } from "@/features/analytics/client";
 import { frontPhotoReady, usePhotoStore } from "@/features/photos/memory-store";
@@ -52,14 +52,44 @@ export function useStepGuard(step: StepId): { ready: boolean } {
   return { ready: hydrated && !redirect };
 }
 
-/** Continue / back with validation and analytics. */
+/**
+ * Continue / back with validation and analytics. The neighbouring steps are prefetched, so
+ * a tap moves on without waiting for the network; while a move is under way, further taps
+ * do nothing (no duplicate navigations or analytics events).
+ */
 export function useStepNav(step: StepId) {
   const router = useRouter();
   const flow = useFlowSnapshot();
   const [error, setError] = useState<string | undefined>();
+  const [pending, startTransition] = useTransition();
+  const leaving = useRef(false);
+
+  useEffect(() => {
+    const next = nextStep(step);
+    const previous = previousStep(step);
+    router.prefetch(next ? next.path : "/checkout");
+    router.prefetch(previous ? previous.path : "/");
+  }, [router, step]);
+
+  // Steps are kept alive (hidden) after navigating away; coming back must allow a new move.
+  useLayoutEffect(
+    () => () => {
+      leaving.current = false;
+    },
+    [],
+  );
+
+  const go = useCallback(
+    (href: string) => {
+      leaving.current = true;
+      startTransition(() => router.push(href));
+    },
+    [router],
+  );
 
   const goNext = useCallback(
     (options: { skipped?: boolean; validate?: boolean } = {}) => {
+      if (leaving.current) return false;
       if (options.validate !== false && !options.skipped) {
         const result = validateStep(step, flow);
         if (!result.success) {
@@ -70,17 +100,18 @@ export function useStepNav(step: StepId) {
       setError(undefined);
       track("onboarding_step_completed", options.skipped ? { step, skipped: true } : { step });
       const next = nextStep(step);
-      router.push(next ? next.path : "/checkout");
+      go(next ? next.path : "/checkout");
       return true;
     },
-    [flow, router, step],
+    [flow, go, step],
   );
 
   const goBack = useCallback(() => {
+    if (leaving.current) return;
     track("onboarding_step_back", { step });
     const previous = previousStep(step);
-    router.push(previous ? previous.path : "/");
-  }, [router, step]);
+    go(previous ? previous.path : "/");
+  }, [go, step]);
 
-  return { goNext, goBack, error, setError, definition: getStep(step) };
+  return { goNext, goBack, pending, error, setError, definition: getStep(step) };
 }
