@@ -184,18 +184,14 @@ export function planReport(
       ...input.focusAreas.map((area) => `Focus: ${AREA_LABEL[area]}`),
     ],
     observations: observations.observations.filter((entry) => input.focusAreas.includes(entry.area)),
-    cannotAssess: [
-      ...observations.cannotAssess,
-      "Health conditions of the skin, teeth, hair or eyes — photos can't diagnose anything.",
-      "Bone structure and how it might change — it doesn't change with grooming or exercises.",
-    ].slice(0, 10),
+    cannotAssess: observations.cannotAssess.slice(0, 10),
     recommendations,
     sevenDayPlan,
     thirtyDayPlan,
     ninetyDayPlan,
     professionalQuestions: professionalQuestions.length > 0 ? professionalQuestions : undefined,
     budgetNote:
-      "Cost bands are illustrative: free = no purchase, low = a basic product, medium = a service such as a haircut, professional = a consultation. Prices vary by country and provider.",
+      "Cost guide: free = no purchase, low = a basic product, medium = a service such as a haircut, professional = a consultation. Prices vary by country.",
     usedSources: sourceIds.map((id) => {
       const source = getSource(id);
       return {

@@ -20,7 +20,7 @@ const fragment = localFont({
   display: "swap",
 });
 
-const title = `${publicConfig.brandName} · Your face. A realistic next-step plan.`;
+const title = `${publicConfig.brandName} · Your face. Your full glow-up.`;
 const description =
   "Explore a personalized looksmaxxing roadmap and an AI concept portrait based on your own photos. One-time $29, PDF by email, photos not kept.";
 

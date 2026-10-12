@@ -213,15 +213,6 @@ export function ResultView() {
             <p className="text-[13px] leading-[1.4] text-ink-2">{report.budgetNote}</p>
           </div>
 
-          <div className="mt-8 border-t border-rule pt-5">
-            <h2 className="mono text-ink-2">What photos can&apos;t tell us</h2>
-            <ul className="mt-2 grid gap-1.5 text-[15px] leading-[1.4]">
-              {report.cannotAssess.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          </div>
-
           {report.professionalQuestions?.length ? (
             <div className="mt-8 border-t border-rule pt-5">
               <h2 className="mono text-ink-2">If you see a professional</h2>
@@ -249,7 +240,6 @@ export function ResultView() {
             </ol>
           </div>
 
-          <p className="mt-8 text-[13px] leading-[1.4] text-ink-2">{report.disclaimer}</p>
 
           <div className="mt-6 grid gap-3">
             <a href={pdfUrl} download={pdfFilename} className="btn" onClick={() => track("report_downloaded", {})}>

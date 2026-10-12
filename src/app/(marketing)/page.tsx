@@ -16,7 +16,7 @@ const INCLUDED = [
   "An AI concept portrait: your own photo, groomed and well lit. Same face, same framing.",
   "5 to 8 priorities ranked by fit, evidence, effort and cost, never by looks.",
   "A 7-day start, a 30-day plan and a 90-day plan.",
-  "What a photo can't tell us, questions for a professional, and every source with its date.",
+  "Questions to take to a barber, dermatologist or dentist, and every source with its date.",
 ];
 
 const WONT = ["Rate or score your face", "Diagnose skin, teeth or hair", "Suggest surgery or medication", "Promise bone or eye-shape changes"];
@@ -24,11 +24,11 @@ const WONT = ["Rate or score your face", "Diagnose skin, teeth or hair", "Sugges
 const FAQ = [
   {
     q: "Is this a face rating?",
-    a: "No. MXVA never scores, ranks or rates faces. It suggests grooming, care and presentation steps, ordered by how much they fit your goals and how good the evidence is.",
+    a: "No. MXVA never scores, ranks or rates faces. It gives you the steps your photo calls for, ordered by impact on your face and by how strong the evidence is.",
   },
   {
     q: "Will the AI change my face?",
-    a: "The concept keeps your identity, features, skin tone and proportions. It only shows realistic, low-risk changes you chose, like grooming, hair and lighting. It's an illustration, not a prediction.",
+    a: "It shows your glow-up, not someone else: same bone structure, features and skin tone, with the upgrades your photo calls for: the haircut that suits your face, clear skin, groomed brows and beard, rested eyes, a leaner jawline where it applies, and better light.",
   },
   {
     q: "What happens to my photos?",
@@ -57,7 +57,7 @@ export default function LandingPage() {
         <section className="mx-auto grid w-full max-w-[1120px] min-[960px]:grid-cols-[1fr_1.05fr] min-[960px]:items-center min-[960px]:gap-12 min-[960px]:px-5">
           <div className="order-2 px-5 pt-6 min-[960px]:order-1 min-[960px]:px-0 min-[960px]:pt-0">
             <h1 className="display two-tone min-[960px]:text-[56px]">
-              Your face. <span>A realistic next&#8209;step plan.</span>
+              Your face. <span>Your full glow&#8209;up.</span>
             </h1>
             <p className="mt-3.5 max-w-[440px] text-[17px] leading-[1.38] text-ink-2">
               Explore a personalized looksmaxxing roadmap and an AI concept portrait based on your own photos.

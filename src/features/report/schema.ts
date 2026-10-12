@@ -134,7 +134,7 @@ export const paidReportSchema = z
 
 export type PaidReport = z.infer<typeof paidReportSchema>;
 
-export const SIMULATION_DISCLAIMER =
-  "This AI-edited image is an illustrative concept, not a prediction or guarantee. Results depend on individual factors and personal choices.";
+/** Plain AI label for the concept image (honest, not discouraging). */
+export const SIMULATION_DISCLAIMER = "Your concept image was created with AI from your own photo.";
 
-export const CONCEPT_LABEL = "AI concept preview; not a guaranteed result";
+export const CONCEPT_LABEL = "Your AI glow-up concept";

@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "MXVA — Your face. A realistic next-step plan.";
+export const alt = "MXVA — Your face. Your full glow-up.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -24,7 +24,7 @@ export default function OpenGraphImage() {
         <div style={{ display: "flex", flexDirection: "column", maxWidth: 640 }}>
           <div style={{ fontSize: 30, letterSpacing: 8, marginBottom: 40 }}>MXVA</div>
           <div style={{ fontSize: 76, lineHeight: 1.02, letterSpacing: -3 }}>Your face.</div>
-          <div style={{ fontSize: 76, lineHeight: 1.02, letterSpacing: -3, color: "#3f5b6b" }}>A realistic next-step plan.</div>
+          <div style={{ fontSize: 76, lineHeight: 1.02, letterSpacing: -3, color: "#3f5b6b" }}>Your full glow-up.</div>
           <div style={{ fontSize: 26, marginTop: 32, color: "#2a3740" }}>AI concept portrait + sourced roadmap · $29 once · photos not kept</div>
         </div>
         <div

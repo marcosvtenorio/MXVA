@@ -26,7 +26,6 @@ export function reportEmailContent(): { subject: string; text: string; html: str
     `Your ${brand} report is attached as a PDF (${REPORT_FILENAME}).`,
     "",
     "It contains your AI concept image and your prioritised 7, 30 and 90-day roadmap, with sources.",
-    "The concept image is an illustration, not a prediction or guarantee.",
     "",
     "This email is your permanent copy: we don't keep your photos or your report. Files in your inbox stay until you delete them.",
     "",
@@ -37,7 +36,6 @@ export function reportEmailContent(): { subject: string; text: string; html: str
 <p style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 16px">${brand}</p>
 <h1 style="font-size:22px;margin:0 0 12px">Your report is attached</h1>
 <p>Your PDF (<strong>${REPORT_FILENAME}</strong>) contains your AI concept image and your prioritised 7, 30 and 90-day roadmap, with sources.</p>
-<p>The concept image is an illustration, not a prediction or guarantee.</p>
 <p>This email is your permanent copy: we don't keep your photos or your report. Files in your inbox stay until you delete them.</p>
 <p style="color:#555;font-size:14px">Questions or a problem with your report? Write to <a href="mailto:${support}">${support}</a>.</p>
 </body></html>`;

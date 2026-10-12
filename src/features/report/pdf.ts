@@ -230,7 +230,7 @@ export async function composeReportPdf(input: ComposeInput): Promise<Uint8Array>
     "Your AI concept image and what was changed",
     `${report.recommendations.length} prioritised suggestions, ranked by fit, evidence, effort and cost`,
     "A 7-day start, a 30-day plan and a 90-day plan",
-    "What photos can't tell us, questions for professionals, and every source",
+    "Notes on your photo, questions for professionals, and every source",
   ]);
   writer.y -= 14;
   writer.rule();
@@ -255,7 +255,7 @@ export async function composeReportPdf(input: ComposeInput): Promise<Uint8Array>
     writer.text(entry.observation, { gap: 8 });
   }
   writer.rule();
-  writer.label("What photos can't tell us");
+  writer.label("Notes on your photo");
   writer.bullets(report.cannotAssess, 10);
 
   // ── Recommendations ──

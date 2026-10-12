@@ -15,8 +15,7 @@ export function SiteFooter() {
         </nav>
       </div>
       <p className="mt-6 max-w-[620px] text-[13px] leading-[1.45] text-ink-2">
-        {publicConfig.brandName} gives grooming and presentation guidance for adults. It is not medical, dermatological or dental advice and
-        does not diagnose anything. The AI concept image is an illustration, not a prediction or guarantee.
+        {publicConfig.brandName} gives grooming and presentation guidance for adults. It is not medical, dermatological or dental advice.
       </p>
     </footer>
   );
