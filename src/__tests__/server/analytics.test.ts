@@ -16,7 +16,7 @@ function batch(marketing: boolean): EventBatch {
       consent: { analytics: false, marketing },
     },
     events: [
-      { name: "checkout_started", props: {}, ts: Date.now() },
+      { name: "checkout_started", props: { method: "card" }, ts: Date.now() },
       { name: "onboarding_step_completed", props: { step: "review" }, ts: Date.now() },
     ],
   };

@@ -17,6 +17,7 @@ const ORIGIN = "http://localhost:3000";
 
 const orderBody = {
   sku: "mxva_report_v1",
+  method: "card",
   email: "Buyer@Example.com",
   adultConfirmed: true,
   faceProcessingConsentVersion: FACE_PROCESSING_CONSENT_VERSION,
@@ -106,6 +107,28 @@ describe("order API (mock payments, development build)", () => {
     // Same browser starting checkout again: no second order, no second charge.
     const again = await (await createOrderRoute(post("/api/orders", orderBody, cookie))).json();
     expect(again).toMatchObject({ alreadyPaid: true, order: { status: "paid" } });
+  });
+
+  it("simulates Pix in reais through the same payment path", async () => {
+    const created = await createOrderRoute(post("/api/orders", { ...orderBody, method: "pix" }));
+    expect(created.status).toBe(201);
+    const body = await created.json();
+    expect(body.price).toEqual({ amountMinor: 3799, currency: "brl" });
+    expect(body.checkout).toMatchObject({ mode: "pix", sandbox: true, simulated: true, brCode: expect.stringContaining("simulated") });
+    expect(Date.parse(body.checkout.expiresAt) - Date.now()).toBeGreaterThan(29 * 60_000);
+    const cookie = cookieFrom(created);
+
+    const pending = await (await currentOrderRoute(get("/api/orders/current", cookie))).json();
+    expect(pending.pending).toEqual({ method: "pix", expiresAt: body.checkout.expiresAt });
+
+    const paid = await (await mockPayRoute(post("/api/dev/mock-pay", { outcome: "succeeded" }, cookie))).json();
+    expect(paid.order).toMatchObject({ status: "paid", paid: true, canSubmitPhotos: true });
+    expect(repository.list()[0]).toMatchObject({ currency: "brl", amountMinor: 3799, paymentMode: "mock", stripeCheckoutSessionId: null });
+  });
+
+  it("refuses an unknown payment method", async () => {
+    const response = await createOrderRoute(post("/api/orders", { ...orderBody, method: "boleto" }));
+    expect((await response.json()).error.code).toBe("INVALID_REQUEST");
   });
 
   it("returns ORDER_SESSION_INVALID without a valid cookie", async () => {

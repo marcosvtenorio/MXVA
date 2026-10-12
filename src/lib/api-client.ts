@@ -47,8 +47,25 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await response.json()) as T;
 }
 
+export type PaymentMethod = "pix" | "card";
+export type Price = { amountMinor: number; currency: "usd" | "brl" };
+
+export type CheckoutOffer = { method: PaymentMethod; price: Price; sandbox: boolean; simulated: boolean };
+
+export type PixCheckout = {
+  mode: "pix";
+  /** PIX "copia e cola" code. Meant to be copied; not secret. The QR code is drawn from it. */
+  brCode: string;
+  expiresAt: string;
+  sandbox: boolean;
+  simulated: boolean;
+};
+
+export type PublicCheckout = { mode: "mock" } | { mode: "stripe"; clientSecret: string } | PixCheckout;
+
 export type CreateOrderBody = {
   sku: "mxva_report_v1";
+  method: PaymentMethod;
   email: string;
   adultConfirmed: boolean;
   faceProcessingConsentVersion: string;
@@ -62,9 +79,15 @@ export type CreateOrderResponse =
   | {
       alreadyPaid: false;
       order: PublicOrderStatus;
-      checkout: { mode: "mock" } | { mode: "stripe"; clientSecret: string };
-      price: { amountMinor: number; currency: "usd" };
+      checkout: PublicCheckout;
+      price: Price;
     };
+
+export type CurrentOrderResponse = {
+  order: PublicOrderStatus;
+  /** Set while the order waits for payment. */
+  pending: { method: PaymentMethod; expiresAt: string | null } | null;
+};
 
 export type FulfillmentPhase = "analysing_photo" | "preparing_image" | "checking_image" | "building_report" | "sending_email";
 
@@ -122,7 +145,12 @@ export const api = {
   createOrder: (body: CreateOrderBody) =>
     request<CreateOrderResponse>("/api/orders", { method: "POST", body: JSON.stringify(body) }),
 
-  currentOrder: () => request<{ order: PublicOrderStatus }>("/api/orders/current"),
+  currentOrder: () => request<CurrentOrderResponse>("/api/orders/current"),
+
+  checkoutOptions: () => request<{ offers: CheckoutOffer[] }>("/api/checkout/options"),
+
+  /** Development + AbacatePay sandbox only: asks the sandbox to pay this order's PIX charge. */
+  pixSimulate: () => request<{ order: PublicOrderStatus }>("/api/dev/pix-simulate", { method: "POST" }),
 
   mockPay: (outcome: "succeeded" | "declined" | "expired") =>
     request<{ order: PublicOrderStatus }>("/api/dev/mock-pay", { method: "POST", body: JSON.stringify({ outcome }) }),

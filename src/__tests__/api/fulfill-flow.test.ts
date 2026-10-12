@@ -31,6 +31,7 @@ async function paidCookie(): Promise<string> {
       headers: { ...headers(), "content-type": "application/json" },
       body: JSON.stringify({
         sku: "mxva_report_v1",
+        method: "card",
         email: "buyer@example.com",
         adultConfirmed: true,
         faceProcessingConsentVersion: FACE_PROCESSING_CONSENT_VERSION,
@@ -117,6 +118,7 @@ describe("paid fulfilment (mock providers)", () => {
         headers: { ...headers(), "content-type": "application/json" },
         body: JSON.stringify({
           sku: "mxva_report_v1",
+          method: "card",
           email: "buyer@example.com",
           adultConfirmed: true,
           faceProcessingConsentVersion: FACE_PROCESSING_CONSENT_VERSION,

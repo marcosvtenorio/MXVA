@@ -4,7 +4,7 @@ import { CropMarks, PlasterHead } from "@/components/common/StudioArt";
 import { SiteHeader } from "@/components/common/SiteHeader";
 import { SiteFooter } from "@/components/marketing/SiteFooter";
 import { TrackedLink } from "@/components/marketing/TrackedLink";
-import { DISPLAY_PRICE_USD_CENTS, formatUsd } from "@/lib/config";
+import { PriceTag } from "@/components/checkout/PriceTag";
 
 const STEPS = [
   { title: "Answer 16 short questions", detail: "Your goals, your time and budget, what to avoid. About three minutes." },
@@ -41,7 +41,7 @@ const FAQ = [
 ];
 
 export default function LandingPage() {
-  const price = formatUsd(DISPLAY_PRICE_USD_CENTS);
+  const price = <PriceTag />;
   return (
     <>
       <div className="mx-auto w-full max-w-[1120px]">

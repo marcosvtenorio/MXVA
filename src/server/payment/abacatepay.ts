@@ -34,7 +34,8 @@ const chargeSchema = z.object({
   status: pixStatusSchema,
   devMode: z.boolean().optional(),
   brCode: z.string().min(1),
-  brCodeBase64: z.string().startsWith("data:image/"),
+  /** AbacatePay's QR image. Unused: the browser draws the QR from brCode. */
+  brCodeBase64: z.string().optional(),
   expiresAt: z.string(),
 });
 

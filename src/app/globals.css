@@ -229,6 +229,14 @@
     box-shadow: inset 0 0 0 1px var(--color-rule);
   }
 
+  /* PIX: a slow breathing dot while the bank app is open. Static when motion is reduced. */
+  .pix-wait {
+    animation: pix-wait 1.6s ease-in-out infinite alternate;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pix-wait { animation: none; }
+  }
+
   /* 16-tick light meter (progress). */
   .meter {
     display: grid;
@@ -434,4 +442,9 @@
   .prose-studio li { margin: 6px 0; }
   .prose-studio a { color: var(--color-ink); text-decoration: underline; text-underline-offset: 2px; }
   .prose-studio strong { color: var(--color-ink); font-weight: 600; }
+}
+
+@keyframes pix-wait {
+  from { opacity: 0.25; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
 }

@@ -20,9 +20,8 @@ const serverEnvSchema = z.object({
     .string()
     .regex(/^[a-z0-9_]{1,32}$/)
     .default("usd_29"),
-  /** Which processor takes real payments. PIX (AbacatePay) first; Stripe stays scaffolded. */
-  PAYMENT_PROVIDER: z.enum(["abacatepay", "stripe"]).default("abacatepay"),
-  PRICE_BRL_CENTS: z.coerce.number().int().min(500).max(1_000_000).default(14900),
+  /** PIX price in centavos (Brazil). Card payments use PRICE_USD_CENTS. */
+  PRICE_BRL_CENTS: z.coerce.number().int().min(500).max(1_000_000).default(3799),
   ABACATEPAY_API_KEY: optionalSecret,
   /** Set when ABACATEPAY_API_KEY is a Dev Mode key: no real money moves, payments are simulated. */
   ABACATEPAY_SANDBOX: z
@@ -109,49 +108,87 @@ export function supportEmail(): string {
   return serverEnv().SUPPORT_EMAIL ?? "support@example.com";
 }
 
-export type PaymentMode = "mock" | "stripe" | "pix" | "unavailable";
+export type PaymentMethod = "pix" | "card";
+export type PaymentProviderId = "mock" | "abacatepay" | "stripe";
+/** A payment method this process can take right now, and who processes it. */
+export type PaymentOffer = { method: PaymentMethod; provider: PaymentProviderId; sandbox: boolean };
 
-/**
- * Which payment path this process may use. Real money requires every downstream
- * provider to be live as well: never charge for a report that cannot be delivered.
- * AbacatePay Dev Mode (sandbox) moves no money, so development may pair it with
- * the simulated report; a live key always requires real fulfilment.
- */
-export function paymentMode(): PaymentMode {
-  if (publicConfig.enableRealPayments) {
-    if (missingForRealPayments().length > 0) return "unavailable";
-    return serverEnv().PAYMENT_PROVIDER === "abacatepay" ? "pix" : "stripe";
-  }
-  return devPreviewEnabled ? "mock" : "unavailable";
-}
+export const PAYMENT_METHODS = ["pix", "card"] as const satisfies readonly PaymentMethod[];
+const REAL_PROVIDER = { pix: "abacatepay", card: "stripe" } as const satisfies Record<PaymentMethod, PaymentProviderId>;
 
-/** True when the configured payments cannot move real money. */
-export function paymentsAreSandbox(): boolean {
+/** True when the provider's configured keys cannot move real money. */
+export function providerIsSandbox(provider: "abacatepay" | "stripe"): boolean {
   const env = serverEnv();
-  return env.PAYMENT_PROVIDER === "abacatepay" ? env.ABACATEPAY_SANDBOX : Boolean(env.STRIPE_SECRET_KEY?.startsWith("sk_test_"));
+  return provider === "abacatepay" ? env.ABACATEPAY_SANDBOX : !env.STRIPE_SECRET_KEY?.startsWith("sk_live_");
 }
 
-export function missingForRealPayments(): string[] {
+/** What a real provider still needs before it may take payments. Production requires live keys. */
+export function missingForProvider(provider: "abacatepay" | "stripe"): string[] {
   const env = serverEnv();
   const missing: string[] = [];
-  if (env.PAYMENT_PROVIDER === "abacatepay") {
+  if (provider === "abacatepay") {
     if (!env.ABACATEPAY_API_KEY) missing.push("ABACATEPAY_API_KEY");
     if (isProductionBuild && !env.ABACATEPAY_WEBHOOK_SECRET) missing.push("ABACATEPAY_WEBHOOK_SECRET");
     if (isProductionBuild && env.ABACATEPAY_SANDBOX) missing.push("ABACATEPAY_SANDBOX=false (live key)");
   } else {
     if (!env.STRIPE_SECRET_KEY) missing.push("STRIPE_SECRET_KEY");
-    if (!env.STRIPE_WEBHOOK_SECRET) missing.push("STRIPE_WEBHOOK_SECRET");
     if (!publicConfig.stripePublishableKey) missing.push("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY");
+    // Development confirms payments by asking Stripe directly; production also needs webhooks (refunds, late payments).
+    if (isProductionBuild && !env.STRIPE_WEBHOOK_SECRET) missing.push("STRIPE_WEBHOOK_SECRET");
+    if (isProductionBuild && !env.STRIPE_SECRET_KEY?.startsWith("sk_live_")) missing.push("STRIPE_SECRET_KEY (live key)");
   }
+  return missing;
+}
+
+/**
+ * Requirements shared by every real payment. Real money requires every downstream
+ * provider to be live as well: never charge for a report that cannot be delivered.
+ * Sandbox payments move no money, so development may pair them with the simulated report.
+ */
+export function missingForRealPayments(sandbox: boolean): string[] {
+  const env = serverEnv();
+  const missing: string[] = [];
   if (isProductionBuild && !env.DATABASE_URL) missing.push("DATABASE_URL");
   if (isProductionBuild && !env.COOKIE_SIGNING_SECRET) missing.push("COOKIE_SIGNING_SECRET");
-  // Simulated reports are only ever paired with sandbox payments in development.
-  const sandboxWithMocks = !isProductionBuild && paymentsAreSandbox() && fulfillmentMode() === "mock";
+  const sandboxWithMocks = !isProductionBuild && sandbox && fulfillmentMode() === "mock";
   if (!sandboxWithMocks) {
     if (!publicConfig.enableRealAi) missing.push("NEXT_PUBLIC_ENABLE_REAL_AI=true");
     missing.push(...missingForRealAi());
   }
   return missing;
+}
+
+/**
+ * The payment methods this process can offer: PIX (AbacatePay, reais) and card (Stripe).
+ * A method is real only when its provider and everything downstream is configured.
+ * Development falls back to the simulator per method; production never does.
+ */
+export function paymentOffers(): PaymentOffer[] {
+  const offers: PaymentOffer[] = [];
+  for (const method of PAYMENT_METHODS) {
+    const provider = REAL_PROVIDER[method];
+    if (publicConfig.enableRealPayments && missingForProvider(provider).length === 0) {
+      const sandbox = providerIsSandbox(provider);
+      if (missingForRealPayments(sandbox).length === 0) {
+        offers.push({ method, provider, sandbox });
+        continue;
+      }
+    }
+    if (devPreviewEnabled) offers.push({ method, provider: "mock", sandbox: true });
+  }
+  return offers;
+}
+
+export function paymentOffer(method: PaymentMethod): PaymentOffer | undefined {
+  return paymentOffers().find((offer) => offer.method === method);
+}
+
+/** Coarse summary for the health probe: never keys, hosts or provider names. */
+export function paymentSummary(): "real" | "sandbox" | "mock" | "unavailable" {
+  const offers = paymentOffers();
+  if (offers.length === 0) return "unavailable";
+  if (offers.every((offer) => offer.provider === "mock")) return "mock";
+  return offers.some((offer) => offer.provider !== "mock" && !offer.sandbox) ? "real" : "sandbox";
 }
 
 export function missingForRealAi(): string[] {

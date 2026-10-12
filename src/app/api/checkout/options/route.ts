@@ -1,16 +1,21 @@
 import { connection } from "next/server";
-import { checkoutCurrency, currentPrice } from "@/features/orders/service";
-import { paymentMode, paymentsAreSandbox } from "@/server/config";
+import { currentPrice } from "@/features/orders/service";
+import { paymentOffers } from "@/server/config";
 import { json } from "@/server/http";
 
-// What the checkout can offer right now, and the server-authoritative price for it.
+// The payment methods the checkout can offer right now, each with its server-authoritative
+// price. Which one to show first is the browser's call (PIX for visitors in Brazil).
 export async function GET() {
   await connection();
-  const mode = paymentMode();
-  const price = currentPrice(checkoutCurrency());
   return json({
-    mode,
-    price: { amountMinor: price.amountMinor, currency: price.currency },
-    sandbox: mode === "pix" || mode === "stripe" ? paymentsAreSandbox() : true,
+    offers: paymentOffers().map(({ method, provider, sandbox }) => {
+      const price = currentPrice(method);
+      return {
+        method,
+        price: { amountMinor: price.amountMinor, currency: price.currency },
+        sandbox,
+        simulated: provider === "mock",
+      };
+    }),
   });
 }

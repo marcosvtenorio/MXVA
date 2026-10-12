@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 const ORDER = {
   sku: "mxva_report_v1",
+  method: "card",
   email: "prod.check@example.com",
   adultConfirmed: true,
   faceProcessingConsentVersion: "2026-10-11.v1",
@@ -18,9 +19,16 @@ test.describe("production build with default flags", () => {
     const mockPay = await request.post("/api/dev/mock-pay", { headers, data: { outcome: "succeeded" } });
     expect(mockPay.status()).toBe(404);
 
-    const order = await request.post("/api/orders", { headers, data: ORDER });
-    expect(order.status()).toBe(503);
-    expect((await order.json()).error.code).toBe("SERVICE_UNAVAILABLE");
+    const pixSimulate = await request.post("/api/dev/pix-simulate", { headers });
+    expect(pixSimulate.status()).toBe(404);
+
+    // Neither card nor Pix is offered until live keys, real AI and email are configured.
+    expect(await (await request.get("/api/checkout/options")).json()).toEqual({ offers: [] });
+    for (const method of ["card", "pix"]) {
+      const order = await request.post("/api/orders", { headers, data: { ...ORDER, method } });
+      expect(order.status()).toBe(503);
+      expect((await order.json()).error.code).toBe("SERVICE_UNAVAILABLE");
+    }
 
     // Without COOKIE_SIGNING_SECRET and payments configured, paid endpoints fail closed.
     const fulfill = await request.post("/api/fulfill", { headers: { origin: baseURL!, "x-mxva-request": "1" }, multipart: { input: "{}" } });

@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import type { ApiErrorCode } from "@/lib/api-errors";
-import { paymentMode, serverEnv } from "@/server/config";
+import { paymentOffer, serverEnv, type PaymentMethod } from "@/server/config";
 import { trackServer } from "@/server/analytics";
 import { ApiError } from "@/server/http";
 import { paymentProvider, type CheckoutInit, type PaymentFact } from "@/server/payment/adapter";
@@ -25,6 +25,7 @@ import {
 export const SKU = "mxva_report_v1";
 
 export type CreateOrderInput = {
+  method: PaymentMethod;
   email: string;
   consentVersion: string;
   termsVersion: string;
@@ -33,28 +34,34 @@ export type CreateOrderInput = {
   returnUrl: string;
 };
 
-/** Server-authoritative price. The browser never sends or chooses an amount. */
-export function currentPrice(currency: "usd" | "brl" = "usd"): { amountMinor: number; currency: "usd" | "brl"; priceVariant: string } {
+/**
+ * Server-authoritative price. The browser never sends or chooses an amount.
+ * PIX is charged in reais (only payable from a Brazilian bank account); card in dollars.
+ */
+export function currentPrice(method: PaymentMethod): { amountMinor: number; currency: "usd" | "brl"; priceVariant: string } {
   const env = serverEnv();
-  if (currency === "brl") return { amountMinor: env.PRICE_BRL_CENTS, currency: "brl", priceVariant: `brl_${Math.round(env.PRICE_BRL_CENTS / 100)}` };
+  if (method === "pix") return { amountMinor: env.PRICE_BRL_CENTS, currency: "brl", priceVariant: `brl_${env.PRICE_BRL_CENTS}` };
   return { amountMinor: env.PRICE_USD_CENTS, currency: "usd", priceVariant: env.PRICE_VARIANT };
 }
 
-/** The currency each payment path charges in: PIX is reais; card and the simulator are dollars. */
-export function checkoutCurrency(): "usd" | "brl" {
-  return paymentMode() === "pix" ? "brl" : "usd";
+/** PIX orders carry a charge id; card orders a checkout session id. */
+export function orderMethod(order: Order): PaymentMethod {
+  return order.providerChargeId ? "pix" : "card";
 }
 
 export async function createOrder(input: CreateOrderInput): Promise<{ order: Order; checkout: CheckoutInit }> {
-  const provider = await paymentProvider();
+  const offer = paymentOffer(input.method);
+  if (!offer) throw new ApiError("SERVICE_UNAVAILABLE", "This payment method isn't available right now. Try the other one, or check back soon.");
+  const provider = await paymentProvider(offer);
   const repository = await orderRepository();
-  const price = currentPrice(checkoutCurrency());
+  const price = currentPrice(input.method);
   const now = new Date();
   const id = randomUUID();
 
   const checkout = await provider.createCheckout({
     orderId: id,
     email: input.email,
+    method: input.method,
     amountMinor: price.amountMinor,
     currency: price.currency,
     priceVariant: price.priceVariant,
@@ -116,11 +123,13 @@ async function mutate(orderId: string, transition: (order: Order, now: Date) => 
 
 async function findByProviderRef(provider: PaymentFact["provider"], providerRef: string): Promise<Order | undefined> {
   const repository = await orderRepository();
-  return provider === "abacatepay" ? repository.findByProviderChargeId(providerRef) : repository.findByCheckoutSessionId(providerRef);
+  if (provider === "abacatepay") return repository.findByProviderChargeId(providerRef);
+  if (provider === "stripe") return repository.findByCheckoutSessionId(providerRef);
+  return (await repository.findByCheckoutSessionId(providerRef)) ?? (await repository.findByProviderChargeId(providerRef));
 }
 
-function refMatches(order: Order, provider: PaymentFact["provider"], providerRef: string): boolean {
-  return provider === "abacatepay" ? order.providerChargeId === providerRef : order.stripeCheckoutSessionId === providerRef;
+function refMatches(order: Order, providerRef: string): boolean {
+  return order.stripeCheckoutSessionId === providerRef || order.providerChargeId === providerRef;
 }
 
 export async function applyPaymentFact(fact: PaymentFact): Promise<Order | undefined> {
@@ -132,7 +141,7 @@ export async function applyPaymentFact(fact: PaymentFact): Promise<Order | undef
   switch (fact.kind) {
     case "payment_succeeded": {
       const target = (fact.orderId ? await repository.findById(fact.orderId) : undefined) ?? (await findByProviderRef(fact.provider, fact.providerRef));
-      if (!target || !refMatches(target, fact.provider, fact.providerRef)) break;
+      if (!target || !refMatches(target, fact.providerRef)) break;
       order = await mutate(target.id, (current, now) =>
         paymentSucceeded(current, { amountMinor: fact.amountMinor, currency: fact.currency, paymentIntentId: fact.paymentIntentId }, now),
       );
@@ -164,16 +173,25 @@ export async function applyPaymentFact(fact: PaymentFact): Promise<Order | undef
 }
 
 /**
- * PIX confirmation by asking AbacatePay directly (works without a public webhook URL,
- * e.g. in local development, and double-checks webhooks). Throttled per order.
+ * Confirms a pending order by asking the provider directly: AbacatePay for PIX, Stripe for
+ * card. Works without a public webhook URL (local development) and covers late webhooks.
+ * Throttled per order; the status poll calls it every few seconds.
  */
-const lastPixCheck = new Map<string, number>();
+const lastProviderCheck = new Map<string, number>();
 
-export async function refreshPixStatus(order: Order): Promise<Order> {
-  if (order.paymentMode !== "abacatepay" || order.status !== "pending_payment" || !order.providerChargeId) return order;
+export async function refreshPaymentStatus(order: Order): Promise<Order> {
+  if (order.status !== "pending_payment" || order.paymentMode === "mock") return order;
   const now = Date.now();
-  if (now - (lastPixCheck.get(order.id) ?? 0) < 2000) return order;
-  lastPixCheck.set(order.id, now);
+  if (now - (lastProviderCheck.get(order.id) ?? 0) < 2000) return order;
+  lastProviderCheck.set(order.id, now);
+  if (lastProviderCheck.size > 5000) lastProviderCheck.clear();
+
+  if (order.paymentMode === "stripe" && order.stripeCheckoutSessionId) {
+    const { checkCheckoutSession } = await import("@/server/payment/stripe");
+    const fact = await checkCheckoutSession(order.stripeCheckoutSessionId);
+    return fact ? ((await applyPaymentFact(fact)) ?? order) : order;
+  }
+  if (order.paymentMode !== "abacatepay" || !order.providerChargeId) return order;
   const { checkPixCharge, isClosedUnpaid, isPaid } = await import("@/server/payment/abacatepay");
   const charge = await checkPixCharge(order.providerChargeId);
   if (isPaid(charge.status)) {
@@ -203,6 +221,23 @@ export async function refreshPixStatus(order: Order): Promise<Order> {
     );
   }
   return order;
+}
+
+/** Lets the next status check for this order (or all orders) go straight to the provider. */
+export function clearPaymentCheckThrottle(orderId?: string): void {
+  if (orderId) lastProviderCheck.delete(orderId);
+  else lastProviderCheck.clear();
+}
+
+/**
+ * The buyer is starting a new checkout from this browser. Closes the old card session so it
+ * can't also be paid. (A PIX code can't be withdrawn; if it's paid anyway, the payment is
+ * still recorded against its order and support can refund or deliver.)
+ */
+export async function abandonPendingCheckout(order: Order): Promise<void> {
+  if (order.status !== "pending_payment" || order.paymentMode !== "stripe" || !order.stripeCheckoutSessionId) return;
+  const { expireCheckoutSession } = await import("@/server/payment/stripe");
+  await expireCheckoutSession(order.stripeCheckoutSessionId);
 }
 
 /** Fire-and-forget server analytics; never delays or fails the business operation. */

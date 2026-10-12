@@ -1,6 +1,6 @@
 import { connection } from "next/server";
 import { NO_STORE_HEADERS } from "@/server/security/headers";
-import { fulfillmentMode, paymentMode } from "@/server/config";
+import { fulfillmentMode, paymentSummary } from "@/server/config";
 
 // Public liveness probe. Reports modes only — never keys, hosts or provider names.
 export async function GET() {
@@ -9,7 +9,7 @@ export async function GET() {
     {
       ok: true,
       service: "mxva",
-      payments: paymentMode(),
+      payments: paymentSummary(),
       fulfillment: fulfillmentMode(),
       time: new Date().toISOString(),
     },

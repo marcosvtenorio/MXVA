@@ -17,11 +17,10 @@ const WEBHOOK_SECRET = "unit-test-webhook-secret";
 const saved: Record<string, string | undefined> = {};
 const ENV = {
   NEXT_PUBLIC_ENABLE_REAL_PAYMENTS: "true",
-  PAYMENT_PROVIDER: "abacatepay",
   ABACATEPAY_API_KEY: API_KEY,
   ABACATEPAY_SANDBOX: "true",
   ABACATEPAY_WEBHOOK_SECRET: WEBHOOK_SECRET,
-  PRICE_BRL_CENTS: "14900",
+  PRICE_BRL_CENTS: "3799",
 };
 
 type Charge = { id: string; amount: number; status: string };
@@ -70,6 +69,7 @@ function fakeAbacatePay() {
 
 const orderBody = {
   sku: "mxva_report_v1",
+  method: "pix",
   email: "pix.buyer@example.com",
   adultConfirmed: true,
   faceProcessingConsentVersion: "2026-10-11.v1",
@@ -141,25 +141,33 @@ const current = async (cookie: string) =>
   (await (await routes.current(new Request(`${ORIGIN}/api/orders/current`, { headers: { cookie } }))).json()).order;
 
 describe("PIX checkout (AbacatePay sandbox, faked HTTP)", () => {
-  it("offers PIX in reais", async () => {
-    const options = await (await routes.options()).json();
-    expect(options).toEqual({ mode: "pix", price: { amountMinor: 14900, currency: "brl" }, sandbox: true });
+  it("offers PIX in reais (and card stays simulated in development without Stripe keys)", async () => {
+    const { offers } = await (await routes.options()).json();
+    expect(offers).toEqual([
+      { method: "pix", price: { amountMinor: 3799, currency: "brl" }, sandbox: true, simulated: false },
+      { method: "card", price: { amountMinor: 2900, currency: "usd" }, sandbox: true, simulated: true },
+    ]);
   });
 
-  it("creates a BRL charge server-side and returns only the QR and copy code", async () => {
+  it("creates a BRL charge server-side and returns only the copy-and-paste code", async () => {
     const { response, body } = await createPixOrder();
     expect(response.status).toBe(201);
-    expect(body.checkout).toMatchObject({ mode: "pix", brCode: expect.stringContaining("br.gov.bcb.pix"), sandbox: true });
-    expect(body.checkout.qrCodeDataUrl).toMatch(/^data:image\/png;base64,/);
-    expect(body.price).toEqual({ amountMinor: 14900, currency: "brl" });
+    expect(body.checkout).toEqual({
+      mode: "pix",
+      brCode: expect.stringContaining("br.gov.bcb.pix"),
+      expiresAt: expect.any(String),
+      sandbox: true,
+      simulated: false,
+    });
+    expect(body.price).toEqual({ amountMinor: 3799, currency: "brl" });
     expect(JSON.stringify(body)).not.toContain("pix_char_");
 
     const create = calls.find((call) => call.url.endsWith("/v2/transparents/create"))!;
     const sent = JSON.parse(String(create.init.body));
-    expect(sent).toMatchObject({ method: "PIX", data: { amount: 14900, expiresIn: 1800 } });
+    expect(sent).toMatchObject({ method: "PIX", data: { amount: 3799, expiresIn: 1800 } });
     const stored = repo.list().at(-1)!;
     expect(sent.data.externalId).toBe(stored.id);
-    expect(stored).toMatchObject({ currency: "brl", amountMinor: 14900, providerChargeId: `pix_char_${chargeSequence}`, status: "pending_payment" });
+    expect(stored).toMatchObject({ currency: "brl", amountMinor: 3799, providerChargeId: `pix_char_${chargeSequence}`, status: "pending_payment" });
   });
 
   it("confirms payment only by asking AbacatePay, never from the browser", async () => {

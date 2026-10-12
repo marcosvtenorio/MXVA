@@ -70,7 +70,7 @@ export const clientEventSchemas = {
   photo_ready: z.object({ ready: z.boolean(), profiles: z.number().int().min(0).max(2) }).strict(),
   photo_rejected: z.object({ reason: z.enum(PHOTO_REJECTION_REASONS) }).strict(),
   photos_cleared_by_reload: empty,
-  checkout_started: empty,
+  checkout_started: z.object({ method: z.enum(["pix", "card"]) }).strict(),
   checkout_failed: z.object({ code: z.enum(API_ERROR_CODES) }).strict(),
   payment_confirmed: empty,
   reselect_requested: empty,

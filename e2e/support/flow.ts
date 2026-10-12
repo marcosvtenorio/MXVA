@@ -52,6 +52,8 @@ export async function runOnboarding(
   if (until === "review") return;
   await page.getByRole("button", { name: "Continue to checkout" }).click();
   await page.waitForURL("**/checkout");
+  // The order is opened by the checkout page itself: wait until a way to pay is on screen.
+  await expect(page.getByRole("button", { name: /Pay \$29 \(simulated\)|Generate Pix code/ })).toBeVisible();
 }
 
 export async function addFrontPhoto(page: Page, name = "synthetic-front.jpg") {

@@ -3,12 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { InlineError } from "@/components/common/InlineError";
 import { Tick } from "@/components/common/icons";
-import { regionHint } from "@/features/analytics/attribution";
 import { track } from "@/features/analytics/client";
-import { useCheckoutStore } from "@/features/checkout/store";
-import { FACE_PROCESSING_CONSENT_VERSION, TERMS_VERSION } from "@/features/onboarding/schema";
+import { useDisplayPrice } from "@/features/checkout/use-offers";
 import {
   BUDGET_OPTIONS,
   FOCUS_OPTIONS,
@@ -20,8 +17,6 @@ import {
 import { useOnboardingStore } from "@/features/onboarding/store";
 import { useStepNav } from "@/features/onboarding/use-flow";
 import { usePhotoStore } from "@/features/photos/memory-store";
-import { ApiClientError, api } from "@/lib/api-client";
-import { DISPLAY_PRICE_USD_CENTS, formatUsd } from "@/lib/config";
 import { OnboardingFrame } from "../OnboardingFrame";
 import { StepHeading } from "../StepHeading";
 import { StepActions } from "./StepBody";
@@ -48,9 +43,8 @@ export function ReviewStep() {
   const state = useOnboardingStore();
   const front = usePhotoStore((s) => s.photos.front);
   const profiles = usePhotoStore((s) => Number(Boolean(s.photos.left)) + Number(Boolean(s.photos.right)));
-  const setCheckout = useCheckoutStore((s) => s.set);
+  const price = useDisplayPrice();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
 
   const preferenceSummary = [
     state.preferences.skin.length ? `Skin: ${labels(PREFERENCE_OPTIONS.skin, state.preferences.skin)}` : "",
@@ -64,41 +58,19 @@ export function ReviewStep() {
     .filter(Boolean)
     .join(" · ");
 
-  async function continueToCheckout() {
+  // The order (and its Pix code or card session) is created at checkout, once the method is chosen.
+  function continueToCheckout() {
     setBusy(true);
-    setError(undefined);
     track("cta_clicked", { cta: "continue_to_checkout" });
-    try {
-      const response = await api.createOrder({
-        sku: "mxva_report_v1",
-        email: state.email,
-        adultConfirmed: state.adultConfirmed,
-        faceProcessingConsentVersion: FACE_PROCESSING_CONSENT_VERSION,
-        termsVersion: TERMS_VERSION,
-        marketingOptIn: state.marketingOptIn,
-        countryHint: regionHint(Intl.DateTimeFormat().resolvedOptions().timeZone, navigator.languages ?? []),
-      });
-      track("onboarding_step_completed", { step: "review" });
-      if (response.alreadyPaid) {
-        router.push("/processing");
-        return;
-      }
-      setCheckout({ checkout: response.checkout, price: response.price });
-      track("checkout_started", {});
-      router.push("/checkout");
-    } catch (caught) {
-      const apiError = caught instanceof ApiClientError ? caught : undefined;
-      if (apiError) track("checkout_failed", { code: apiError.code });
-      setError(apiError?.message ?? "Something stopped checkout from opening. Try again.");
-      setBusy(false);
-    }
+    track("onboarding_step_completed", { step: "review" });
+    router.push("/checkout");
   }
 
   return (
     <OnboardingFrame
       step="review"
       onBack={nav.goBack}
-      action={<StepActions continueLabel={busy ? "Opening checkout…" : "Continue to checkout"} busy={busy} onContinue={() => void continueToCheckout()} />}
+      action={<StepActions continueLabel={busy ? "Opening checkout…" : "Continue to checkout"} busy={busy} onContinue={continueToCheckout} />}
     >
       <div className="px-5 pb-2 pt-6">
         <StepHeading size="title" tail="Nothing is analyzed until you pay.">
@@ -140,14 +112,13 @@ export function ReviewStep() {
             <li className="flex gap-2"><Tick size={16} className="mt-0.5 flex-none text-ink-2" />Delivered by email. The email is your permanent copy.</li>
           </ul>
           <p className="mt-4 flex items-baseline gap-3">
-            <span className="text-[40px] leading-none tracking-[-0.03em] tabular-nums">{formatUsd(DISPLAY_PRICE_USD_CENTS)}</span>
+            <span className="text-[40px] leading-none tracking-[-0.03em] tabular-nums">{price}</span>
             <span className="text-[15px] text-ink-2">one-time · no subscription</span>
           </p>
           <p className="mt-3 text-[13px] leading-[1.4] text-ink-2">
             We don&apos;t keep your photos. They stay in this tab until payment, then go to our server and AI providers only to make your report.
           </p>
         </div>
-        <InlineError id="review-error">{error}</InlineError>
       </div>
     </OnboardingFrame>
   );

@@ -33,6 +33,21 @@ test.describe("accessibility (axe, WCAG 2.1 AA)", () => {
   });
 });
 
+test.describe("accessibility of Pix checkout (Brazil)", () => {
+  test.use({ timezoneId: "America/Sao_Paulo", locale: "pt-BR" });
+
+  test("no serious violations with an open Pix code, and no horizontal scroll at 320px", async ({ page }) => {
+    await runOnboarding(page);
+    await axe(page);
+    await page.getByRole("button", { name: "Generate Pix code" }).click();
+    await expect(page.getByRole("img", { name: "Pix QR code" })).toBeVisible();
+    await axe(page);
+    await page.setViewportSize({ width: 320, height: 800 });
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+});
+
 test.describe("responsive", () => {
   for (const width of [320, 375, 768, 1440]) {
     test(`no horizontal scroll at ${width}px`, async ({ page }) => {

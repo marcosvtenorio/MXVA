@@ -24,6 +24,7 @@ test.describe("payment and recovery", () => {
         headers: { "content-type": "application/json", "x-mxva-request": "1" },
         body: JSON.stringify({
           sku: "mxva_report_v1",
+          method: "card",
           email: "e2e.buyer@example.com",
           adultConfirmed: true,
           faceProcessingConsentVersion: "2026-10-11.v1",

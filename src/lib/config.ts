@@ -21,8 +21,19 @@ export const publicConfig = Object.freeze({
  */
 export const devPreviewEnabled = !isProductionBuild && flag(process.env.NEXT_PUBLIC_SHOW_DEV_PREVIEW);
 
-/** Display-only price. The server recomputes the authoritative amount for every order. */
+/** Display-only prices. The server recomputes the authoritative amount for every order. */
 export const DISPLAY_PRICE_USD_CENTS = 2900;
+export const DISPLAY_PRICE_BRL_CENTS = 3799;
+
+export type Currency = "usd" | "brl";
+
+/** "$29" for card, "R$ 37,99" for PIX (Brazilian notation). */
+export function formatPrice(amountMinor: number, currency: Currency): string {
+  if (currency === "brl") {
+    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(amountMinor / 100).replace(/\u00a0/g, " ");
+  }
+  return formatUsd(amountMinor);
+}
 
 export function formatUsd(cents: number): string {
   return new Intl.NumberFormat("en-US", {

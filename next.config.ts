@@ -5,6 +5,8 @@ const isDev = process.env.NODE_ENV !== "production";
 const enableStripe = process.env.NEXT_PUBLIC_ENABLE_REAL_PAYMENTS === "true";
 
 const nextConfig: NextConfig = {
+  // The end-to-end suite runs its own dev server next to yours (Next.js locks one per build dir).
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   cacheComponents: true,
   partialPrefetching: true,
   poweredByHeader: false,

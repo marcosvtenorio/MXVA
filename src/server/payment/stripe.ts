@@ -5,9 +5,11 @@ import { ConfigError, serverEnv } from "../config";
 import type { CheckoutInit, CheckoutInput, PaymentFact, PaymentProvider } from "./adapter";
 
 /**
- * Stripe Checkout Sessions with the embedded Payment Element (`ui_mode: "elements"`).
- * Phase B: enabled only when NEXT_PUBLIC_ENABLE_REAL_PAYMENTS=true AND every downstream
- * provider is configured (see paymentMode()). Verify against the installed SDK before going live.
+ * Card payments: Stripe Checkout Sessions with the embedded Payment Element (`ui_mode: "elements"`).
+ * Enabled only when NEXT_PUBLIC_ENABLE_REAL_PAYMENTS=true AND every downstream provider is
+ * configured (see paymentOffers()). Verified against API 2026-09-30.endive with test keys.
+ * Payment is confirmed by the signed webhook or by retrieving the session server-side
+ * (Stripe's "fulfil from both" pattern); the browser's word is never enough.
  */
 
 let client: Stripe | undefined;
@@ -43,7 +45,7 @@ export class StripePaymentProvider implements PaymentProvider {
         ],
         metadata: { order_id: input.orderId, price_variant: input.priceVariant },
         payment_intent_data: { metadata: { order_id: input.orderId } },
-        // Shows local currency where Stripe supports it; settlement stays in USD.
+        // Shows the buyer's local currency where Stripe supports it; the order amount stays authoritative.
         adaptive_pricing: { enabled: true },
         return_url: input.returnUrl,
         expires_at: Math.floor(Date.now() / 1000) + 60 * 60,
@@ -64,25 +66,56 @@ export function parseStripeWebhook(rawBody: string, signature: string | null): P
   return toPaymentFact(event);
 }
 
+/** A paid Checkout Session as a payment fact; undefined while it isn't paid. */
+function paidSessionFact(session: Stripe.Checkout.Session, eventId: string): PaymentFact | undefined {
+  if (session.payment_status !== "paid") return undefined;
+  // With Adaptive Pricing the buyer may pay in local currency; compare the source amount.
+  const conversion = session.currency_conversion;
+  return {
+    kind: "payment_succeeded",
+    provider: "stripe",
+    eventId,
+    orderId: session.client_reference_id ?? session.metadata?.order_id ?? null,
+    providerRef: session.id,
+    paymentIntentId: typeof session.payment_intent === "string" ? session.payment_intent : (session.payment_intent?.id ?? null),
+    amountMinor: conversion ? conversion.amount_total : (session.amount_total ?? 0),
+    currency: conversion ? conversion.source_currency : (session.currency ?? ""),
+  };
+}
+
+/**
+ * Asks Stripe for the session's current state (works without a webhook, e.g. locally,
+ * and covers a delayed webhook). Event ids are derived so a repeat check is a no-op.
+ */
+export async function checkCheckoutSession(sessionId: string): Promise<PaymentFact | undefined> {
+  const session = await stripe().checkout.sessions.retrieve(sessionId);
+  if (session.status === "complete") return paidSessionFact(session, `check_paid_${session.id}`);
+  if (session.status === "expired") {
+    return {
+      kind: "checkout_expired",
+      provider: "stripe",
+      eventId: `check_expired_${session.id}`,
+      orderId: session.client_reference_id ?? null,
+      providerRef: session.id,
+    };
+  }
+  return undefined;
+}
+
+/** Closes an unpaid session so it can't be paid after the buyer switched method. Best effort. */
+export async function expireCheckoutSession(sessionId: string): Promise<void> {
+  try {
+    await stripe().checkout.sessions.expire(sessionId);
+  } catch {
+    // Already complete or expired: nothing to close.
+  }
+}
+
 export function toPaymentFact(event: Stripe.Event): PaymentFact {
   switch (event.type) {
     case "checkout.session.completed":
-    case "checkout.session.async_payment_succeeded": {
-      const session = event.data.object;
-      if (session.payment_status !== "paid") return { kind: "ignored", provider: "stripe", eventId: event.id, type: event.type };
-      // With Adaptive Pricing the buyer may pay in local currency; compare the source amount.
-      const conversion = session.currency_conversion;
-      return {
-        kind: "payment_succeeded",
-        provider: "stripe",
-        eventId: event.id,
-        orderId: session.client_reference_id ?? session.metadata?.order_id ?? null,
-        providerRef: session.id,
-        paymentIntentId: typeof session.payment_intent === "string" ? session.payment_intent : (session.payment_intent?.id ?? null),
-        amountMinor: conversion ? conversion.amount_total : (session.amount_total ?? 0),
-        currency: conversion ? conversion.source_currency : (session.currency ?? ""),
-      };
-    }
+    case "checkout.session.async_payment_succeeded":
+      return paidSessionFact(event.data.object, event.id) ?? { kind: "ignored", provider: "stripe", eventId: event.id, type: event.type };
     case "checkout.session.expired": {
       const session = event.data.object;
       return {
