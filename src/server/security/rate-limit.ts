@@ -1,4 +1,5 @@
 import "server-only";
+import { isProductionBuild } from "@/lib/config";
 import { ApiError } from "../http";
 
 /**
@@ -69,7 +70,11 @@ export function clientIp(request: Request): string {
   return candidate.slice(0, 64);
 }
 
+/** Development and test servers allow far more traffic (automated suites run many flows). */
+const DEV_SCALE = 50;
+
 export function enforceRateLimit(name: keyof typeof RATE_RULES, key: string): void {
-  const retryAfter = hit(`${name}:${key}`, RATE_RULES[name]);
+  const rule = RATE_RULES[name];
+  const retryAfter = hit(`${name}:${key}`, isProductionBuild ? rule : { ...rule, limit: rule.limit * DEV_SCALE });
   if (retryAfter > 0) throw new ApiError("RATE_LIMITED", undefined, { "Retry-After": String(retryAfter) });
 }

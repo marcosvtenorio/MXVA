@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { InlineError } from "@/components/common/InlineError";
 import { PhotoCapture } from "@/components/photos/PhotoCapture";
 import { REFRESH_LOSS_NOTICE } from "@/features/onboarding/steps";
+import { usePhotoStore } from "@/features/photos/memory-store";
 import { useStepNav } from "@/features/onboarding/use-flow";
 import { OnboardingFrame } from "../OnboardingFrame";
 import { StepHeading } from "../StepHeading";
@@ -12,8 +12,7 @@ import { StepActions } from "./StepBody";
 
 export function PhotosStep() {
   const nav = useStepNav("photos");
-  // The notice renders only on the client (children wait for the step guard), so no hydration mismatch.
-  const [cleared] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("cleared"));
+  const cleared = usePhotoStore((state) => state.clearedNotice);
   return (
     <OnboardingFrame step="photos" onBack={nav.goBack} action={<StepActions continueLabel="Use these photos" onContinue={() => nav.goNext()} />}>
       <div className="px-5 pb-2 pt-6">

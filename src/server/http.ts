@@ -2,6 +2,7 @@ import "server-only";
 import { unstable_rethrow } from "next/navigation";
 import type { z } from "zod";
 import { API_ERRORS, type ApiErrorBody, type ApiErrorCode } from "@/lib/api-errors";
+import { ConfigError } from "./config";
 import { NO_STORE_HEADERS } from "./security/headers";
 
 /** Thrown inside handlers; converted into the JSON error contract by `handle`. */
@@ -39,6 +40,11 @@ export async function handle(run: () => Promise<Response>): Promise<Response> {
     // Framework control flow (e.g. "this route is dynamic" during prerendering) must pass through.
     unstable_rethrow(error);
     if (error instanceof ApiError) return errorResponse(error.code, error.message, error.headers);
+    if (error instanceof ConfigError) {
+      // Fail closed with an actionable server log; the message names variables, never values.
+      console.error(`[api] configuration incomplete: ${error.message}`);
+      return errorResponse("SERVICE_UNAVAILABLE");
+    }
     const name = error instanceof Error ? error.name : typeof error;
     console.error(`[api] unhandled ${name}`);
     return errorResponse("SERVICE_UNAVAILABLE");

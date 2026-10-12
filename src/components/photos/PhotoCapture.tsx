@@ -140,8 +140,9 @@ function ProfileTile({ slot }: { slot: "left" | "right" }) {
             Remove
           </button>
         ) : (
-          <label htmlFor={inputId} className="frost absolute bottom-2.5 right-2.5 grid h-11 w-11 cursor-pointer place-items-center rounded-full" aria-label={`Add ${label.toLowerCase()} photo`}>
+          <label htmlFor={inputId} className="frost absolute bottom-2.5 right-2.5 grid h-11 w-11 cursor-pointer place-items-center rounded-full">
             <Plus size={18} />
+            <span className="sr-only">Add {label.toLowerCase()} photo</span>
           </label>
         )}
         <input id={inputId} type="file" accept={INPUT_ACCEPT} className="sr-only" onChange={(event) => void handleFiles(event.currentTarget)} />

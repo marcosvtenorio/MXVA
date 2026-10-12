@@ -24,6 +24,8 @@ export function setObjectUrlApi(api: ObjectUrlApi | undefined): void {
 type PhotoState = {
   photos: Partial<Record<PhotoSlot, HeldPhoto>>;
   ownershipConfirmed: boolean;
+  /** Set when a reload cleared photos the buyer had added, so the photo step can say so. */
+  clearedNotice: boolean;
 };
 
 type PhotoActions = {
@@ -33,6 +35,7 @@ type PhotoActions = {
   ) => void;
   removePhoto: (slot: PhotoSlot) => void;
   setOwnershipConfirmed: (value: boolean) => void;
+  setClearedNotice: (value: boolean) => void;
   /** Drops every photo reference and revokes every preview URL. */
   clearAll: () => void;
 };
@@ -40,12 +43,14 @@ type PhotoActions = {
 export const usePhotoStore = create<PhotoState & PhotoActions>()((set, get) => ({
   photos: {},
   ownershipConfirmed: false,
+  clearedNotice: false,
 
   setPhoto: (slot, { blob, width, height, quality }) => {
     const previous = get().photos[slot];
     const previewUrl = objectUrls.create(blob);
     set((state) => ({
       photos: { ...state.photos, [slot]: { blob, previewUrl, width, height, byteSize: blob.size, quality } },
+      clearedNotice: false,
     }));
     if (previous) objectUrls.revoke(previous.previewUrl);
   },
@@ -62,6 +67,7 @@ export const usePhotoStore = create<PhotoState & PhotoActions>()((set, get) => (
   },
 
   setOwnershipConfirmed: (value) => set({ ownershipConfirmed: value }),
+  setClearedNotice: (value) => set({ clearedNotice: value }),
 
   clearAll: () => {
     const held = Object.values(get().photos);

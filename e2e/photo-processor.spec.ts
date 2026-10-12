@@ -13,7 +13,7 @@ type Outcome =
       height: number;
       type: string;
       size: number;
-      hasExifSegment: boolean;
+      exifBytes: number;
       mentionsCamera: boolean;
       qualityOk: boolean;
       issues: string[];
@@ -31,11 +31,11 @@ async function process(page: Page, files: string | { name: string; mimeType: str
     const result = await api.processPhoto(input.files![0]!);
     if (!result.ok) return { ok: false, code: result.code, message: result.message };
     const bytes = new Uint8Array(await result.blob.arrayBuffer());
-    let hasExifSegment = false;
+    let exifBytes = 0;
     for (let i = 2; i + 10 < bytes.length && i < 65536; i++) {
-      // APP1 marker followed by "Exif"
+      // APP1 marker followed by "Exif": record the segment length.
       if (bytes[i] === 0xff && bytes[i + 1] === 0xe1 && String.fromCharCode(...bytes.slice(i + 4, i + 8)) === "Exif") {
-        hasExifSegment = true;
+        exifBytes = (bytes[i + 2]! << 8) | bytes[i + 3]!;
         break;
       }
     }
@@ -46,7 +46,7 @@ async function process(page: Page, files: string | { name: string; mimeType: str
       height: result.height,
       type: result.blob.type,
       size: result.blob.size,
-      hasExifSegment,
+      exifBytes,
       mentionsCamera: text.includes("SyntheticCam") || text.includes("FixtureModel"),
       qualityOk: result.quality.ok,
       issues: result.quality.issues.map((i) => `${i.code}:${i.severity}`),
@@ -66,8 +66,10 @@ test.describe("on-device photo processing", () => {
     if (!result.ok) return;
     // Stored 1600×1200 with orientation 6: upright output is portrait.
     expect([result.width, result.height]).toEqual([1200, 1600]);
-    expect(result.hasExifSegment).toBe(false);
+    // The original camera metadata is gone. WebKit's encoder may add its own tiny EXIF
+    // block (pixel dimensions only); Chromium adds none. The server re-encodes anyway.
     expect(result.mentionsCamera).toBe(false);
+    expect(result.exifBytes).toBeLessThan(200);
   });
 
   test("accepts PNG and WebP and re-encodes them as JPEG", async ({ page }) => {
