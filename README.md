@@ -10,7 +10,7 @@ Engineering source of truth: [`MXVA_CLAUDE_IMPLEMENTATION_SPEC.md`](MXVA_CLAUDE_
 |---|---|
 | **A — onboarding, photos, paywall, mock fulfilment** | **Done.** Runs locally end to end with simulated payment and simulated AI. |
 | **B — real payments, database** | **Done in test mode.** Card (Stripe) and Pix (AbacatePay) verified end to end with test/sandbox keys; Railway Postgres migrated. Going live needs live keys, a public URL for webhooks and Phase C. |
-| C — real AI, PDF email | Adapters written and switched off. Needs keys, a domain and testing with a consenting adult. |
+| **C — real AI, PDF email** | **Working with real providers.** OpenAI vision (`gpt-5.5-2026-04-23`) + image edit (`gpt-image-2`) + identity check, PDF, Resend email: verified end to end on a fictional generated face (92 s). Before launch: test with consenting adults on several phones, and send from your own domain. |
 | D — launch operations | Not started (hosting, legal review, monitoring, support playbook). |
 
 ## Run it
@@ -46,7 +46,8 @@ The end-to-end suite starts its own dev server (port 3100, build dir `.next-e2e`
 3. Checkout shows **Pix first if your device is set to Brazil** (time zone or language), card otherwise; the other method is one tap away.
    - **Card**, with Stripe test keys and `NEXT_PUBLIC_ENABLE_REAL_PAYMENTS=true`: the real Stripe form in test mode. Use `4242 4242 4242 4242` (paid), `4000 0000 0000 0002` (declined) or `4000 0027 6000 3184` (3D Secure), any future date, any CVC. Without keys: a **Development preview** block with *Pay $29 (simulated)*, *Simulate decline* and *Simulate bank page* (a full page load that drops in-memory photos, to exercise the "reselect your photo, no second charge" recovery).
    - **Pix**: *Generate Pix code* → QR + Pix Copia e Cola, live status, real expiry time. With an AbacatePay Dev Mode key the charge is real sandbox; *Simulate Pix payment* pays it through AbacatePay. Without a key it is simulated locally.
-4. Processing streams the real server phases; the result page shows the concept (stamped "SIMULATED" until Phase C), the plan, sources and the PDF download.
+4. Processing streams the real server phases; the result page shows the concept, the plan, sources and the PDF download. With `NEXT_PUBLIC_ENABLE_REAL_AI=true` and the OpenAI/Resend keys, the concept and plan are real (about 90 s, paid per report from your OpenAI credits) and the PDF is emailed; otherwise both are simulated and stamped "SIMULATED".
+5. Email without your own domain: `EMAIL_FROM="MXVA <onboarding@resend.dev>"` only delivers to your Resend account's address; other addresses show "couldn't email it" and keep the download.
 
 Payments are confirmed only on the server: by the provider's webhook or by the server asking Stripe / AbacatePay for the payment state. Locally no webhook is needed.
 
@@ -60,6 +61,8 @@ Payments are confirmed only on the server: by the provider's webhook or by the s
 | Playwright, production build | **3 passed** |
 | Stripe test mode, local dev server | 4242 paid → report; 4000…0002 declined, order left unpaid; 3D Secure challenge → paid |
 | AbacatePay Dev Mode, local dev server | real sandbox Pix code (QR + copy) → simulated payment → server check → report |
+| Live AI (opt-in, `LIVE_AI_PHOTO=…`) | vision 9 s, image edit 75 s, identity check passed first try, PDF audit passed, email accepted |
+| Full flow, local dev server | Pix sandbox → real AI concept and plan in 90 s → PDF → email received |
 | axe-core (WCAG 2.1 A/AA) on landing, start, sample, privacy, help and the funnel | no serious or critical violations |
 
 What the end-to-end matrix covers (spec §12): start-to-result, conditionals, invalid uploads, reload clears photos (answers stay), age gate, consent gate, payment redirect with reselect and no second charge, faked `paid=true` refused (`ORDER_NOT_PAID`), refresh after delivery points to email, storage and network leak checks before payment, console never logs photo data, 320/375/768/1440 px without horizontal scroll, production flags block every mock.
@@ -107,6 +110,6 @@ Real payments refuse to start unless **every** provider above (payments, AI, ema
 
 ## Next steps
 
-1. Phase C: real AI (OpenAI) and email (Resend) with a verified sending domain, tested with a consenting adult.
+1. Test real AI with consenting adults (different faces, lighting, phones); verify a sending domain in Resend and set `EMAIL_FROM` and `SUPPORT_EMAIL` on it.
 2. Deploy on Railway next to the Postgres service (`DATABASE_URL=${{Postgres.DATABASE_URL}}`, `npm run db:migrate` as the pre-deploy command), then register the Stripe and AbacatePay webhooks on the public URL.
 3. Switch to live keys only after Phase C passes end to end (the app refuses real money otherwise).
