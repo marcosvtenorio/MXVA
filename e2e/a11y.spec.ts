@@ -20,10 +20,10 @@ test.describe("accessibility (axe, WCAG 2.1 AA)", () => {
   }
 
   test("no serious violations across the funnel", async ({ page }) => {
-    await runOnboarding(page, "goals");
+    await runOnboarding(page, "photos");
     await axe(page);
     await page.goto("/start");
-    await runOnboarding(page, "photos");
+    await runOnboarding(page, "constraints");
     await axe(page);
     await runOnboarding(page);
     await axe(page);

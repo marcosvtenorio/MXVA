@@ -1,6 +1,7 @@
 import "server-only";
 import sharp from "sharp";
-import type { ReportInput } from "@/features/onboarding/schema";
+import { FOCUS_AREAS, type Constraints } from "@/features/onboarding/schema";
+import { deriveReportInput } from "@/features/report/derive";
 import type { Order } from "@/features/orders/states";
 import { auditReportPdf, composeReportPdf } from "@/features/report/pdf";
 import { planReport } from "@/features/report/planner";
@@ -53,17 +54,17 @@ export async function runPipeline(args: {
   order: Order;
   front: ServerPhoto;
   profiles: ServerPhoto[];
-  input: ReportInput;
+  constraints: Constraints;
   onPhase: (phase: FulfillmentPhase) => void;
 }): Promise<FulfillmentOutput> {
-  const { order, front, profiles, input, onPhase } = args;
+  const { order, front, profiles, constraints, onPhase } = args;
   const vision = visionProvider();
   const editor = imageEditProvider();
   const gate = identityQualityGate();
   const mailer = emailProvider();
 
   onPhase("analysing_photo");
-  const observations = await vision.observe({ front: front.jpeg, profiles: profiles.map((p) => p.jpeg), focusAreas: input.focusAreas });
+  const observations = await vision.observe({ front: front.jpeg, profiles: profiles.map((p) => p.jpeg), focusAreas: FOCUS_AREAS });
   if (observations.possibleMinor) {
     console.warn("[fulfillment] held for human review: the photo may show a minor");
     throw new NeedsHumanReview("AGE_RESTRICTED");
@@ -72,6 +73,8 @@ export async function runPipeline(args: {
     throw new ApiError("PHOTO_QUALITY_INSUFFICIENT", "We need a front photo with just you in it.");
   }
   if (!observations.imageQuality.usable) throw new ApiError("PHOTO_QUALITY_INSUFFICIENT");
+  // Every aesthetic decision comes from the photo; the buyer only told us what to avoid.
+  const input = deriveReportInput(observations, constraints);
 
   onPhase("preparing_image");
   let edited: Buffer | undefined;

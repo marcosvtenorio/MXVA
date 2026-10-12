@@ -20,6 +20,19 @@ export const FACIAL_HAIR_PREFERENCES = ["shape", "fuller", "stubble", "clean_sha
 export const SMILE_PREFERENCES = ["hygiene", "whitening_info", "alignment_consult", "none"] as const;
 export const JAW_PREFERENCES = ["leaner", "grooming", "framing", "photo_presentation", "none"] as const;
 
+// The concept and plan are decided from the photo (no aesthetic questions to the buyer).
+export const HAIRCUT_STYLES = [
+  "textured_crop",
+  "short_quiff",
+  "side_part",
+  "fade_textured_top",
+  "buzz_cut",
+  "medium_flow",
+  "tidy_current_length",
+] as const;
+export const FACIAL_HAIR_ACTIONS = ["sharpen_lines", "even_stubble", "clean_shave", "stay_clean_shaven"] as const;
+export const JAW_SOFT_TISSUE = ["defined", "some_fullness", "notable_fullness"] as const;
+
 export const DAILY_MINUTES = ["5", "15", "30"] as const;
 export const AVOID_OPTIONS = ["fragrance", "strong_actives", "animal_derived", "new_products", "none"] as const;
 
@@ -32,6 +45,7 @@ export type Timeline = (typeof TIMELINES)[number];
 export type Budget = (typeof BUDGETS)[number];
 export type DailyMinutes = (typeof DAILY_MINUTES)[number];
 export type AvoidOption = (typeof AVOID_OPTIONS)[number];
+export type HaircutStyle = (typeof HAIRCUT_STYLES)[number];
 
 /** Multi-select where "none" can only stand alone. Empty array means the step was skipped. */
 function exclusiveNoneList<const T extends readonly [string, ...string[]]>(values: T) {
@@ -63,7 +77,8 @@ export const noteSchema = z
   .max(CONSTRAINT_NOTE_MAX, { message: `Keep the note under ${CONSTRAINT_NOTE_MAX} characters.` });
 
 export const constraintsSchema = z.object({
-  dailyMinutes: z.enum(DAILY_MINUTES, { message: "Choose how much time you have." }),
+  // Looksmaxxing plans assume full commitment; no longer asked.
+  dailyMinutes: z.enum(DAILY_MINUTES).default("30"),
   avoid: exclusiveNoneList(AVOID_OPTIONS).default([]),
   note: noteSchema.optional(),
 });
@@ -148,14 +163,24 @@ export const onboardingAnswersSchema = z.object({
 
 export type OnboardingAnswers = z.infer<typeof onboardingAnswersSchema>;
 
-/** The subset of answers needed to build a report (what /api/fulfill receives). */
-export const reportInputSchema = onboardingAnswersSchema.pick({
-  goals: true,
-  focusAreas: true,
-  timeline: true,
-  budget: true,
-  preferences: true,
-  constraints: true,
+/**
+ * Everything the planner and the image edit need. Built on the server from the photo
+ * analysis (src/features/report/derive.ts); the buyer only supplies constraints.
+ */
+export const reportInputSchema = z.object({
+  goals: z.array(z.enum(GOALS)).min(1).max(GOALS.length),
+  focusAreas: z.array(z.enum(FOCUS_AREAS)).min(1).max(FOCUS_AREAS.length),
+  timeline: z.enum(TIMELINES),
+  budget: z.enum(BUDGETS),
+  preferences: preferencesSchema,
+  constraints: constraintsSchema,
+  /** The cut the concept shows, chosen from the photo. */
+  haircut: z.enum(HAIRCUT_STYLES).optional(),
 });
 
 export type ReportInput = z.infer<typeof reportInputSchema>;
+
+/** What the browser sends to /api/fulfill (no photos, no aesthetic choices). */
+export const fulfillInputSchema = z.object({ constraints: constraintsSchema }).strict();
+
+export type FulfillInput = z.infer<typeof fulfillInputSchema>;

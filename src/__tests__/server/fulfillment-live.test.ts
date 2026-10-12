@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import type { ReportInput } from "@/features/onboarding/schema";
+import type { Constraints } from "@/features/onboarding/schema";
 import type { Order } from "@/features/orders/states";
 
 /**
@@ -14,16 +14,8 @@ import type { Order } from "@/features/orders/states";
 const photoPath = process.env.LIVE_AI_PHOTO;
 const outDir = process.env.LIVE_AI_OUT ?? path.join(process.cwd(), "test-results", "live-ai");
 
-const defaultInput: ReportInput = {
-  goals: ["grooming"],
-  focusAreas: ["brows", "facial_hair", "hair"],
-  timeline: "30d",
-  budget: "low",
-  preferences: { skin: [], brows: ["shape"], eyes: [], hair: ["routine"], facialHairRelevant: "yes", facialHair: ["shape"], smile: [], jaw: [] },
-  constraints: { dailyMinutes: "15", avoid: [] },
-};
-// LIVE_AI_INPUT='{"…"}' overrides the answers (a ReportInput as JSON).
-const input: ReportInput = process.env.LIVE_AI_INPUT ? JSON.parse(process.env.LIVE_AI_INPUT) : defaultInput;
+// The plan and concept come from the photo; only constraints are the buyer's.
+const constraints: Constraints = { dailyMinutes: "30", avoid: [] };
 
 const saved: Record<string, string | undefined> = {};
 
@@ -61,7 +53,7 @@ describe.skipIf(!photoPath)("live fulfilment (real OpenAI + Resend)", () => {
 
     const phases: { phase: string; at: number }[] = [];
     const started = Date.now();
-    const output = await runPipeline({ order, front, profiles: [], input, onPhase: (phase) => phases.push({ phase, at: Date.now() - started }) });
+    const output = await runPipeline({ order, front, profiles: [], constraints, onPhase: (phase) => phases.push({ phase, at: Date.now() - started }) });
 
     writeFileSync(path.join(outDir, "concept.jpg"), output.conceptJpeg);
     writeFileSync(path.join(outDir, "report.pdf"), output.pdf);

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { StepRouter } from "@/components/onboarding/StepRouter";
 import { ONBOARDING_SLUGS, stepFromSlug } from "@/features/onboarding/navigation";
+import { TOTAL_STEPS } from "@/features/onboarding/steps";
 
 export function generateStaticParams() {
   return ONBOARDING_SLUGS.map((step) => ({ step }));
@@ -11,7 +12,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps<"/onboarding/[step]">): Promise<Metadata> {
   const { step } = await params;
   const definition = stepFromSlug(step);
-  return { title: definition ? `${definition.short} · Step ${definition.number} of 16` : "Not found", robots: { index: false, follow: false } };
+  return { title: definition ? `${definition.short} · Step ${definition.number} of ${TOTAL_STEPS}` : "Not found", robots: { index: false, follow: false } };
 }
 
 async function Step({ params }: Pick<PageProps<"/onboarding/[step]">, "params">) {

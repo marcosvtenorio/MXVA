@@ -1,6 +1,6 @@
 # MXVA
 
-Privacy-first, mobile-first web product for adults (18+): a 16-step intake, one front photo, a one-time purchase (US$ 29 by card, R$ 47,99 by Pix in Brazil), then an **AI concept portrait** (the buyer's own photo, groomed and well lit) plus a **sourced 7/30/90-day roadmap**, delivered as one PDF by email. Photos are never stored by the app.
+Privacy-first, mobile-first web product for adults (18+): a short intake (photo, anything to avoid, email), one front photo, a one-time purchase (US$ 29 by card, R$ 47,99 by Pix in Brazil), then an **AI concept portrait** (the buyer's own photo, groomed and well lit) plus a **sourced 7/30/90-day roadmap**, delivered as one PDF by email. Photos are never stored by the app.
 
 Engineering source of truth: [`MXVA_CLAUDE_IMPLEMENTATION_SPEC.md`](MXVA_CLAUDE_IMPLEMENTATION_SPEC.md). Design source of truth: [`design/DIRECTION.md`](design/DIRECTION.md).
 
@@ -42,7 +42,7 @@ The end-to-end suite starts its own dev server (port 3100, build dir `.next-e2e`
 ### Try the whole flow locally
 
 1. `npm run dev`, open http://localhost:3000 on a phone-sized window.
-2. Start → answer the steps → add any front photo (e.g. `e2e/fixtures/synthetic-front.jpg`) → email + consents → review → checkout.
+2. Start → photo guide → add any front photo (e.g. `e2e/fixtures/synthetic-front.jpg`) → anything to avoid (optional) → email + consents → review → checkout. No aesthetic questions: the plan and the concept are decided from the photo.
 3. Checkout shows **Pix first if your device is set to Brazil** (time zone or language), card otherwise; the other method is one tap away.
    - **Card**, with Stripe test keys and `NEXT_PUBLIC_ENABLE_REAL_PAYMENTS=true`: the real Stripe form in test mode. Use `4242 4242 4242 4242` (paid), `4000 0000 0000 0002` (declined) or `4000 0027 6000 3184` (3D Secure), any future date, any CVC. Without keys: a **Development preview** block with *Pay $29 (simulated)*, *Simulate decline* and *Simulate bank page* (a full page load that drops in-memory photos, to exercise the "reselect your photo, no second charge" recovery).
    - **Pix**: *Generate Pix code* → QR + Pix Copia e Cola, live status, real expiry time. With an AbacatePay Dev Mode key the charge is real sandbox; *Simulate Pix payment* pays it through AbacatePay. Without a key it is simulated locally.

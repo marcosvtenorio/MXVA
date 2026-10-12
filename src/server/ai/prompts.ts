@@ -28,6 +28,15 @@ Rules:
 - imageQuality.faceCount is the number of human faces visible.
 - possibleMinor is true only if the person clearly looks like a child or a young teenager. A young-looking adult (someone who could be 18 to 25) is NOT a minor: the buyer has confirmed they are 18 or older. Do not guess from youthful skin, a slim face or a lack of facial hair alone.
 - Only use areas from this list: skin, brows, eye_area, hair, facial_hair, smile, jaw_presentation.
+- Cover every area you can see, not only the focus list.
+glowUp: decide, objectively and from the photo alone, what would most upgrade this person's look (they want the full glow-up):
+- haircut: the cut that best suits their face shape and hair texture: textured_crop, short_quiff, side_part, fade_textured_top, buzz_cut, medium_flow, or tidy_current_length when their current cut already suits them.
+- facialHair: sharpen_lines (beard or stubble that grows evenly: crisp lines), even_stubble (patchy growth: keep it short and even), clean_shave (it looks better without), stay_clean_shaven (no facial hair now and it suits them).
+- skin: blemishes, redness, unevenTone, shine: true only when clearly visible.
+- browsNeedGrooming: strays, a unibrow area or an untidy shape are visible.
+- eyesLookTired: dark circles or puffiness are visible.
+- teethVisible: teeth show in the photo.
+- jawSoftTissue: how much soft-tissue fullness shows under the chin and along the jaw: defined, some_fullness, notable_fullness. Describe soft tissue only; never comment on weight or health.
 Return JSON matching the schema exactly.`;
 
 export const IDENTITY_QC_INSTRUCTIONS = `You compare an ORIGINAL portrait (first image) with an EDITED glow-up concept (second image) of the same adult.

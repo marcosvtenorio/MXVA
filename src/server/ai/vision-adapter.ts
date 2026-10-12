@@ -32,6 +32,15 @@ class MockVisionProvider implements VisionProvider {
       possibleMinor: false,
       observations: input.focusAreas.map((area) => ({ area, observation: MOCK_LINES[area], confidence: "low" as const })),
       cannotAssess: ["Simulated mode: nothing about this photo was actually analysed."],
+      glowUp: {
+        haircut: "textured_crop",
+        facialHair: "sharpen_lines",
+        skin: { blemishes: true, redness: false, unevenTone: true, shine: false },
+        browsNeedGrooming: true,
+        eyesLookTired: true,
+        teethVisible: false,
+        jawSoftTissue: "some_fullness",
+      },
     };
   }
 }
@@ -57,7 +66,7 @@ class OpenAIVisionProvider implements VisionProvider {
         {
           role: "user",
           content: [
-            { type: "input_text", text: `Focus areas chosen by the person: ${input.focusAreas.join(", ")}. First image is the front photo.` },
+            { type: "input_text", text: `The person wants a full glow-up; describe every area you can see. First image is the front photo${input.profiles.length ? "; the others are profiles" : ""}.` },
             ...images,
           ],
         },

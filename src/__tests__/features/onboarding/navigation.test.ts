@@ -46,40 +46,26 @@ const completeFlow: FlowSnapshot = {
 };
 
 describe("onboarding navigation", () => {
-  it("defines exactly 16 steps with the canonical routes", () => {
-    expect(STEPS).toHaveLength(16);
+  it("defines a short intake: no aesthetic questions, the photo decides", () => {
     expect(STEPS.map((s) => s.path)).toEqual([
       "/start",
-      "/onboarding/goals",
-      "/onboarding/focus",
-      "/onboarding/timeline",
-      "/onboarding/budget",
-      "/onboarding/skin",
-      "/onboarding/brows",
-      "/onboarding/eyes",
-      "/onboarding/hair",
-      "/onboarding/smile",
-      "/onboarding/jaw",
-      "/onboarding/constraints",
       "/onboarding/photo-guide",
       "/onboarding/photos",
+      "/onboarding/constraints",
       "/onboarding/delivery",
       "/onboarding/review",
     ]);
-    expect(STEPS.map((s) => s.number)).toEqual(Array.from({ length: 16 }, (_, i) => i + 1));
-    expect(ONBOARDING_SLUGS).toHaveLength(15);
-  });
-
-  it("marks only steps 06–11 as skippable", () => {
-    expect(STEPS.filter((s) => s.skippable).map((s) => s.number)).toEqual([6, 7, 8, 9, 10, 11]);
+    expect(STEPS.map((s) => s.number)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(ONBOARDING_SLUGS).toHaveLength(5);
+    expect(STEPS.filter((s) => s.skippable)).toEqual([]);
   });
 
   it("moves forward and back in order", () => {
-    expect(nextStep("start")?.id).toBe("goals");
+    expect(nextStep("start")?.id).toBe("photo-guide");
     expect(nextStep("review")).toBeUndefined();
-    expect(previousStep("goals")?.id).toBe("start");
+    expect(previousStep("photo-guide")?.id).toBe("start");
     expect(previousStep("start")).toBeUndefined();
-    expect(progressFor("photos")).toEqual({ current: 14, total: 16, ratio: 14 / 16 });
+    expect(progressFor("photos")).toEqual({ current: 3, total: 6, ratio: 3 / 6 });
   });
 
   it("resolves paths and slugs", () => {
@@ -91,8 +77,8 @@ describe("onboarding navigation", () => {
 
   it("sends deep links back to the first incomplete step", () => {
     expect(resolveAccessibleStep("review", emptyFlow).id).toBe("start");
-    const partial: FlowSnapshot = { ...emptyFlow, adultConfirmed: true, goals: ["smile"] };
-    expect(resolveAccessibleStep("photos", partial).id).toBe("focus");
+    const started: FlowSnapshot = { ...emptyFlow, adultConfirmed: true };
+    expect(resolveAccessibleStep("delivery", started).id).toBe("photo-guide");
     expect(resolveAccessibleStep("review", completeFlow).id).toBe("review");
   });
 
@@ -101,10 +87,8 @@ describe("onboarding navigation", () => {
     expect(resolveAccessibleStep("review", afterReload).id).toBe("photos");
   });
 
-  it("treats an untouched preference step as incomplete until answered or skipped", () => {
-    expect(isStepComplete("brows", emptyFlow)).toBe(false);
-    expect(isStepComplete("brows", { ...emptyFlow, skipped: ["brows"] })).toBe(true);
-    expect(isStepComplete("brows", { ...emptyFlow, preferences: { brows: ["shape"] } })).toBe(true);
+  it("treats the optional 'avoid' step as complete with nothing chosen", () => {
+    expect(isStepComplete("constraints", { ...emptyFlow, constraints: { avoid: [] } })).toBe(true);
   });
 
   it("walks every step of a complete flow", () => {

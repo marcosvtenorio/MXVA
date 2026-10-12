@@ -55,8 +55,8 @@ describe("onboarding schemas", () => {
     expect(stepSchemas.hair.safeParse({ hair: ["cut"], facialHairRelevant: "no", facialHair: ["stubble"] }).success).toBe(false);
   });
 
-  it("caps the free-text note and requires a daily time budget", () => {
-    expect(stepSchemas.constraints.safeParse({ avoid: [] }).success).toBe(false);
+  it("caps the free-text note; daily time defaults to a full plan", () => {
+    expect(stepSchemas.constraints.parse({ avoid: [] }).dailyMinutes).toBe("30");
     expect(stepSchemas.constraints.safeParse({ dailyMinutes: "5", avoid: [], note: "x".repeat(281) }).success).toBe(false);
     expect(stepSchemas.constraints.safeParse({ dailyMinutes: "5", avoid: [], note: "Short note" }).success).toBe(true);
   });

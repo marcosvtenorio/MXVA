@@ -8,7 +8,7 @@ import { Tick } from "@/components/common/icons";
 import { PlasterHead } from "@/components/common/StudioArt";
 import { PhotoCapture } from "@/components/photos/PhotoCapture";
 import { track } from "@/features/analytics/client";
-import { reportInputSchema } from "@/features/onboarding/schema";
+import { fulfillInputSchema } from "@/features/onboarding/schema";
 import { useOnboardingStore } from "@/features/onboarding/store";
 import { frontPhotoReady, usePhotoStore } from "@/features/photos/memory-store";
 import { base64ToBlob, useResultStore } from "@/features/results/memory-store";
@@ -88,14 +88,8 @@ export function ProcessingView() {
   const confirmedTracked = useRef(false);
   const started = useRef(false);
 
-  const reportInput = reportInputSchema.safeParse({
-    goals: onboarding.goals,
-    focusAreas: onboarding.focusAreas,
-    timeline: onboarding.timeline,
-    budget: onboarding.budget,
-    preferences: onboarding.preferences,
-    constraints: onboarding.constraints,
-  });
+  // The plan and the concept are decided from the photo; only the buyer's constraints go along.
+  const reportInput = fulfillInputSchema.safeParse({ constraints: onboarding.constraints });
   const consentGiven = onboarding.faceProcessingConsent || consent;
 
   const start = useCallback(async () => {

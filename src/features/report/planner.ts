@@ -1,6 +1,6 @@
 import type { FocusArea, ReportInput } from "@/features/onboarding/schema";
 import { FOCUS_OPTIONS, GOAL_OPTIONS } from "@/features/onboarding/steps";
-import { BUDGET_ORDER, IMAGE_EDIT_LINES, LIBRARY, type RecommendationTemplate } from "./library";
+import { BUDGET_ORDER, HAIRCUT_DESCRIPTIONS, IMAGE_EDIT_LINES, LIBRARY, type RecommendationTemplate } from "./library";
 import { getSource, onlyRegisteredIds } from "./references";
 import {
   SIMULATION_DISCLAIMER,
@@ -17,7 +17,7 @@ import {
  */
 
 export const MIN_RECOMMENDATIONS = 5;
-export const MAX_RECOMMENDATIONS = 8;
+export const MAX_RECOMMENDATIONS = 10;
 const MAX_PER_AREA = 3;
 const MAX_PROFESSIONAL = 2;
 
@@ -136,7 +136,11 @@ export function buildImageEditSummary(input: ReportInput): string[] {
 }
 
 export function buildImageEditInstructions(input: ReportInput): string[] {
-  return IMAGE_EDIT_LINES.filter((entry) => entry.when(input.preferences, input.focusAreas)).map((entry) => entry.line);
+  const lines = IMAGE_EDIT_LINES.filter((entry) => entry.when(input.preferences, input.focusAreas)).map((entry) => entry.line);
+  if (input.haircut && input.haircut !== "tidy_current_length" && lines.some((line) => line.includes("haircut"))) {
+    lines.push(`The haircut to show: ${HAIRCUT_DESCRIPTIONS[input.haircut]}.`);
+  }
+  return lines;
 }
 
 export function planReport(

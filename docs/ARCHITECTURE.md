@@ -7,8 +7,8 @@ Screenshot-free. "Top / content / bottom" describes where each part sits on a ph
 | Route | Top | Content | Bottom | Notes |
 |---|---|---|---|---|
 | `/` | `SiteHeader` (wordmark, Sample report) | Stage (lit seamless + light-test head + readouts), two-tone hero, how it works, what you get, privacy, what we won't do, FAQ, price | Start CTA, `SiteFooter`, `ConsentBanner` | Static; the only page meant for sharing (Open Graph image) |
-| `/start` (step 01) | Back, `01 / 16 · Start`, 16-tick meter | Hero copy, small stage, `AgeGate` (18+ / under 18) | Start | Under 18 → refusal, flow blocked for the tab |
-| `/onboarding/goals` … `/onboarding/review` (steps 02–16) | Back, step count, 16-tick meter (`role=progressbar`) | Two-tone question anchored above the action; `ChoiceCards` / `ChoiceChips` / fields | Continue (+ Skip on 06–11), sticky | Step guard sends deep links and reloads to the first incomplete step |
+| `/start` (step 1 of 6) | Back, step count, meter | Hero copy, small stage, "By continuing, you confirm you're 18 or older…" with Terms and Privacy links | Start | — |
+| `/onboarding/photo-guide`, `/photos`, `/constraints` (optional: anything to avoid), `/delivery`, `/review` | Back, step count, meter (`role=progressbar`) | No aesthetic questions: hair, skin, brows, facial hair, eyes, teeth and jawline are decided from the photo on the server (`src/features/report/derive.ts`) | Continue, sticky | Step guard sends deep links and reloads to the first incomplete step |
 | `/onboarding/photos` (14) | as above | `PhotoCapture`: front stage (camera / library / retake, live checks), two profile tiles, ownership checkbox, privacy and reload notice | Use these photos | Photos in RAM only |
 | `/onboarding/delivery` (15) | as above | Email, photo-processing consent, terms, separate marketing opt-in (RHF + Zod) | Continue | Email and consents never written to storage |
 | `/onboarding/review` (16) | as above | Photo-ready indicator, goals summary with Edit links, included items, this visitor's price, no-storage note | Continue to checkout | No analysis before payment |

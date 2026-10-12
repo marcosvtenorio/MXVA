@@ -68,6 +68,15 @@ function randomInput(seed: number): ReportInput {
 const observations: VisualObservations = {
   imageQuality: { usable: true, faceCount: 1, lightingLimitations: "" },
   possibleMinor: false,
+  glowUp: {
+    haircut: "textured_crop",
+    facialHair: "sharpen_lines",
+    skin: { blemishes: false, redness: false, unevenTone: true, shine: false },
+    browsNeedGrooming: true,
+    eyesLookTired: false,
+    teethVisible: false,
+    jawSoftTissue: "some_fullness",
+  },
   observations: [{ area: "skin", observation: "Skin looks even in this light.", confidence: "medium" }],
   cannotAssess: [],
 };
@@ -96,12 +105,12 @@ describe("evidence registry", () => {
 });
 
 describe("recommendation planner", () => {
-  it("always produces a valid 5–8 item report that honours constraints (400 random buyers)", () => {
+  it("always produces a valid 5–10 item report that honours constraints (400 random buyers)", () => {
     for (let seed = 1; seed <= 400; seed++) {
       const input = randomInput(seed);
       const report = planReport(input, observations, { simulated: true, now: new Date("2026-10-11T12:00:00Z") });
       expect(report.recommendations.length).toBeGreaterThanOrEqual(5);
-      expect(report.recommendations.length).toBeLessThanOrEqual(8);
+      expect(report.recommendations.length).toBeLessThanOrEqual(10);
       const chosen = report.recommendations.map((rec) => LIBRARY.find((t) => t.id === rec.id)!);
       for (const template of chosen) {
         expect(template.excludedBy?.some((option) => input.constraints.avoid.includes(option)) ?? false).toBe(false);

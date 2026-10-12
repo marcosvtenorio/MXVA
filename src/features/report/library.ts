@@ -1,4 +1,4 @@
-import type { AvoidOption, Budget, FocusArea, Preferences } from "@/features/onboarding/schema";
+import type { AvoidOption, Budget, FocusArea, HaircutStyle, Preferences } from "@/features/onboarding/schema";
 import type { PriorityRecommendation } from "./schema";
 
 /**
@@ -513,6 +513,17 @@ export const LIBRARY: readonly RecommendationTemplate[] = [
     plan: {},
   },
 ];
+
+/** How the concept shows each cut chosen from the photo. */
+export const HAIRCUT_DESCRIPTIONS: Record<HaircutStyle, string> = {
+  textured_crop: "a textured crop: short, tidy tapered sides and a textured, slightly forward fringe on top",
+  short_quiff: "a short quiff: tapered sides and the front swept up and back with natural volume",
+  side_part: "a classic side part: neat tapered sides and a defined side parting, combed with light hold",
+  fade_textured_top: "a mid fade with a textured top: clean faded sides and movement on top",
+  buzz_cut: "a clean, even buzz cut with a sharp hairline edge-up",
+  medium_flow: "a medium-length flow: longer hair pushed back with natural movement, trimmed and shaped at the sides",
+  tidy_current_length: "their current length, freshly trimmed and styled",
+};
 
 /**
  * The edits each choice may request in the concept image: a visible glow-up of the same person.

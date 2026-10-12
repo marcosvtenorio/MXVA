@@ -7,8 +7,8 @@ import { TrackedLink } from "@/components/marketing/TrackedLink";
 import { PriceTag } from "@/components/checkout/PriceTag";
 
 const STEPS = [
-  { title: "Answer 16 short questions", detail: "Your goals, your time and budget, what to avoid. About three minutes." },
   { title: "Add one front photo", detail: "It stays in your browser tab until you pay. Two side photos are optional." },
+  { title: "Answer a few short questions", detail: "Just what to avoid and where to send your report. Under a minute." },
   { title: "Pay once, get your report", detail: "An AI concept portrait of you and a PDF roadmap, delivered by email." },
 ];
 

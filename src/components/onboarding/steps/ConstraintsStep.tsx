@@ -5,11 +5,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { CONSTRAINT_NOTE_MAX, noteSchema } from "@/features/onboarding/schema";
-import { AVOID_OPTIONS_COPY, CONSTRAINT_NOTE_HINT, DAILY_MINUTES_OPTIONS } from "@/features/onboarding/steps";
+import { AVOID_OPTIONS_COPY, CONSTRAINT_NOTE_HINT } from "@/features/onboarding/steps";
 import { useOnboardingStore } from "@/features/onboarding/store";
 import { useStepNav } from "@/features/onboarding/use-flow";
 import { OnboardingFrame } from "../OnboardingFrame";
-import { ChoiceCards, ChoiceChips } from "../controls";
+import { ChoiceChips } from "../controls";
 import { StepActions, StepBody } from "./StepBody";
 
 const noteForm = z.object({ note: noteSchema.optional() });
@@ -34,20 +34,7 @@ export function ConstraintsStep() {
   return (
     <OnboardingFrame step="constraints" onBack={nav.goBack} action={<StepActions onContinue={() => void submit()} />}>
       <StepBody definition={nav.definition} error={nav.error}>
-        <h2 className="text-[17px] font-semibold">Time you have</h2>
-        <div className="mt-3">
-          <ChoiceCards
-            name="daily-minutes"
-            legend="Time you have each day"
-            options={DAILY_MINUTES_OPTIONS}
-            value={constraints.dailyMinutes}
-            onChange={(value) => {
-              setConstraints({ dailyMinutes: value });
-              nav.setError(undefined);
-            }}
-          />
-        </div>
-        <h2 className="mt-8 text-[17px] font-semibold">Anything to avoid?</h2>
+        <h2 className="text-[17px] font-semibold">Things to avoid</h2>
         <div className="mt-3">
           <ChoiceChips legend="Things to avoid" options={AVOID_OPTIONS_COPY} values={constraints.avoid} onChange={(values) => setConstraints({ avoid: values })} />
         </div>

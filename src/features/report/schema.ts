@@ -1,6 +1,6 @@
 import "@/lib/zod-config";
 import { z } from "zod";
-import { FOCUS_AREAS } from "@/features/onboarding/schema";
+import { FACIAL_HAIR_ACTIONS, FOCUS_AREAS, HAIRCUT_STYLES, JAW_SOFT_TISSUE } from "@/features/onboarding/schema";
 
 // ─── Evidence registry ───
 
@@ -48,6 +48,18 @@ export const visualObservationsSchema = z
       .strict(),
     /** Set when the person may be under 18: the order goes to a human, never to processing. */
     possibleMinor: z.boolean(),
+    /** Objective glow-up decisions from the photo; they drive the plan and the concept image. */
+    glowUp: z
+      .object({
+        haircut: z.enum(HAIRCUT_STYLES),
+        facialHair: z.enum(FACIAL_HAIR_ACTIONS),
+        skin: z.object({ blemishes: z.boolean(), redness: z.boolean(), unevenTone: z.boolean(), shine: z.boolean() }).strict(),
+        browsNeedGrooming: z.boolean(),
+        eyesLookTired: z.boolean(),
+        teethVisible: z.boolean(),
+        jawSoftTissue: z.enum(JAW_SOFT_TISSUE),
+      })
+      .strict(),
     observations: z
       .array(
         z
@@ -96,7 +108,7 @@ export const paidReportSchema = z
       z.object({ area: z.enum(FOCUS_AREAS), observation: z.string(), confidence: z.enum(CONFIDENCE) }).strict(),
     ),
     cannotAssess: z.array(z.string()),
-    recommendations: z.array(priorityRecommendationSchema).min(5).max(8),
+    recommendations: z.array(priorityRecommendationSchema).min(5).max(10),
     sevenDayPlan: z.array(z.string()).min(1),
     thirtyDayPlan: z.array(z.string()).min(1),
     ninetyDayPlan: z.array(z.string()).min(1),

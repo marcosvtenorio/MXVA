@@ -21,7 +21,7 @@ export type OptionCopy<T extends string> = { id: T; label: string; hint?: string
 
 export type StepDefinition = {
   id: StepId;
-  /** 1-based position in the 16-step intake. */
+  /** 1-based position in the intake. */
   number: number;
   /** Canonical route (spec §3). */
   path: string;
@@ -31,143 +31,40 @@ export type StepDefinition = {
   description: string;
   /** Mono label next to the step count. */
   short: string;
-  /** Steps 06–11 are preferences the buyer may skip. */
+  /** A step the buyer may skip. */
   skippable: boolean;
 };
 
-export const TOTAL_STEPS = 16;
+export const TOTAL_STEPS = 6;
 
+/**
+ * The intake. No aesthetic questions: buyers want the full glow-up, so the plan and the
+ * concept are decided from their photo. They only tell us what to avoid and where to send it.
+ */
 export const STEPS: readonly StepDefinition[] = [
   {
     id: "start",
     short: "Start",
     number: 1,
     path: "/start",
-    heading: "Your face. A realistic next-step plan.",
+    heading: "Your face. Your full glow-up plan.",
     description:
-      "Explore a personalized looksmaxxing roadmap and an AI concept portrait based on your own photos.",
-    skippable: false,
-  },
-  {
-    id: "goals",
-    short: "Goals",
-    tail: "Pick one to start.",
-    number: 2,
-    path: "/onboarding/goals",
-    heading: "What would you most like to work on?",
-    description: "You'll choose specific areas next.",
-    skippable: false,
-  },
-  {
-    id: "focus",
-    short: "Focus",
-    tail: "Pick up to four.",
-    number: 3,
-    path: "/onboarding/focus",
-    heading: "Which areas should your plan cover?",
-    description: "Your plan puts these first.",
-    skippable: false,
-  },
-  {
-    id: "timeline",
-    short: "Timeline",
-    tail: "Some changes take longer.",
-    number: 4,
-    path: "/onboarding/timeline",
-    heading: "When do you want to see progress?",
-    description: "This sets the pace of your plan.",
-    skippable: false,
-  },
-  {
-    id: "budget",
-    short: "Budget",
-    tail: "Free options come first.",
-    number: 5,
-    path: "/onboarding/budget",
-    heading: "What are you happy to spend?",
-    description: "Any currency. Prices vary by country.",
-    skippable: false,
-  },
-  {
-    id: "skin",
-    short: "Skin",
-    tail: "Presentation, not diagnosis.",
-    number: 6,
-    path: "/onboarding/skin",
-    heading: "What do you want from your skin?",
-    description: "How your skin looks day to day and in photos.",
-    skippable: true,
-  },
-  {
-    id: "brows",
-    short: "Brows",
-    tail: "Pure preference.",
-    number: 7,
-    path: "/onboarding/brows",
-    heading: "How about your brows?",
-    description: "There's no right brow.",
-    skippable: true,
-  },
-  {
-    id: "eyes",
-    short: "Eye area",
-    tail: "No promises about shape.",
-    number: 8,
-    path: "/onboarding/eyes",
-    heading: "Anything for the eye area?",
-    description: "Your plan covers sleep, light and grooming.",
-    skippable: true,
-  },
-  {
-    id: "hair",
-    short: "Hair",
-    number: 9,
-    path: "/onboarding/hair",
-    heading: "What about your hair?",
-    description: "Cut, framing and routine. Facial hair only if it's relevant to you.",
-    skippable: true,
-  },
-  {
-    id: "smile",
-    short: "Smile",
-    number: 10,
-    path: "/onboarding/smile",
-    heading: "And your smile?",
-    description: "Everyday care and good questions for a dentist. We don't assess dental health.",
-    skippable: true,
-  },
-  {
-    id: "jaw",
-    short: "Jawline",
-    number: 11,
-    path: "/onboarding/jaw",
-    heading: "How do you want to present your jawline?",
-    description:
-      "Jaw exercises don't reshape bone. What shows the jaw you have: less body fat, grooming, framing and how you're photographed.",
-    skippable: true,
-  },
-  {
-    id: "constraints",
-    short: "Constraints",
-    number: 12,
-    path: "/onboarding/constraints",
-    heading: "What should your plan work around?",
-    description: "Your time, and anything you'd rather avoid. No health questions.",
+      "Upload a selfie and get your AI glow-up concept plus a step-by-step looksmaxxing plan made for your face.",
     skippable: false,
   },
   {
     id: "photo-guide",
     short: "Photo guide",
-    number: 13,
+    number: 2,
     path: "/onboarding/photo-guide",
     heading: "How to take your photos",
-    description: "One front photo is required. Left and right profiles are optional.",
+    description: "One front photo is required. Left and right profiles are optional and make the plan sharper.",
     skippable: false,
   },
   {
     id: "photos",
     short: "Photos",
-    number: 14,
+    number: 3,
     path: "/onboarding/photos",
     heading: "Add your photos",
     description:
@@ -175,9 +72,18 @@ export const STEPS: readonly StepDefinition[] = [
     skippable: false,
   },
   {
+    id: "constraints",
+    short: "Avoid",
+    number: 4,
+    path: "/onboarding/constraints",
+    heading: "Anything your plan should avoid?",
+    description: "Optional. We'll pick everything else from your photo.",
+    skippable: false,
+  },
+  {
     id: "delivery",
     short: "Delivery",
-    number: 15,
+    number: 5,
     path: "/onboarding/delivery",
     heading: "Where should we send your report?",
     description: "Your PDF report arrives by email after payment. That email is your permanent copy.",
@@ -186,7 +92,7 @@ export const STEPS: readonly StepDefinition[] = [
   {
     id: "review",
     short: "Review",
-    number: 16,
+    number: 6,
     path: "/onboarding/review",
     heading: "Check everything before checkout",
     description: "Nothing has been analyzed yet. Your report is created only after payment.",
@@ -309,7 +215,6 @@ export const AVOID_OPTIONS_COPY: readonly OptionCopy<AvoidOption>[] = [
   { id: "fragrance", label: "Fragranced products" },
   { id: "strong_actives", label: "Strong actives, like acids" },
   { id: "animal_derived", label: "Animal-derived ingredients" },
-  { id: "new_products", label: "Buying new products" },
   { id: "none", label: "None of these" },
 ];
 

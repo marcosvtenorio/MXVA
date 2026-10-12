@@ -27,7 +27,21 @@ describe("report PDF", () => {
   it("embeds the concept image, links every source and passes the audit", async () => {
     const report = planReport(
       input,
-      { imageQuality: { usable: true, faceCount: 1, lightingLimitations: "" }, possibleMinor: false, observations: [], cannotAssess: [] },
+      {
+        imageQuality: { usable: true, faceCount: 1, lightingLimitations: "" },
+        possibleMinor: false,
+        glowUp: {
+          haircut: "side_part",
+          facialHair: "stay_clean_shaven",
+          skin: { blemishes: false, redness: false, unevenTone: false, shine: false },
+          browsNeedGrooming: false,
+          eyesLookTired: false,
+          teethVisible: false,
+          jawSoftTissue: "defined",
+        },
+        observations: [],
+        cannotAssess: [],
+      },
       { simulated: true, now: new Date("2026-10-11T12:00:00Z") },
     );
     const concept = await sharp(readFileSync(new URL("../../../../e2e/fixtures/synthetic-front.jpg", import.meta.url)))

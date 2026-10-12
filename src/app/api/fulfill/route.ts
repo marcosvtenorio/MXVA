@@ -1,4 +1,4 @@
-import { reportInputSchema } from "@/features/onboarding/schema";
+import { fulfillInputSchema } from "@/features/onboarding/schema";
 import { requireOrderFromRequest, requirePaid } from "@/features/orders/authorization";
 import { claimForFulfillment, markDelivered, markEmailFailed, markFailed } from "@/features/orders/service";
 import { API_ERRORS, type ApiErrorCode } from "@/lib/api-errors";
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     if (form.get("faceProcessingConsent") !== "true") throw new ApiError("CONSENT_REQUIRED");
     let input;
     try {
-      input = reportInputSchema.parse(JSON.parse(String(form.get("input") ?? "")));
+      input = fulfillInputSchema.parse(JSON.parse(String(form.get("input") ?? "")));
     } catch {
       throw new ApiError("INVALID_REQUEST");
     }
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
           }
         };
         try {
-          const output = await runPipeline({ order: claimed, front, profiles, input, onPhase: (phase) => send({ type: "phase", phase }) });
+          const output = await runPipeline({ order: claimed, front, profiles, constraints: input.constraints, onPhase: (phase) => send({ type: "phase", phase }) });
           if (output.emailDelivered && output.messageId) {
             await markDelivered(order.id, output.messageId);
             void trackServer("email_provider_accepted", {}, order.id, order.countryHint).catch(() => undefined);

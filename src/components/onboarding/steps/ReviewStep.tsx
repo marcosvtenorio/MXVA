@@ -6,14 +6,7 @@ import { useState } from "react";
 import { Tick } from "@/components/common/icons";
 import { track } from "@/features/analytics/client";
 import { useDisplayPrice } from "@/features/checkout/use-offers";
-import {
-  BUDGET_OPTIONS,
-  FOCUS_OPTIONS,
-  GOAL_OPTIONS,
-  PREFERENCE_OPTIONS,
-  TIMELINE_OPTIONS,
-  type OptionCopy,
-} from "@/features/onboarding/steps";
+import { AVOID_OPTIONS_COPY, type OptionCopy } from "@/features/onboarding/steps";
 import { useOnboardingStore } from "@/features/onboarding/store";
 import { useStepNav } from "@/features/onboarding/use-flow";
 import { usePhotoStore } from "@/features/photos/memory-store";
@@ -46,17 +39,7 @@ export function ReviewStep() {
   const price = useDisplayPrice();
   const [busy, setBusy] = useState(false);
 
-  const preferenceSummary = [
-    state.preferences.skin.length ? `Skin: ${labels(PREFERENCE_OPTIONS.skin, state.preferences.skin)}` : "",
-    state.preferences.brows.length ? `Brows: ${labels(PREFERENCE_OPTIONS.brows, state.preferences.brows)}` : "",
-    state.preferences.eyes.length ? `Eye area: ${labels(PREFERENCE_OPTIONS.eyes, state.preferences.eyes)}` : "",
-    state.preferences.hair.length ? `Hair: ${labels(PREFERENCE_OPTIONS.hair, state.preferences.hair)}` : "",
-    state.preferences.facialHair.length ? `Facial hair: ${labels(PREFERENCE_OPTIONS.facialHair, state.preferences.facialHair)}` : "",
-    state.preferences.smile.length ? `Smile: ${labels(PREFERENCE_OPTIONS.smile, state.preferences.smile)}` : "",
-    state.preferences.jaw.length ? `Jawline: ${labels(PREFERENCE_OPTIONS.jaw, state.preferences.jaw)}` : "",
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const avoid = labels(AVOID_OPTIONS_COPY, state.constraints.avoid.filter((value) => value !== "none"));
 
   // The order (and its Pix code or card session) is created at checkout, once the method is chosen.
   function continueToCheckout() {
@@ -93,14 +76,8 @@ export function ReviewStep() {
         </div>
 
         <dl className="mt-5">
-          <Row title="Goal" value={labels(GOAL_OPTIONS, state.goals)} href="/onboarding/goals" />
-          <Row title="Focus" value={labels(FOCUS_OPTIONS, state.focusAreas)} href="/onboarding/focus" />
-          <Row
-            title="Pace and budget"
-            value={[labels(TIMELINE_OPTIONS, state.timeline ? [state.timeline] : []), labels(BUDGET_OPTIONS, state.budget ? [state.budget] : [])].filter(Boolean).join(" · ")}
-            href="/onboarding/timeline"
-          />
-          <Row title="Preferences" value={preferenceSummary || "Skipped"} href="/onboarding/skin" />
+          <Row title="Your plan covers" value="Everything your photo shows: hair, skin, brows, facial hair, eyes, smile and jawline" href="/onboarding/photos" />
+          <Row title="Avoid" value={avoid || "Nothing"} href="/onboarding/constraints" />
           <Row title="Report goes to" value={state.email} href="/onboarding/delivery" />
         </dl>
 

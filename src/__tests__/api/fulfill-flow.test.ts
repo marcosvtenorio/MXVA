@@ -5,7 +5,7 @@ import { GET as currentOrderRoute } from "@/app/api/orders/current/route";
 import { POST as mockPayRoute } from "@/app/api/dev/mock-pay/route";
 import { POST as fulfillRoute } from "@/app/api/fulfill/route";
 import { POST as retryRoute } from "@/app/api/fulfill/retry/route";
-import { FACE_PROCESSING_CONSENT_VERSION, TERMS_VERSION, type ReportInput } from "@/features/onboarding/schema";
+import { FACE_PROCESSING_CONSENT_VERSION, TERMS_VERSION, type FulfillInput } from "@/features/onboarding/schema";
 import { InMemoryOrderRepository, setOrderRepositoryForTests } from "@/features/orders/repository";
 import { resetServerEnvCache } from "@/server/config";
 import { resetRateLimitsForTests } from "@/server/security/rate-limit";
@@ -13,14 +13,8 @@ import { resetRateLimitsForTests } from "@/server/security/rate-limit";
 const ORIGIN = "http://localhost:3000";
 const frontBytes = readFileSync(new URL("../../../e2e/fixtures/synthetic-front.jpg", import.meta.url));
 
-const input: ReportInput = {
-  goals: ["grooming"],
-  focusAreas: ["brows", "facial_hair", "hair"],
-  timeline: "30d",
-  budget: "low",
-  preferences: { skin: [], brows: ["shape"], eyes: [], hair: ["routine"], facialHairRelevant: "yes", facialHair: ["shape"], smile: [], jaw: [] },
-  constraints: { dailyMinutes: "15", avoid: [] },
-};
+// The browser sends only constraints; the plan and concept come from the photo analysis.
+const input: FulfillInput = { constraints: { dailyMinutes: "30", avoid: [] } };
 
 const headers = (cookie?: string) => ({ origin: ORIGIN, "x-mxva-request": "1", ...(cookie ? { cookie } : {}) });
 
