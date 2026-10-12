@@ -21,30 +21,25 @@ function PaymentBody({ onPaid, onError }: { onPaid: () => void; onError: (messag
     );
   }
   const { checkout } = result;
-  const returnUrl = `${window.location.origin}/processing`;
+  // The session's return_url (/processing, set by the server) brings redirect-based methods back.
+  // Cards confirm in place, so the photos stay in memory.
+  async function confirm(options: Parameters<typeof checkout.confirm>[0]) {
+    setBusy(true);
+    try {
+      const outcome = await checkout.confirm(options);
+      if (outcome.type === "success") onPaid();
+      else onError(outcome.error.message);
+    } catch {
+      onError("The payment couldn't be confirmed. Nothing was charged; try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <div className="grid gap-4">
-      <ExpressCheckoutElement
-        onConfirm={async (event) => {
-          const outcome = await checkout.confirm({ expressCheckoutConfirmEvent: event, redirect: "if_required", returnUrl });
-          if (outcome.type === "success") onPaid();
-          else onError(outcome.error.message);
-        }}
-      />
+      <ExpressCheckoutElement onConfirm={(event) => void confirm({ expressCheckoutConfirmEvent: event, redirect: "if_required" })} />
       <PaymentElement />
-      <button
-        type="button"
-        className="btn"
-        disabled={busy}
-        onClick={async () => {
-          setBusy(true);
-          // Cards confirm in place (photos stay in memory); redirect-based methods come back to /processing.
-          const outcome = await checkout.confirm({ redirect: "if_required", returnUrl });
-          setBusy(false);
-          if (outcome.type === "success") onPaid();
-          else onError(outcome.error.message);
-        }}
-      >
+      <button type="button" className="btn" disabled={busy} onClick={() => void confirm({ redirect: "if_required" })}>
         <Lock size={15} />
         {busy ? "Confirming…" : `Pay ${checkout.total.total.amount}`}
       </button>
