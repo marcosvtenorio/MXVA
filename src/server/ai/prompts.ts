@@ -13,7 +13,7 @@ export function buildImageEditPrompt(input: ReportInput, options: { strict: bool
     lines.length > 0
       ? `Requested changes:\n${lines.map((line) => `- ${line}`).join("\n")}`
       : "Requested changes:\n- Only clean, even, flattering lighting. No other changes.";
-  const always = `Always:\n- Keep the background, clothing, pose and framing.\n- Keep one person only; do not add accessories, makeup, jewellery or tattoos.\n- Photorealistic, no text or watermarks.`;
+  const always = `Always:\n- Keep the background, clothing, pose and framing. Do not zoom, crop or move the camera: the head stays the same size and in the same place.\n- Keep one person only; do not add accessories, makeup, jewellery or tattoos.\n- Photorealistic, no text or watermarks.`;
   return [IMAGE_EDIT_BASE, requested, always, options.strict ? STRICT_ADDENDUM : ""].filter(Boolean).join("\n\n");
 }
 
