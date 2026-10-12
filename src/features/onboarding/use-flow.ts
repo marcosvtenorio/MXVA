@@ -28,26 +28,24 @@ export function useStepGuard(step: StepId): { ready: boolean } {
   const hydrated = useOnboardingStore((state) => state.hydrated);
   const ageRefused = useOnboardingStore((state) => state.ageRefused);
   const flow = useFlowSnapshot();
-  const [ready, setReady] = useState(false);
+
+  const redirect = !hydrated
+    ? undefined
+    : ageRefused && step !== "start"
+      ? "/start"
+      : (() => {
+          const target = resolveAccessibleStep(step, flow);
+          if (target.id === step) return undefined;
+          return `${target.path}${target.id === "photos" ? "?cleared=1" : ""}`;
+        })();
 
   useEffect(() => {
-    if (!hydrated) return;
-    if (ageRefused && step !== "start") {
-      router.replace("/start");
-      return;
-    }
-    const target = resolveAccessibleStep(step, flow);
-    if (target.id !== step) {
-      if (target.id === "photos" && flow.photoGuideAcknowledged) track("photos_cleared_by_reload", {});
-      router.replace(`${target.path}${target.id === "photos" ? "?cleared=1" : ""}`);
-      return;
-    }
-    setReady(true);
-    // Only re-check when the step or hydration changes, not on every answer.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, step, ageRefused]);
+    if (!redirect) return;
+    if (redirect.startsWith("/onboarding/photos") && flow.photoGuideAcknowledged) track("photos_cleared_by_reload", {});
+    router.replace(redirect);
+  }, [redirect, router, flow.photoGuideAcknowledged]);
 
-  return { ready: hydrated && ready };
+  return { ready: hydrated && !redirect };
 }
 
 /** Continue / back with validation and analytics. */

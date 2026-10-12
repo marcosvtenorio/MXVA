@@ -422,3 +422,16 @@
   }
   .key-light-on, .key-light-on .resolve { animation-name: none !important; }
 }
+
+/* Help and policy pages */
+@layer components {
+  .prose-studio { font-size: 16px; line-height: 1.55; color: var(--color-ink); }
+  .prose-studio h2 { margin: 36px 0 10px; font-size: 20px; line-height: 1.2; font-weight: 600; letter-spacing: -0.015em; }
+  .prose-studio p, .prose-studio ul, .prose-studio ol { margin: 0 0 14px; color: var(--color-ink-2); }
+  .prose-studio ul, .prose-studio ol { padding-left: 1.2em; }
+  .prose-studio ul { list-style: disc; }
+  .prose-studio ol { list-style: decimal; }
+  .prose-studio li { margin: 6px 0; }
+  .prose-studio a { color: var(--color-ink); text-decoration: underline; text-underline-offset: 2px; }
+  .prose-studio strong { color: var(--color-ink); font-weight: 600; }
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { CONSTRAINT_NOTE_MAX, noteSchema } from "@/features/onboarding/schema";
 import { AVOID_OPTIONS_COPY, CONSTRAINT_NOTE_HINT, DAILY_MINUTES_OPTIONS } from "@/features/onboarding/steps";
@@ -21,7 +21,7 @@ export function ConstraintsStep() {
     resolver: zodResolver(noteForm),
     defaultValues: { note: constraints.note ?? "" },
   });
-  const note = form.watch("note") ?? "";
+  const note = useWatch({ control: form.control, name: "note" }) ?? "";
   const noteError = form.formState.errors.note?.message;
 
   const submit = form.handleSubmit(({ note: value }) => {

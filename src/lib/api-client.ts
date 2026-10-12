@@ -104,8 +104,7 @@ async function readFulfillmentStream(
         const status = API_ERRORS[message.error.code]?.status ?? 500;
         throw new ApiClientError(message.error.code, message.error.message, message.error.retryable, status);
       } else {
-        const { type: _type, ...result } = message;
-        return result;
+        return { report: message.report, image: message.image, pdf: message.pdf, emailDelivered: message.emailDelivered };
       }
     }
     if (done) break;
