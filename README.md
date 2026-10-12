@@ -11,7 +11,7 @@ Engineering source of truth: [`MXVA_CLAUDE_IMPLEMENTATION_SPEC.md`](MXVA_CLAUDE_
 | **A — onboarding, photos, paywall, mock fulfilment** | **Done.** Runs locally end to end with simulated payment and simulated AI. |
 | **B — real payments, database** | **Done in test mode.** Card (Stripe) and Pix (AbacatePay) verified end to end with test/sandbox keys; Railway Postgres migrated. Going live needs live keys, a public URL for webhooks and Phase C. |
 | **C — real AI, PDF email** | **Working with real providers.** OpenAI vision (`gpt-5.5-2026-04-23`) + image edit (`gpt-image-2`) + identity check, PDF, Resend email: verified end to end on a fictional generated face (92 s). Before launch: test with consenting adults on several phones, and send from your own domain. |
-| D — launch operations | **Staging live** on Railway (password-protected, test payments, real AI): https://mxva-production.up.railway.app. Pending: domain, live keys, legal review, analytics keys. |
+| D — launch operations | **Staging live** on Railway (test payments, real AI, open without a password at the owner's request): https://mxva-production.up.railway.app. Pending: domain, live keys, legal review, analytics keys. |
 
 ## Run it
 
@@ -113,7 +113,7 @@ Real payments refuse to start unless **every** provider above (payments, AI, ema
 - Project `strong-insight`, environment `production`: services `Postgres` (private network only) and `mxva` (this repo, `main` branch; every push deploys).
 - `railway.json`: Railpack build, `npm run db:migrate` before each deploy, health check `/api/health`.
 - Service variables: everything in `.env.example`, with `DATABASE_URL=${{Postgres.DATABASE_URL}}`, `NEXT_PUBLIC_APP_URL` = the public URL, `RAILPACK_NODE_VERSION=24`.
-- Staging: `STAGING=true` + `STAGING_PASSWORD` put the whole site behind a password (user `mxva`) and allow sandbox keys. Remove both for launch, together with switching to live keys.
+- Staging: `STAGING=true` allows sandbox keys in the production build and marks every page noindex. An optional `STAGING_PASSWORD` (12+ characters) also puts the site behind a password (user `mxva`). While staging is open, anyone with the link can get a real AI report with a Stripe test card, so cap OpenAI spend in its dashboard. Remove both for launch, together with switching to live keys.
 - Webhooks: Stripe endpoint `https://<domain>/api/stripe/webhook` (created via API in test mode; its secret is `STRIPE_WEBHOOK_SECRET`). AbacatePay: dashboard → Webhooks → URL `https://<domain>/api/abacatepay/webhook`, secret = `ABACATEPAY_WEBHOOK_SECRET`.
 
 ## Next steps

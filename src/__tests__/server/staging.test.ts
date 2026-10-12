@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 /**
- * Staging: a password-protected production build where sandbox payments are allowed.
- * Without STAGING, production keeps requiring live keys.
+ * Staging: a production build in test mode where sandbox payments are allowed, optionally
+ * behind a password. Without STAGING, production keeps requiring live keys.
  */
 const PRODUCTION_ENV = {
   NODE_ENV: "production",
@@ -55,6 +55,12 @@ describe("payments on a production build", () => {
     expect(await offersWith({ STAGING: undefined, STAGING_PASSWORD: undefined })).toEqual({ offers: [], tools: false });
   });
 
+  it("allow sandbox keys on public staging (no password), with the simulate tools", async () => {
+    const { offers, tools } = await offersWith({ STAGING: "true", STAGING_PASSWORD: undefined });
+    expect(offers.map((offer) => offer.sandbox)).toEqual([true, true]);
+    expect(tools).toBe(true);
+  });
+
   it("allow sandbox keys on password-protected staging, with the simulate tools", async () => {
     const { offers, tools } = await offersWith({ STAGING: "true", STAGING_PASSWORD: "a-long-staging-password" });
     expect(offers).toEqual([
@@ -64,7 +70,7 @@ describe("payments on a production build", () => {
     expect(tools).toBe(true);
   });
 
-  it("treat staging without a real password as production", async () => {
+  it("treat staging with a too-short password as production", async () => {
     expect(await offersWith({ STAGING: "true", STAGING_PASSWORD: "short" })).toEqual({ offers: [], tools: false });
   });
 });
@@ -82,6 +88,14 @@ describe("staging gate (proxy)", () => {
     expect(passedThrough(proxy(request("/")))).toBe(true);
   });
 
+  it("without a password: open to everyone, never indexed", async () => {
+    setEnv({ STAGING: "true", STAGING_PASSWORD: undefined });
+    const { proxy } = await import("@/proxy");
+    const open = proxy(request("/checkout"));
+    expect(passedThrough(open)).toBe(true);
+    expect(open.headers.get("x-robots-tag")).toContain("noindex");
+  });
+
   it("asks for the password, accepts the right one, and keeps webhooks and health open", async () => {
     setEnv({ STAGING: "true", STAGING_PASSWORD: "a-long-staging-password" });
     const { proxy } = await import("@/proxy");
@@ -95,7 +109,7 @@ describe("staging gate (proxy)", () => {
     for (const path of ["/api/stripe/webhook", "/api/abacatepay/webhook", "/api/health"]) expect(passedThrough(proxy(request(path)))).toBe(true);
   });
 
-  it("serves nothing when staging has no real password", async () => {
+  it("serves nothing when the password is too short", async () => {
     setEnv({ STAGING: "true", STAGING_PASSWORD: "short" });
     const { proxy } = await import("@/proxy");
     expect(proxy(request("/")).status).toBe(503);

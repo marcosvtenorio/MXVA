@@ -2,9 +2,9 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Staging gate. With STAGING=true the whole site asks for a password (HTTP Basic, user
- * "mxva") so strangers can't use test payments to run the real AI. Provider webhooks and
- * the health probe stay open: they authenticate themselves or reveal nothing.
+ * Staging (STAGING=true): a test-mode deploy that search engines never index. With a
+ * STAGING_PASSWORD set, the whole site also asks for it (HTTP Basic, user "mxva"); provider
+ * webhooks and the health probe stay open, as they authenticate themselves or reveal nothing.
  * Without STAGING the proxy does nothing.
  */
 const OPEN_PATHS = new Set(["/api/stripe/webhook", "/api/abacatepay/webhook", "/api/health"]);
@@ -26,16 +26,18 @@ function authorised(header: string | null, password: string): boolean {
 }
 
 export function proxy(request: NextRequest) {
-  if (process.env.STAGING !== "true" || OPEN_PATHS.has(request.nextUrl.pathname)) return NextResponse.next();
+  if (process.env.STAGING !== "true") return NextResponse.next();
   const noindex = { "X-Robots-Tag": "noindex, nofollow" };
   const password = process.env.STAGING_PASSWORD ?? "";
-  // Fail closed: staging without a real password serves nothing.
-  if (password.length < 12) return new NextResponse("Staging password is not configured.", { status: 503, headers: noindex });
-  if (!authorised(request.headers.get("authorization"), password)) {
-    return new NextResponse("Authentication required.", {
-      status: 401,
-      headers: { ...noindex, "WWW-Authenticate": 'Basic realm="MXVA staging", charset="UTF-8"' },
-    });
+  if (password && !OPEN_PATHS.has(request.nextUrl.pathname)) {
+    // Fail closed: a password too short to protect anything serves nothing.
+    if (password.length < 12) return new NextResponse("Staging password is too short.", { status: 503, headers: noindex });
+    if (!authorised(request.headers.get("authorization"), password)) {
+      return new NextResponse("Authentication required.", {
+        status: 401,
+        headers: { ...noindex, "WWW-Authenticate": 'Basic realm="MXVA staging", charset="UTF-8"' },
+      });
+    }
   }
   const response = NextResponse.next();
   response.headers.set("X-Robots-Tag", "noindex, nofollow");

@@ -43,11 +43,12 @@ const serverEnvSchema = z.object({
   EMAIL_FROM: optionalSecret,
   SUPPORT_EMAIL: optionalSecret,
   COOKIE_SIGNING_SECRET: optionalSecret,
-  /** Password-protected staging deploy: production build, sandbox payments allowed. See src/proxy.ts. */
+  /** Test-mode deploy: production build, sandbox payments allowed, never indexed. See src/proxy.ts. */
   STAGING: z
     .enum(["true", "false"])
     .default("false")
     .transform((value) => value === "true"),
+  /** Optional: when set, staging also asks for this password (HTTP Basic). At least 12 characters. */
   STAGING_PASSWORD: optionalSecret,
   MAX_PHOTO_BYTES: z.coerce
     .number()
@@ -128,10 +129,14 @@ export function providerIsSandbox(provider: "abacatepay" | "stripe"): boolean {
   return provider === "abacatepay" ? env.ABACATEPAY_SANDBOX : !env.STRIPE_SECRET_KEY?.startsWith("sk_live_");
 }
 
-/** A password-protected staging deploy (production build) where sandbox payments are allowed. */
+/**
+ * A staging deploy (production build) where sandbox payments are allowed. A password that is
+ * set but too short is a misconfiguration: the deploy is then treated as production.
+ */
 export function isStaging(): boolean {
   const env = serverEnv();
-  return isProductionBuild && env.STAGING && Boolean(env.STAGING_PASSWORD && env.STAGING_PASSWORD.length >= 12);
+  const weakPassword = Boolean(env.STAGING_PASSWORD) && (env.STAGING_PASSWORD?.length ?? 0) < 12;
+  return isProductionBuild && env.STAGING && !weakPassword;
 }
 
 /** Sandbox payment tools (e.g. "Simulate Pix payment") exist in development and on staging only. */
