@@ -168,13 +168,11 @@ export function PixPayment({
         <p className="mono text-ink-2" id="pix-code-label">
           Pix Copia e Cola
         </p>
-        <p
-          ref={codeRef}
-          aria-labelledby="pix-code-label"
-          className="max-h-[4.2em] select-all overflow-hidden break-all rounded-[12px] bg-raised px-3.5 py-2.5 font-mono text-[12px] leading-[1.4] text-ink-2 shadow-[inset_0_0_0_1px_var(--color-rule)]"
-        >
-          {checkout.brCode}
-        </p>
+        <div className="rounded-[12px] bg-raised px-3.5 py-2.5 shadow-[inset_0_0_0_1px_var(--color-rule)]">
+          <p ref={codeRef} aria-labelledby="pix-code-label" className="line-clamp-3 select-all break-all font-mono text-[12px] leading-[1.4] text-ink-2">
+            {checkout.brCode}
+          </p>
+        </div>
         <button type="button" className="btn" onClick={() => void copy()}>
           {copied ? (
             <>
