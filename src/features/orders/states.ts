@@ -37,11 +37,14 @@ export type Order = {
   id: string;
   /** Optimistic-concurrency counter; every save must match the version it read. */
   version: number;
-  paymentMode: "mock" | "stripe";
+  paymentMode: "mock" | "stripe" | "abacatepay";
   stripeCheckoutSessionId: string | null;
   stripePaymentIntentId: string | null;
+  /** AbacatePay PIX charge id (transparent checkout). */
+  providerChargeId: string | null;
+  chargeExpiresAt: string | null;
   email: string;
-  currency: "usd";
+  currency: "usd" | "brl";
   amountMinor: number;
   countryHint: string | null;
   priceVariant: string;

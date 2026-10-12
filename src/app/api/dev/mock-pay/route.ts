@@ -30,12 +30,13 @@ export async function POST(request: Request) {
     const eventId = `mock_evt_${randomUUID()}`;
     const updated =
       outcome === "expired"
-        ? await applyPaymentFact({ kind: "checkout_expired", eventId, orderId: order.id, checkoutSessionId: order.stripeCheckoutSessionId })
+        ? await applyPaymentFact({ kind: "checkout_expired", provider: "mock", eventId, orderId: order.id, providerRef: order.stripeCheckoutSessionId })
         : await applyPaymentFact({
             kind: "payment_succeeded",
+            provider: "mock",
             eventId,
             orderId: order.id,
-            checkoutSessionId: order.stripeCheckoutSessionId,
+            providerRef: order.stripeCheckoutSessionId,
             paymentIntentId: `mock_pi_${randomUUID()}`,
             amountMinor: order.amountMinor,
             currency: order.currency,

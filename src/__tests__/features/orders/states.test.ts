@@ -25,6 +25,8 @@ const base: Order = {
   paymentMode: "mock",
   stripeCheckoutSessionId: "cs_1",
   stripePaymentIntentId: null,
+  providerChargeId: null,
+  chargeExpiresAt: null,
   email: "buyer@example.com",
   currency: "usd",
   amountMinor: 2900,

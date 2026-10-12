@@ -20,6 +20,19 @@ const serverEnvSchema = z.object({
     .string()
     .regex(/^[a-z0-9_]{1,32}$/)
     .default("usd_29"),
+  /** Which processor takes real payments. PIX (AbacatePay) first; Stripe stays scaffolded. */
+  PAYMENT_PROVIDER: z.enum(["abacatepay", "stripe"]).default("abacatepay"),
+  PRICE_BRL_CENTS: z.coerce.number().int().min(500).max(1_000_000).default(14900),
+  ABACATEPAY_API_KEY: optionalSecret,
+  /** Set when ABACATEPAY_API_KEY is a Dev Mode key: no real money moves, payments are simulated. */
+  ABACATEPAY_SANDBOX: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((value) => value === "true"),
+  /** Our secret, sent by AbacatePay as ?webhookSecret= on every webhook call. */
+  ABACATEPAY_WEBHOOK_SECRET: optionalSecret,
+  /** Optional: AbacatePay's key for the X-Webhook-Signature HMAC. */
+  ABACATEPAY_PUBLIC_KEY: optionalSecret,
   STRIPE_SECRET_KEY: optionalSecret,
   STRIPE_WEBHOOK_SECRET: optionalSecret,
   DATABASE_URL: optionalSecret,
@@ -96,29 +109,49 @@ export function supportEmail(): string {
   return serverEnv().SUPPORT_EMAIL ?? "support@example.com";
 }
 
-export type PaymentMode = "mock" | "stripe" | "unavailable";
+export type PaymentMode = "mock" | "stripe" | "pix" | "unavailable";
 
 /**
  * Which payment path this process may use. Real money requires every downstream
  * provider to be live as well: never charge for a report that cannot be delivered.
+ * AbacatePay Dev Mode (sandbox) moves no money, so development may pair it with
+ * the simulated report; a live key always requires real fulfilment.
  */
 export function paymentMode(): PaymentMode {
   if (publicConfig.enableRealPayments) {
-    return missingForRealPayments().length === 0 ? "stripe" : "unavailable";
+    if (missingForRealPayments().length > 0) return "unavailable";
+    return serverEnv().PAYMENT_PROVIDER === "abacatepay" ? "pix" : "stripe";
   }
   return devPreviewEnabled ? "mock" : "unavailable";
+}
+
+/** True when the configured payments cannot move real money. */
+export function paymentsAreSandbox(): boolean {
+  const env = serverEnv();
+  return env.PAYMENT_PROVIDER === "abacatepay" ? env.ABACATEPAY_SANDBOX : Boolean(env.STRIPE_SECRET_KEY?.startsWith("sk_test_"));
 }
 
 export function missingForRealPayments(): string[] {
   const env = serverEnv();
   const missing: string[] = [];
-  if (!env.STRIPE_SECRET_KEY) missing.push("STRIPE_SECRET_KEY");
-  if (!env.STRIPE_WEBHOOK_SECRET) missing.push("STRIPE_WEBHOOK_SECRET");
-  if (!publicConfig.stripePublishableKey) missing.push("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY");
+  if (env.PAYMENT_PROVIDER === "abacatepay") {
+    if (!env.ABACATEPAY_API_KEY) missing.push("ABACATEPAY_API_KEY");
+    if (isProductionBuild && !env.ABACATEPAY_WEBHOOK_SECRET) missing.push("ABACATEPAY_WEBHOOK_SECRET");
+    if (isProductionBuild && env.ABACATEPAY_SANDBOX) missing.push("ABACATEPAY_SANDBOX=false (live key)");
+  } else {
+    if (!env.STRIPE_SECRET_KEY) missing.push("STRIPE_SECRET_KEY");
+    if (!env.STRIPE_WEBHOOK_SECRET) missing.push("STRIPE_WEBHOOK_SECRET");
+    if (!publicConfig.stripePublishableKey) missing.push("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY");
+  }
   if (isProductionBuild && !env.DATABASE_URL) missing.push("DATABASE_URL");
   if (isProductionBuild && !env.COOKIE_SIGNING_SECRET) missing.push("COOKIE_SIGNING_SECRET");
-  if (!publicConfig.enableRealAi) missing.push("NEXT_PUBLIC_ENABLE_REAL_AI=true");
-  return [...missing, ...missingForRealAi()];
+  // Simulated reports are only ever paired with sandbox payments in development.
+  const sandboxWithMocks = !isProductionBuild && paymentsAreSandbox() && fulfillmentMode() === "mock";
+  if (!sandboxWithMocks) {
+    if (!publicConfig.enableRealAi) missing.push("NEXT_PUBLIC_ENABLE_REAL_AI=true");
+    missing.push(...missingForRealAi());
+  }
+  return missing;
 }
 
 export function missingForRealAi(): string[] {

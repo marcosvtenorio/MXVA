@@ -69,14 +69,15 @@ export function toPaymentFact(event: Stripe.Event): PaymentFact {
     case "checkout.session.completed":
     case "checkout.session.async_payment_succeeded": {
       const session = event.data.object;
-      if (session.payment_status !== "paid") return { kind: "ignored", eventId: event.id, type: event.type };
+      if (session.payment_status !== "paid") return { kind: "ignored", provider: "stripe", eventId: event.id, type: event.type };
       // With Adaptive Pricing the buyer may pay in local currency; compare the source amount.
       const conversion = session.currency_conversion;
       return {
         kind: "payment_succeeded",
+        provider: "stripe",
         eventId: event.id,
         orderId: session.client_reference_id ?? session.metadata?.order_id ?? null,
-        checkoutSessionId: session.id,
+        providerRef: session.id,
         paymentIntentId: typeof session.payment_intent === "string" ? session.payment_intent : (session.payment_intent?.id ?? null),
         amountMinor: conversion ? conversion.amount_total : (session.amount_total ?? 0),
         currency: conversion ? conversion.source_currency : (session.currency ?? ""),
@@ -86,18 +87,19 @@ export function toPaymentFact(event: Stripe.Event): PaymentFact {
       const session = event.data.object;
       return {
         kind: "checkout_expired",
+        provider: "stripe",
         eventId: event.id,
         orderId: session.client_reference_id ?? session.metadata?.order_id ?? null,
-        checkoutSessionId: session.id,
+        providerRef: session.id,
       };
     }
     case "charge.refunded": {
       const charge = event.data.object;
       const paymentIntentId = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id;
-      if (!paymentIntentId || !charge.refunded) return { kind: "ignored", eventId: event.id, type: event.type };
-      return { kind: "refunded", eventId: event.id, paymentIntentId };
+      if (!paymentIntentId || !charge.refunded) return { kind: "ignored", provider: "stripe", eventId: event.id, type: event.type };
+      return { kind: "refunded", provider: "stripe", eventId: event.id, paymentIntentId };
     }
     default:
-      return { kind: "ignored", eventId: event.id, type: event.type };
+      return { kind: "ignored", provider: "stripe", eventId: event.id, type: event.type };
   }
 }

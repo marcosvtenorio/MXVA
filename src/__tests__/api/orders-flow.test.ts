@@ -146,9 +146,10 @@ describe("payment facts (webhook semantics)", () => {
     const order = repository.list()[0]!;
     const fact = {
       kind: "payment_succeeded" as const,
+      provider: "mock" as const,
       eventId: "evt_dup",
       orderId: order.id,
-      checkoutSessionId: order.stripeCheckoutSessionId!,
+      providerRef: order.stripeCheckoutSessionId!,
       paymentIntentId: "pi_1",
       amountMinor: 2900,
       currency: "usd",

@@ -2,9 +2,10 @@ import { z } from "zod";
 import { publicConfig } from "@/lib/config";
 import { FACE_PROCESSING_CONSENT_VERSION, TERMS_VERSION, emailSchema } from "@/features/onboarding/schema";
 import { optionalOrderFromRequest } from "@/features/orders/authorization";
-import { SKU, createOrder, currentPrice } from "@/features/orders/service";
+import { SKU, checkoutCurrency, createOrder, currentPrice } from "@/features/orders/service";
 import { isPaidStatus, publicStatus } from "@/features/orders/states";
 import { ApiError, handle, json, readJson } from "@/server/http";
+import { toPublicCheckout } from "@/server/payment/adapter";
 import { assertSameOriginRequest } from "@/server/security/csrf";
 import { clientIp, enforceRateLimit } from "@/server/security/rate-limit";
 import { createOrderSessionToken, orderCookieHeader } from "@/server/security/session";
@@ -51,12 +52,12 @@ export async function POST(request: Request) {
       returnUrl: `${publicConfig.appUrl}/processing`,
     });
 
-    const price = currentPrice();
+    const price = currentPrice(checkoutCurrency());
     return json(
       {
         alreadyPaid: false,
         order: publicStatus(order),
-        checkout: checkout.mode === "stripe" ? { mode: "stripe", clientSecret: checkout.clientSecret } : { mode: "mock" },
+        checkout: toPublicCheckout(checkout),
         price: { amountMinor: price.amountMinor, currency: price.currency },
       },
       { status: 201, headers: { "Set-Cookie": orderCookieHeader(createOrderSessionToken(order.id)) } },

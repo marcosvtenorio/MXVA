@@ -1,16 +1,18 @@
 import "server-only";
 import { Pool, type PoolClient } from "pg";
-import type { OrderRepository } from "./repository";
+import type { OrderRepository, PaymentProviderName } from "./repository";
 import type { Order, OrderEvent, OrderStatus } from "./states";
 
 type OrderRow = {
   id: string;
   version: number;
-  payment_mode: "mock" | "stripe";
+  payment_mode: "mock" | "stripe" | "abacatepay";
   stripe_checkout_session_id: string | null;
   stripe_payment_intent_id: string | null;
+  provider_charge_id: string | null;
+  charge_expires_at: Date | null;
   email: string;
-  currency: "usd";
+  currency: "usd" | "brl";
   amount_minor: number;
   country_hint: string | null;
   price_variant: string;
@@ -38,6 +40,8 @@ function fromRow(row: OrderRow): Order {
     paymentMode: row.payment_mode,
     stripeCheckoutSessionId: row.stripe_checkout_session_id,
     stripePaymentIntentId: row.stripe_payment_intent_id,
+    providerChargeId: row.provider_charge_id,
+    chargeExpiresAt: iso(row.charge_expires_at),
     email: row.email,
     currency: row.currency,
     amountMinor: row.amount_minor,
@@ -65,6 +69,8 @@ const COLUMNS = [
   "payment_mode",
   "stripe_checkout_session_id",
   "stripe_payment_intent_id",
+  "provider_charge_id",
+  "charge_expires_at",
   "email",
   "currency",
   "amount_minor",
@@ -92,6 +98,8 @@ function values(order: Order): unknown[] {
     order.paymentMode,
     order.stripeCheckoutSessionId,
     order.stripePaymentIntentId,
+    order.providerChargeId,
+    order.chargeExpiresAt,
     order.email,
     order.currency,
     order.amountMinor,
@@ -168,6 +176,10 @@ export class PostgresOrderRepository implements OrderRepository {
     return this.findOne("stripe_payment_intent_id", paymentIntentId);
   }
 
+  findByProviderChargeId(chargeId: string) {
+    return this.findOne("provider_charge_id", chargeId);
+  }
+
   async save(order: Order, expectedVersion: number, event: OrderEvent): Promise<boolean> {
     const assignments = COLUMNS.slice(1).map((column, i) => `${column} = $${i + 2}`).join(", ");
     return this.inTransaction(async (client) => {
@@ -181,7 +193,7 @@ export class PostgresOrderRepository implements OrderRepository {
     });
   }
 
-  async markExternalEvent(provider: "stripe", eventId: string): Promise<boolean> {
+  async markExternalEvent(provider: PaymentProviderName, eventId: string): Promise<boolean> {
     const result = await this.pool.query(
       "insert into processed_webhook_events (provider, event_id) values ($1, $2) on conflict do nothing",
       [provider, eventId],
@@ -189,7 +201,7 @@ export class PostgresOrderRepository implements OrderRepository {
     return result.rowCount === 1;
   }
 
-  async hasExternalEvent(provider: "stripe", eventId: string): Promise<boolean> {
+  async hasExternalEvent(provider: PaymentProviderName, eventId: string): Promise<boolean> {
     const { rowCount } = await this.pool.query(
       "select 1 from processed_webhook_events where provider = $1 and event_id = $2",
       [provider, eventId],
