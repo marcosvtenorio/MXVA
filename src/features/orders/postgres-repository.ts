@@ -193,6 +193,11 @@ export class PostgresOrderRepository implements OrderRepository {
     });
   }
 
+  /** Closes the connection pool (graceful shutdown, tests). */
+  async close(): Promise<void> {
+    await this.pool.end();
+  }
+
   async markExternalEvent(provider: PaymentProviderName, eventId: string): Promise<boolean> {
     const result = await this.pool.query(
       "insert into processed_webhook_events (provider, event_id) values ($1, $2) on conflict do nothing",
