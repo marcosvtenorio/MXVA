@@ -80,7 +80,11 @@ class ResendEmailProvider implements EmailProvider {
       },
       { idempotencyKey: email.idempotencyKey },
     );
-    if (error || !data?.id) throw new ApiError("EMAIL_FAILED");
+    if (error || !data?.id) {
+      // Error class only: Resend's messages can contain addresses.
+      console.error(`[mail] resend rejected the report email: ${error?.name ?? "no_id"}`);
+      throw new ApiError("EMAIL_FAILED");
+    }
     return { messageId: data.id };
   }
 }
