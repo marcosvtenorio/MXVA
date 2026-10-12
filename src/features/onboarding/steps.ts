@@ -143,7 +143,7 @@ export const STEPS: readonly StepDefinition[] = [
     path: "/onboarding/jaw",
     heading: "How do you want to present your jawline?",
     description:
-      "Exercises don't reshape bone, so your plan sticks to what's realistic: grooming, framing and how you're photographed.",
+      "Jaw exercises don't reshape bone. What shows the jaw you have: less body fat, grooming, framing and how you're photographed.",
     skippable: true,
   },
   {
@@ -288,6 +288,7 @@ export const PREFERENCE_OPTIONS: PreferenceCopy = {
     { id: "none", label: "Nothing specific" },
   ],
   jaw: [
+    { id: "leaner", label: "A leaner face (fitness)" },
     { id: "grooming", label: "Grooming that defines it" },
     { id: "framing", label: "Hair and framing choices" },
     { id: "photo_presentation", label: "Posture and photo angles" },

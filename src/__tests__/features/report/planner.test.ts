@@ -127,9 +127,9 @@ describe("recommendation planner", () => {
     expect(areas).toContain("smile");
   });
 
-  it("never suggests a professional (hairline, skin, whitening, alignment) unless the buyer raised it", () => {
+  it("never suggests a professional (hairline, skin, whitening, alignment) or leaning out unless the buyer raised it", () => {
     const referralTitles = LIBRARY.filter((template) => template.onlyIfAsked).map((template) => template.title);
-    expect(referralTitles).toHaveLength(4);
+    expect(referralTitles).toHaveLength(5);
     const grooming: ReportInput = {
       goals: ["grooming"],
       focusAreas: ["brows", "facial_hair", "hair"],

@@ -14,7 +14,7 @@ import type { Order } from "@/features/orders/states";
 const photoPath = process.env.LIVE_AI_PHOTO;
 const outDir = process.env.LIVE_AI_OUT ?? path.join(process.cwd(), "test-results", "live-ai");
 
-const input: ReportInput = {
+const defaultInput: ReportInput = {
   goals: ["grooming"],
   focusAreas: ["brows", "facial_hair", "hair"],
   timeline: "30d",
@@ -22,6 +22,8 @@ const input: ReportInput = {
   preferences: { skin: [], brows: ["shape"], eyes: [], hair: ["routine"], facialHairRelevant: "yes", facialHair: ["shape"], smile: [], jaw: [] },
   constraints: { dailyMinutes: "15", avoid: [] },
 };
+// LIVE_AI_INPUT='{"…"}' overrides the answers (a ReportInput as JSON).
+const input: ReportInput = process.env.LIVE_AI_INPUT ? JSON.parse(process.env.LIVE_AI_INPUT) : defaultInput;
 
 const saved: Record<string, string | undefined> = {};
 
@@ -52,7 +54,7 @@ describe.skipIf(!photoPath)("live fulfilment (real OpenAI + Resend)", () => {
     const bytes = readFileSync(photoPath!);
     const front = await validateUploadedPhoto(new File([bytes], "front.jpg", { type: "image/jpeg" }), 15 * 1024 * 1024);
     const order = {
-      id: "00000000-0000-4000-8000-000000000001",
+      id: crypto.randomUUID(),
       email: process.env.LIVE_EMAIL_TO ?? "delivered@resend.dev",
       fulfillmentAttempts: 1,
     } as Order;

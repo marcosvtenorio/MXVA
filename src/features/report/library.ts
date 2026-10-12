@@ -437,6 +437,30 @@ export const LIBRARY: readonly RecommendationTemplate[] = [
 
   // ─── Jaw / lower face presentation ───
   {
+    id: "jaw-lean-out",
+    impact: 3,
+    area: "jaw_presentation",
+    title: "Lean out to show the jaw you already have",
+    suggestion:
+      "Build to at least 150 minutes of brisk activity a week plus strength training on 2 days. As body fat comes down, the face loses fullness under the chin and along the jaw, so your existing jawline and cheekbones show more.",
+    reason:
+      "Health agencies recommend this activity level for adults, and research on faces finds that facial fullness tracks body fat and shapes how a face is read.",
+    evidenceLevel: "established",
+    effort: "high",
+    costBand: "free",
+    horizon: "90d",
+    uncertainty:
+      "How much your face changes depends on your starting point and genes; if you're already lean, expect little change. Check with a doctor first if you have a health condition.",
+    sourceIds: ["who-physical-activity", "cdc-adult-activity", "dejager-2018-facial-adiposity"],
+    matches: [{ key: "jaw", values: ["leaner"] }],
+    onlyIfAsked: true,
+    plan: {
+      day7: "Walk briskly 30 minutes on 5 days this week.",
+      day30: "Add 2 full-body strength sessions a week to the walking.",
+      day90: "Retake your photo in the same spot and light; compare the jaw and under-chin area.",
+    },
+  },
+  {
     id: "jaw-beard-definition",
     impact: 2,
     area: "jaw_presentation",
@@ -490,36 +514,50 @@ export const LIBRARY: readonly RecommendationTemplate[] = [
   },
 ];
 
-/** The edits each preference may request in the concept image (never bone, eye shape or skin tone). */
+/**
+ * The edits each choice may request in the concept image: a visible glow-up of the same person.
+ * Soft tissue, grooming and presentation only; never bone, eye shape, skin tone or age.
+ * Every edit maps to an action the plan can include.
+ */
 export const IMAGE_EDIT_LINES: { when: (prefs: Preferences, focus: readonly FocusArea[]) => boolean; line: string; summary: string }[] = [
   {
-    when: (p, f) => f.includes("brows") || p.brows.some((v) => v !== "none"),
-    line: "Tidy the eyebrows: remove obvious strays and lightly define the existing natural shape. Do not change brow position or arch height noticeably.",
-    summary: "Brows tidied and lightly defined, natural shape kept",
+    when: (p) => p.jaw.includes("leaner"),
+    line: "Show the same person at a leaner, athletic body-fat level: clearly less fullness under the chin and along the jaw and cheeks, so the jawline and cheekbones they already have show more. Only what losing fat would reveal: same face width at the bones, jaw angle, chin projection, nose and eyes.",
+    summary: "Leaner face: less fat under the chin and along the jaw; bone structure unchanged",
   },
   {
     when: (p, f) => f.includes("hair") || p.hair.some((v) => v !== "none"),
-    line: "Neaten the hairstyle into a clean, current cut that suits the existing hair texture and hairline. Keep the hair colour and hairline position.",
-    summary: "Hair neatened into a clean cut, same colour and hairline",
-  },
-  {
-    when: (p, f) => f.includes("facial_hair") || p.facialHair.length > 0,
-    line: "Groom existing facial hair: clean neckline and cheek lines, even length. Do not add facial hair that isn't there; do not remove it unless the person wants a clean-shaven look.",
-    summary: "Facial hair edges cleaned and evened",
+    line: "Give them a modern, well-cut, styled haircut that suits their face shape and existing hair texture: neat tapered or tidy sides, controlled volume and texture on top, healthy shine, finished with product. Keep the hair colour, density and hairline position; do not add hair at the temples or crown.",
+    summary: "Modern cut and styling suited to the face; same colour, density and hairline",
   },
   {
     when: (p, f) => f.includes("skin") || p.skin.some((v) => v !== "none"),
-    line: "Present the skin as healthy and even in tone with natural texture, pores and features kept. No smoothing filter, no change of skin tone.",
-    summary: "Even, natural-looking skin with texture kept and the same skin tone",
+    line: "Show clear, healthy skin as after a few months of a consistent routine and daily sunscreen: no active blemishes, less redness and shine, an even tone with a healthy finish. Keep natural pores and texture, freckles, moles and scars, and the same skin tone. No airbrushed or plastic look.",
+    summary: "Clear, healthy skin; texture, marks and skin tone kept",
+  },
+  {
+    when: (p, f) => f.includes("brows") || p.brows.some((v) => v !== "none"),
+    line: "Groom the eyebrows as a professional tidy would: strays and the area between the brows cleaned, a clean lower edge, a slightly fuller, defined version of their natural shape. Keep their position, arch height and colour.",
+    summary: "Brows professionally groomed: cleaner and more defined, same position",
+  },
+  {
+    when: (p, f) => (f.includes("facial_hair") || p.facialHair.length > 0) && !p.facialHair.includes("clean_shaven"),
+    line: "Groom the facial hair like a good barber: crisp neckline and cheek lines, even length, a shape that frames the jaw. Only where hair already grows; do not add density that isn't there.",
+    summary: "Facial hair barbered: crisp lines and even length",
+  },
+  {
+    when: (p) => p.facialHair.includes("clean_shaven"),
+    line: "Show them freshly clean-shaven with smooth, calm skin and no razor irritation.",
+    summary: "Clean-shaven",
   },
   {
     when: (p, f) => f.includes("eye_area") || p.eyes.includes("rested") || p.skin.includes("under_eye"),
-    line: "Make the eye area look rested (as after a good night's sleep). Do not change eye shape, size, colour or eyelids.",
-    summary: "A more rested-looking eye area, eye shape unchanged",
+    line: "Make the eye area look well rested: lighter dark circles and less puffiness. Do not change eye shape, size, colour, eyelids or tilt.",
+    summary: "Well-rested eye area, eye shape unchanged",
   },
   {
     when: (p, f) => f.includes("smile") || p.smile.some((v) => v !== "none"),
-    line: "If the person is smiling, keep the same teeth and smile; at most a very slight, natural brightening. Do not straighten or replace teeth.",
-    summary: "Smile kept as is, at most a natural slight brightening",
+    line: "If teeth show, make them clean and a natural shade brighter, with no stains. Same tooth shape, size and alignment; same smile.",
+    summary: "Cleaner, slightly brighter teeth; same smile",
   },
 ];

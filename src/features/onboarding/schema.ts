@@ -17,7 +17,7 @@ export const HAIR_PREFERENCES = ["cut", "volume", "hairline_framing", "routine",
 export const FACIAL_HAIR_RELEVANCE = ["yes", "no"] as const;
 export const FACIAL_HAIR_PREFERENCES = ["shape", "fuller", "stubble", "clean_shaven"] as const;
 export const SMILE_PREFERENCES = ["hygiene", "whitening_info", "alignment_consult", "none"] as const;
-export const JAW_PREFERENCES = ["grooming", "framing", "photo_presentation", "none"] as const;
+export const JAW_PREFERENCES = ["leaner", "grooming", "framing", "photo_presentation", "none"] as const;
 
 export const DAILY_MINUTES = ["5", "15", "30"] as const;
 export const AVOID_OPTIONS = ["fragrance", "strong_actives", "animal_derived", "new_products", "none"] as const;

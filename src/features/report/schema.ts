@@ -17,6 +17,7 @@ export const evidenceSourceSchema = z
       "pilot_study",
       "modelling_study",
       "systematic_review",
+      "narrative_review",
     ]),
     published: z.iso.date().nullable(),
     dateLabel: z.string().min(3),

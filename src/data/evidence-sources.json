@@ -1,5 +1,5 @@
 {
-  "version": "2026-10-11",
+  "version": "2026-10-12",
   "note": "Curated, human-verified references. Every URL and date was checked on the accessedAt date (PubMed records via NCBI E-utilities). The report generator may cite ONLY ids from this file. Re-verify before each content release.",
   "sources": [
     {
@@ -193,6 +193,40 @@
       "dateLabel": "Published 1 Jul 2018",
       "accessedAt": "2026-10-11",
       "limitations": "A mathematical model of camera distance and perspective; it measures geometry, not how people judge faces."
+    },
+    {
+      "id": "who-physical-activity",
+      "title": "Physical activity (fact sheet)",
+      "publisher": "World Health Organization",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/physical-activity",
+      "kind": "professional_guidance",
+      "published": "2024-06-26",
+      "dateLabel": "Published 26 Jun 2024",
+      "accessedAt": "2026-10-12",
+      "limitations": "Global public-health guidance on how much activity adults need; it doesn't address appearance."
+    },
+    {
+      "id": "cdc-adult-activity",
+      "title": "Adult Activity: An Overview",
+      "publisher": "US Centers for Disease Control and Prevention",
+      "url": "https://www.cdc.gov/physical-activity-basics/guidelines/adults.html",
+      "kind": "professional_guidance",
+      "published": "2023-12-20",
+      "dateLabel": "Dated 20 Dec 2023",
+      "accessedAt": "2026-10-12",
+      "limitations": "US public-health guidance: 150 minutes of moderate activity and 2 days of muscle strengthening a week; not about appearance."
+    },
+    {
+      "id": "dejager-2018-facial-adiposity",
+      "title": "Facial Adiposity, Attractiveness, and Health: A Review",
+      "publisher": "de Jager S, Coetzee N, Coetzee V. Frontiers in Psychology 2018;9:2562",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30622491/",
+      "doi": "10.3389/fpsyg.2018.02562",
+      "kind": "narrative_review",
+      "published": "2018-12-21",
+      "dateLabel": "Published 21 Dec 2018",
+      "accessedAt": "2026-10-12",
+      "limitations": "Narrative review of perception studies: facial fullness tracks body fat and shapes how faces are judged; it doesn't predict how any one face will change."
     }
   ]
 }

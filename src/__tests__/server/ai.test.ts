@@ -16,12 +16,21 @@ const input: ReportInput = {
 describe("image edit prompt", () => {
   it("always preserves identity and lists only requested changes", () => {
     const prompt = buildImageEditPrompt(input, { strict: false });
-    expect(prompt).toMatch(/Preserve their identity, age appearance, skin tone/);
+    expect(prompt).toMatch(/Identity is non-negotiable/);
+    expect(prompt).toMatch(/skin tone, apparent age and ethnicity/);
     expect(prompt).toMatch(/eyebrows/i);
     expect(prompt).toMatch(/facial hair/i);
-    expect(prompt).not.toMatch(/hairstyle into a clean/);
+    // Only what was asked for: no haircut, no leaner face unless chosen.
+    expect(prompt).not.toMatch(/haircut that suits/);
+    expect(prompt).not.toMatch(/body-fat/);
     expect(prompt).not.toMatch(/STRICT MODE/);
     expect(buildImageEditPrompt(input, { strict: true })).toMatch(/STRICT MODE/);
+  });
+
+  it("shows a leaner face only when the buyer asked for it, and never changes bone", () => {
+    const leaner = buildImageEditPrompt({ ...input, preferences: { ...input.preferences, jaw: ["leaner"] } }, { strict: false });
+    expect(leaner).toMatch(/leaner, athletic body-fat level/);
+    expect(leaner).toMatch(/same face width at the bones, jaw angle, chin projection/);
   });
 });
 
