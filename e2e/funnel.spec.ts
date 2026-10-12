@@ -8,13 +8,15 @@ test.describe("paid funnel (development mocks)", () => {
     page.on("console", (message) => consoleText.push(message.text()));
 
     await runOnboarding(page);
-    await expect(page.getByRole("heading", { name: /One report/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Your glow-up is/ })).toBeVisible();
+    await expect(page.getByRole("img", { name: "Your photo" })).toBeVisible();
+    await expect(page.getByRole("slider", { name: "Compare the example before and after" })).toBeVisible();
     await expect(page.getByText(/\$29/).first()).toBeVisible();
     await page.getByRole("button", { name: /Pay \$29 \(simulated\)/ }).click();
 
     await page.waitForURL("**/result", { timeout: 60_000 });
     await expect(page.getByRole("heading", { name: "Your concept and plan" })).toBeVisible();
-    await expect(page.getByText("Your AI glow-up concept")).toBeVisible();
+    await expect(page.getByText("Your AI glow-up concept").first()).toBeVisible();
     await expect(page.getByText(/not a guaranteed result|not a prediction/)).toHaveCount(0);
     await expect(page.getByRole("img", { name: "Your AI concept portrait" })).toBeVisible();
     await expect(page.getByRole("slider", { name: "Compare today and concept" })).toBeVisible();
