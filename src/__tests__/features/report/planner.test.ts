@@ -134,7 +134,7 @@ describe("recommendation planner", () => {
       goals: ["grooming"],
       focusAreas: ["brows", "facial_hair", "hair"],
       timeline: "30d",
-      budget: "high",
+      budget: "flexible",
       preferences: { skin: [], brows: ["shape"], eyes: [], hair: ["routine"], facialHairRelevant: "yes", facialHair: ["shape"], smile: [], jaw: [] },
       constraints: { dailyMinutes: "30", avoid: [] },
     };
