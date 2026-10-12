@@ -16,6 +16,8 @@ export type RecommendationTemplate = Omit<PriorityRecommendation, "observation" 
   id: string;
   /** Preference answers that make this template especially relevant. */
   matches?: { key: PreferenceKey; values: readonly string[] }[];
+  /** Only when the buyer raised the topic (one of `matches`). Referrals never appear unprompted. */
+  onlyIfAsked?: boolean;
   /** "Avoid" answers that rule this template out. */
   excludedBy?: readonly AvoidOption[];
   /** Below this budget the template is skipped. */
@@ -145,6 +147,7 @@ export const LIBRARY: readonly RecommendationTemplate[] = [
     uncertainty: "MXVA can't tell from a photo whether this is needed — it's your call.",
     sourceIds: ["aad-acne-tips"],
     matches: [{ key: "skin", values: ["clarity", "uneven_tone"] }],
+    onlyIfAsked: true,
     minBudget: "moderate",
     plan: { day90: "If skin concerns persist after 90 days of basics, book a dermatologist." },
     question: "What do you think is behind the breakouts or uneven tone I notice, and what would you suggest first?",
@@ -317,6 +320,7 @@ export const LIBRARY: readonly RecommendationTemplate[] = [
     uncertainty: "MXVA can't judge hair loss from photos.",
     sourceIds: ["aad-hair-loss-diagnosis"],
     matches: [{ key: "hair", values: ["hairline_framing"] }],
+    onlyIfAsked: true,
     plan: { day90: "If your hairline worries you, book a dermatologist appointment." },
     question: "Is what I'm noticing in my hairline normal for my age, and what are my options if not?",
   },
@@ -407,6 +411,7 @@ export const LIBRARY: readonly RecommendationTemplate[] = [
     uncertainty: "MXVA can't see why teeth look the colour they do; a dentist can.",
     sourceIds: ["ada-whitening", "nhs-teeth-whitening"],
     matches: [{ key: "smile", values: ["whitening_info"] }],
+    onlyIfAsked: true,
     plan: { day30: "Ask your dentist whether whitening suits your teeth and which method." },
     question: "Would whitening work for the kind of discolouration I have, and which method would you recommend?",
   },
@@ -425,6 +430,7 @@ export const LIBRARY: readonly RecommendationTemplate[] = [
     uncertainty: "MXVA doesn't assess teeth or recommend treatment.",
     sourceIds: [],
     matches: [{ key: "smile", values: ["alignment_consult"] }],
+    onlyIfAsked: true,
     plan: { day90: "If you want to, book an alignment assessment." },
     question: "Is my alignment worth treating, what would the options involve, and what would it cost?",
   },

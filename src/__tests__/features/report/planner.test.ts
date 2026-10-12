@@ -127,6 +127,32 @@ describe("recommendation planner", () => {
     expect(areas).toContain("smile");
   });
 
+  it("never suggests a professional (hairline, skin, whitening, alignment) unless the buyer raised it", () => {
+    const referralTitles = LIBRARY.filter((template) => template.onlyIfAsked).map((template) => template.title);
+    expect(referralTitles).toHaveLength(4);
+    const grooming: ReportInput = {
+      goals: ["grooming"],
+      focusAreas: ["brows", "facial_hair", "hair"],
+      timeline: "30d",
+      budget: "high",
+      preferences: { skin: [], brows: ["shape"], eyes: [], hair: ["routine"], facialHairRelevant: "yes", facialHair: ["shape"], smile: [], jaw: [] },
+      constraints: { dailyMinutes: "30", avoid: [] },
+    };
+    const titles = (input: ReportInput) => planReport(input, observations, { simulated: false }).recommendations.map((rec) => rec.title);
+    expect(titles(grooming).filter((title) => referralTitles.includes(title))).toEqual([]);
+    for (let seed = 1; seed <= 200; seed++) {
+      const input = randomInput(seed);
+      const report = planReport(input, observations, { simulated: false });
+      for (const rec of report.recommendations) {
+        const template = LIBRARY.find((candidate) => candidate.title === rec.title);
+        if (!template?.onlyIfAsked) continue;
+        const asked = (template.matches ?? []).some(({ key, values }) => (input.preferences[key] as readonly string[]).some((value) => values.includes(value)));
+        expect(asked, `${rec.title} for seed ${seed}`).toBe(true);
+      }
+    }
+    expect(titles({ ...grooming, preferences: { ...grooming.preferences, hair: ["hairline_framing"] } })).toContain("Optional: ask a dermatologist about your hairline");
+  });
+
   it("uses the photo observation for the matching area and says so when none exists", () => {
     const input = { ...randomInput(3), focusAreas: ["skin", "hair"] as ReportInput["focusAreas"] };
     const report = planReport(input, observations, { simulated: false });

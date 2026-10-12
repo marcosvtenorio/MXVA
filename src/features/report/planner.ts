@@ -49,6 +49,7 @@ export function scoreTemplate(template: RecommendationTemplate, input: ReportInp
   const goalAreas = input.goals.flatMap((goal) => GOAL_AREAS[goal] ?? []);
   const inFocus = input.focusAreas.includes(template.area);
   const preferred = matchesPreference(template, input);
+  if (template.onlyIfAsked && !preferred) return undefined;
   if (!inFocus && !preferred && !goalAreas.includes(template.area)) return undefined;
 
   let score = 0;
