@@ -158,6 +158,7 @@ describe("PIX checkout (AbacatePay sandbox, faked HTTP)", () => {
       expiresAt: expect.any(String),
       sandbox: true,
       simulated: false,
+      canSimulate: true,
     });
     expect(body.price).toEqual({ amountMinor: 4799, currency: "brl" });
     expect(JSON.stringify(body)).not.toContain("pix_char_");

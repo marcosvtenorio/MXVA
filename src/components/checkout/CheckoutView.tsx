@@ -247,6 +247,11 @@ export function CheckoutView() {
             <li className="flex gap-2.5"><Tick size={16} className="mt-0.5 flex-none text-ink-2" />Sent to {maskEmail(onboarding.email)}, usually within minutes</li>
           </ul>
           {method === "card" ? <p className="mono mt-4 text-ink-2">Local currency is shown at payment where available</p> : null}
+          {offer?.sandbox && !offer.simulated ? (
+            <p className="mono mt-3 rounded-[10px] bg-raised px-3 py-2 text-ink shadow-[inset_0_0_0_1px_var(--color-rule)]">
+              Test mode · no real money{method === "card" ? " · card 4242 4242 4242 4242, any future date, any CVC" : ""}
+            </p>
+          ) : null}
 
           <section className="mt-6" aria-label="Payment">
             {view.state === "loading" ? <p className="text-[15px] text-ink-2">Preparing checkout…</p> : null}

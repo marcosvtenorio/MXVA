@@ -43,6 +43,12 @@ const serverEnvSchema = z.object({
   EMAIL_FROM: optionalSecret,
   SUPPORT_EMAIL: optionalSecret,
   COOKIE_SIGNING_SECRET: optionalSecret,
+  /** Password-protected staging deploy: production build, sandbox payments allowed. See src/proxy.ts. */
+  STAGING: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
+  STAGING_PASSWORD: optionalSecret,
   MAX_PHOTO_BYTES: z.coerce
     .number()
     .int()
@@ -122,20 +128,35 @@ export function providerIsSandbox(provider: "abacatepay" | "stripe"): boolean {
   return provider === "abacatepay" ? env.ABACATEPAY_SANDBOX : !env.STRIPE_SECRET_KEY?.startsWith("sk_live_");
 }
 
-/** What a real provider still needs before it may take payments. Production requires live keys. */
+/** A password-protected staging deploy (production build) where sandbox payments are allowed. */
+export function isStaging(): boolean {
+  const env = serverEnv();
+  return isProductionBuild && env.STAGING && Boolean(env.STAGING_PASSWORD && env.STAGING_PASSWORD.length >= 12);
+}
+
+/** Sandbox payment tools (e.g. "Simulate Pix payment") exist in development and on staging only. */
+export function sandboxToolsAllowed(): boolean {
+  return !isProductionBuild || isStaging();
+}
+
+/**
+ * What a real provider still needs before it may take payments. Production requires live keys
+ * (staging may use sandbox keys) and webhooks.
+ */
 export function missingForProvider(provider: "abacatepay" | "stripe"): string[] {
   const env = serverEnv();
   const missing: string[] = [];
+  const liveKeysRequired = isProductionBuild && !isStaging();
   if (provider === "abacatepay") {
     if (!env.ABACATEPAY_API_KEY) missing.push("ABACATEPAY_API_KEY");
     if (isProductionBuild && !env.ABACATEPAY_WEBHOOK_SECRET) missing.push("ABACATEPAY_WEBHOOK_SECRET");
-    if (isProductionBuild && env.ABACATEPAY_SANDBOX) missing.push("ABACATEPAY_SANDBOX=false (live key)");
+    if (liveKeysRequired && env.ABACATEPAY_SANDBOX) missing.push("ABACATEPAY_SANDBOX=false (live key)");
   } else {
     if (!env.STRIPE_SECRET_KEY) missing.push("STRIPE_SECRET_KEY");
     if (!publicConfig.stripePublishableKey) missing.push("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY");
     // Development confirms payments by asking Stripe directly; production also needs webhooks (refunds, late payments).
     if (isProductionBuild && !env.STRIPE_WEBHOOK_SECRET) missing.push("STRIPE_WEBHOOK_SECRET");
-    if (isProductionBuild && !env.STRIPE_SECRET_KEY?.startsWith("sk_live_")) missing.push("STRIPE_SECRET_KEY (live key)");
+    if (liveKeysRequired && !env.STRIPE_SECRET_KEY?.startsWith("sk_live_")) missing.push("STRIPE_SECRET_KEY (live key)");
   }
   return missing;
 }

@@ -59,6 +59,8 @@ export type PixCheckout = {
   expiresAt: string;
   sandbox: boolean;
   simulated: boolean;
+  /** The server allows "Simulate Pix payment" (development or staging sandbox). */
+  canSimulate: boolean;
 };
 
 export type PublicCheckout = { mode: "mock" } | { mode: "stripe"; clientSecret: string } | PixCheckout;

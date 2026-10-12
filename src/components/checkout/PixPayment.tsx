@@ -4,7 +4,7 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { Lock, Tick } from "@/components/common/icons";
 import type { PixSession } from "@/features/checkout/store";
 import { ApiClientError, api, type CheckoutOffer } from "@/lib/api-client";
-import { formatPrice, isProductionBuild } from "@/lib/config";
+import { formatPrice } from "@/lib/config";
 import { PixQrCode } from "./PixQrCode";
 
 const POLL_MS = 3000;
@@ -187,7 +187,7 @@ export function PixPayment({
         <span aria-hidden="true" className="pix-wait inline-block h-2 w-2 flex-none rounded-full bg-accent" />
         Waiting for your payment. This page updates by itself.
       </p>
-      {checkout.sandbox && !isProductionBuild ? (
+      {checkout.canSimulate ? (
         <div className="grid gap-3 rounded-[14px] bg-raised p-3.5 shadow-[inset_0_0_0_1px_var(--color-rule)]">
           <p className="text-[13px] leading-[1.4] text-ink-2">
             <span className="mono block text-ink">{checkout.simulated ? "Development preview" : "Sandbox"}</span>

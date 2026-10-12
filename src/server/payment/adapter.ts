@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { devPreviewEnabled, publicConfig } from "@/lib/config";
-import { providerIsSandbox, type PaymentMethod, type PaymentOffer } from "../config";
+import { providerIsSandbox, sandboxToolsAllowed, type PaymentMethod, type PaymentOffer } from "../config";
 import { ApiError } from "../http";
 
 export type CheckoutInput = {
@@ -26,6 +26,8 @@ type PixCheckout = {
   expiresAt: string;
   sandbox: boolean;
   simulated: boolean;
+  /** A "Simulate Pix payment" button may be shown (development, or sandbox on staging). */
+  canSimulate: boolean;
 };
 
 export type CheckoutInit =
@@ -37,7 +39,7 @@ export type CheckoutInit =
 export type PublicCheckout =
   | { mode: "mock" }
   | { mode: "stripe"; clientSecret: string }
-  | { mode: "pix"; brCode: string; expiresAt: string; sandbox: boolean; simulated: boolean };
+  | { mode: "pix"; brCode: string; expiresAt: string; sandbox: boolean; simulated: boolean; canSimulate: boolean };
 
 export function toPublicCheckout(checkout: CheckoutInit): PublicCheckout {
   switch (checkout.mode) {
@@ -46,8 +48,8 @@ export function toPublicCheckout(checkout: CheckoutInit): PublicCheckout {
     case "stripe":
       return { mode: "stripe", clientSecret: checkout.clientSecret };
     case "pix": {
-      const { brCode, expiresAt, sandbox, simulated } = checkout;
-      return { mode: "pix", brCode, expiresAt, sandbox, simulated };
+      const { brCode, expiresAt, sandbox, simulated, canSimulate } = checkout;
+      return { mode: "pix", brCode, expiresAt, sandbox, simulated, canSimulate };
     }
   }
 }
@@ -91,6 +93,7 @@ class MockPaymentProvider implements PaymentProvider {
       expiresAt: new Date(Date.now() + PIX_EXPIRES_IN_SECONDS * 1000).toISOString(),
       sandbox: true,
       simulated: true,
+      canSimulate: true,
     };
   }
 }
@@ -112,13 +115,15 @@ class AbacatePayPixProvider implements PaymentProvider {
       console.error("[abacatepay] created charge amount differs from the order");
       throw new ApiError("SERVICE_UNAVAILABLE");
     }
+    const sandbox = charge.devMode ?? providerIsSandbox("abacatepay");
     return {
       mode: "pix",
       chargeId: charge.id,
       brCode: charge.brCode,
       expiresAt: charge.expiresAt,
-      sandbox: charge.devMode ?? providerIsSandbox("abacatepay"),
+      sandbox,
       simulated: false,
+      canSimulate: sandbox && sandboxToolsAllowed(),
     };
   }
 }
