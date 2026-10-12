@@ -13,6 +13,7 @@ import { clearPixSession, loadPixSession, savePixSession } from "@/features/chec
 import { useCheckoutStore } from "@/features/checkout/store";
 import { FACE_PROCESSING_CONSENT_VERSION, TERMS_VERSION } from "@/features/onboarding/schema";
 import { useOnboardingStore } from "@/features/onboarding/store";
+import { useResultStore } from "@/features/results/memory-store";
 import { ApiClientError, api, type CreateOrderResponse, type PaymentMethod } from "@/lib/api-client";
 import { DISPLAY_PRICE_BRL_CENTS, DISPLAY_PRICE_USD_CENTS, devPreviewEnabled, formatPrice } from "@/lib/config";
 import { ExampleCompare } from "./ExampleCompare";
@@ -71,7 +72,10 @@ export function CheckoutView() {
     (async () => {
       try {
         const current = await api.currentOrder().catch(() => undefined);
-        if (current?.order.paid) return router.replace("/processing");
+        // A paid order still being made is finished there, never paid twice. A finished order
+        // (delivered, or with support) doesn't block buying another report.
+        if (current?.order.unfinished) return router.replace("/processing");
+        if (current?.order.deliveredToEmail && useResultStore.getState().report) return router.replace("/result");
         const { offers: available } = await api.checkoutOptions();
         // An open Pix code survives a reload (the order already exists; the email isn't kept in the browser).
         const saved = current?.pending?.method === "pix" ? loadPixSession() : undefined;

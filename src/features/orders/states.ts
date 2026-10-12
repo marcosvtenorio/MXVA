@@ -99,6 +99,18 @@ export function isPaidStatus(status: OrderStatus): boolean {
   return PAID_STATES.includes(status) || status === "refunded";
 }
 
+const UNFINISHED_STATES: readonly OrderStatus[] = ["paid", "processing", "failed_retryable", "generated_email_failed"];
+
+/**
+ * Paid, and the buyer can still get this report without paying again (a retry, a reselected
+ * photo, a report already being made). Such an order blocks a second checkout. A finished
+ * order (delivered, refunded, withdrawn, or handed to support) does not: the buyer may buy
+ * another report.
+ */
+export function isUnfinishedPaidStatus(status: OrderStatus): boolean {
+  return UNFINISHED_STATES.includes(status);
+}
+
 function move(order: Order, to: OrderStatus, type: OrderEventType, now: Date, patch: Partial<Order> = {}): TransitionResult {
   const at = now.toISOString();
   return {
@@ -240,6 +252,8 @@ export function consentWithdrawn(order: Order, now: Date): TransitionResult {
 export type PublicOrderStatus = {
   status: OrderStatus;
   paid: boolean;
+  /** Paid and not finished: the browser continues this order instead of paying again. */
+  unfinished: boolean;
   canSubmitPhotos: boolean;
   canRequestRetry: boolean;
   attemptsRemaining: number;
@@ -254,6 +268,7 @@ export function publicStatus(order: Order, now = new Date()): PublicOrderStatus 
   return {
     status: order.status,
     paid: isPaidStatus(order.status) && order.status !== "refunded",
+    unfinished: isUnfinishedPaidStatus(order.status),
     canSubmitPhotos: (order.status === "paid" || staleProcessing) && attemptsRemaining > 0,
     canRequestRetry:
       (order.status === "failed_retryable" || order.status === "generated_email_failed") && attemptsRemaining > 0,

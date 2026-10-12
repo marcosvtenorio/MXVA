@@ -3,7 +3,7 @@ import { publicConfig } from "@/lib/config";
 import { FACE_PROCESSING_CONSENT_VERSION, TERMS_VERSION, emailSchema } from "@/features/onboarding/schema";
 import { optionalOrderFromRequest } from "@/features/orders/authorization";
 import { SKU, abandonPendingCheckout, createOrder, currentPrice, refreshPaymentStatus } from "@/features/orders/service";
-import { isPaidStatus, publicStatus } from "@/features/orders/states";
+import { isUnfinishedPaidStatus, publicStatus } from "@/features/orders/states";
 import { ApiError, handle, json, readJson } from "@/server/http";
 import { PAYMENT_METHODS } from "@/server/config";
 import { toPublicCheckout } from "@/server/payment/adapter";
@@ -39,12 +39,13 @@ export async function POST(request: Request) {
       throw new ApiError("CONSENT_REQUIRED");
     }
 
-    // A browser that already paid must never be sent to a second payment. A PIX or card
-    // payment may have landed seconds ago, so ask the provider before opening another checkout.
+    // A browser with a paid, unfinished order must never be sent to a second payment. A PIX or
+    // card payment may have landed seconds ago, so ask the provider before opening another
+    // checkout. A finished order (delivered, refunded, with support) doesn't block a new report.
     const existing = await optionalOrderFromRequest(request);
     if (existing) {
       const fresh = await refreshPaymentStatus(existing).catch(() => existing);
-      if (isPaidStatus(fresh.status)) return json({ alreadyPaid: true, order: publicStatus(fresh) });
+      if (isUnfinishedPaidStatus(fresh.status)) return json({ alreadyPaid: true, order: publicStatus(fresh) });
       await abandonPendingCheckout(fresh).catch(() => undefined);
     }
 

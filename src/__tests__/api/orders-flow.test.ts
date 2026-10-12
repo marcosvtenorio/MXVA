@@ -8,7 +8,7 @@ import { POST as withdrawRoute } from "@/app/api/consent/withdraw/route";
 import { POST as webhookRoute } from "@/app/api/stripe/webhook/route";
 import { FACE_PROCESSING_CONSENT_VERSION, TERMS_VERSION } from "@/features/onboarding/schema";
 import { InMemoryOrderRepository, setOrderRepositoryForTests } from "@/features/orders/repository";
-import { applyPaymentFact, claimForFulfillment } from "@/features/orders/service";
+import { applyPaymentFact, claimForFulfillment, markDelivered, markFailed } from "@/features/orders/service";
 import { resetServerEnvCache } from "@/server/config";
 import { ApiError } from "@/server/http";
 import { resetRateLimitsForTests } from "@/server/security/rate-limit";
@@ -107,6 +107,42 @@ describe("order API (mock payments, development build)", () => {
     // Same browser starting checkout again: no second order, no second charge.
     const again = await (await createOrderRoute(post("/api/orders", orderBody, cookie))).json();
     expect(again).toMatchObject({ alreadyPaid: true, order: { status: "paid" } });
+  });
+
+  it("lets a browser buy another report once its last order is finished", async () => {
+    // Delivered: a new report is a new purchase.
+    const first = await createOrderRoute(post("/api/orders", orderBody));
+    let cookie = cookieFrom(first);
+    await mockPayRoute(post("/api/dev/mock-pay", { outcome: "succeeded" }, cookie));
+    const delivered = repository.list()[0]!;
+    await claimForFulfillment(delivered.id);
+    await markDelivered(delivered.id, "msg_unit");
+    const status = await (await currentOrderRoute(get("/api/orders/current", cookie))).json();
+    expect(status.order).toMatchObject({ status: "delivered_to_provider", paid: true, unfinished: false });
+    const second = await createOrderRoute(post("/api/orders", orderBody, cookie));
+    expect(second.status).toBe(201);
+    expect(await second.json()).toMatchObject({ alreadyPaid: false, order: { status: "pending_payment" } });
+
+    // Handed to support (e.g. held for review): the browser isn't locked out of buying either.
+    cookie = cookieFrom(second);
+    await mockPayRoute(post("/api/dev/mock-pay", { outcome: "succeeded" }, cookie));
+    const held = repository.list().find((order) => order.id !== delivered.id)!;
+    await claimForFulfillment(held.id);
+    await markFailed(held.id, "SIMULATION_QUALITY_FAILED", false);
+    const third = await createOrderRoute(post("/api/orders", orderBody, cookie));
+    expect(await third.json()).toMatchObject({ alreadyPaid: false, order: { status: "pending_payment" } });
+    expect(repository.list()).toHaveLength(3);
+  });
+
+  it("keeps a paid, unfinished order from paying again (a retry continues it)", async () => {
+    const cookie = cookieFrom(await createOrderRoute(post("/api/orders", orderBody)));
+    await mockPayRoute(post("/api/dev/mock-pay", { outcome: "succeeded" }, cookie));
+    const [order] = repository.list();
+    await claimForFulfillment(order!.id);
+    await markFailed(order!.id, "AI_PROVIDER_FAILED", true);
+    const again = await (await createOrderRoute(post("/api/orders", orderBody, cookie))).json();
+    expect(again).toMatchObject({ alreadyPaid: true, order: { status: "failed_retryable", unfinished: true } });
+    expect(repository.list()).toHaveLength(1);
   });
 
   it("simulates Pix in reais through the same payment path", async () => {

@@ -17,7 +17,8 @@ test.describe("payment and recovery", () => {
     await page.waitForURL("**/result", { timeout: 60_000 });
     await expect(page.getByRole("heading", { name: "Your concept and plan" })).toBeVisible();
 
-    // Starting checkout again in this browser never creates a second charge.
+    // The report was delivered, so checking out again is a new purchase (a new order), not a
+    // second charge for this one. Unfinished paid orders still block it (unit-tested).
     const again = await page.evaluate(async () => {
       const response = await fetch("/api/orders", {
         method: "POST",
@@ -34,7 +35,8 @@ test.describe("payment and recovery", () => {
       });
       return response.json();
     });
-    expect(again.alreadyPaid).toBe(true);
+    expect(again.alreadyPaid).toBe(false);
+    expect(again.order.status).toBe("pending_payment");
   });
 
   test("the client cannot fake a paid order: fulfilment before payment is refused", async ({ page }) => {
