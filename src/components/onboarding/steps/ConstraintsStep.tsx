@@ -1,5 +1,6 @@
 "use client";
 
+import "@/lib/zod-config";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";

@@ -1,3 +1,4 @@
+import "@/lib/zod-config";
 import { z } from "zod";
 
 // ─── Versions of the texts a buyer agrees to. Bump when the wording changes. ───

@@ -1,3 +1,4 @@
+import "@/lib/zod-config";
 import { z } from "zod";
 import { API_ERROR_CODES } from "@/lib/api-errors";
 import { stepSchemas, type StepId } from "@/features/onboarding/schema";

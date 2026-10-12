@@ -1,3 +1,4 @@
+import "@/lib/zod-config";
 import { z } from "zod";
 import { FOCUS_AREAS } from "@/features/onboarding/schema";
 
