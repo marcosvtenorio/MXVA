@@ -8,11 +8,11 @@ test.describe("Pix for visitors in Brazil (simulated)", () => {
 
   test("shows the price in reais, generates a code, and moves on once it's paid", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText("R$ 37,99").first()).toBeVisible();
+    await expect(page.getByText("R$ 47,99").first()).toBeVisible();
 
     await runOnboarding(page);
     await expect(page.getByRole("heading", { name: "Pay with Pix" })).toBeVisible();
-    await expect(page.getByText("R$ 37,99").first()).toBeVisible();
+    await expect(page.getByText("R$ 47,99").first()).toBeVisible();
     await page.getByRole("button", { name: "Generate Pix code" }).click();
 
     await expect(page.getByRole("img", { name: "Pix QR code" })).toBeVisible();

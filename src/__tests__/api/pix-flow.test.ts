@@ -20,7 +20,7 @@ const ENV = {
   ABACATEPAY_API_KEY: API_KEY,
   ABACATEPAY_SANDBOX: "true",
   ABACATEPAY_WEBHOOK_SECRET: WEBHOOK_SECRET,
-  PRICE_BRL_CENTS: "3799",
+  PRICE_BRL_CENTS: "4799",
 };
 
 type Charge = { id: string; amount: number; status: string };
@@ -144,7 +144,7 @@ describe("PIX checkout (AbacatePay sandbox, faked HTTP)", () => {
   it("offers PIX in reais (and card stays simulated in development without Stripe keys)", async () => {
     const { offers } = await (await routes.options()).json();
     expect(offers).toEqual([
-      { method: "pix", price: { amountMinor: 3799, currency: "brl" }, sandbox: true, simulated: false },
+      { method: "pix", price: { amountMinor: 4799, currency: "brl" }, sandbox: true, simulated: false },
       { method: "card", price: { amountMinor: 2900, currency: "usd" }, sandbox: true, simulated: true },
     ]);
   });
@@ -159,15 +159,15 @@ describe("PIX checkout (AbacatePay sandbox, faked HTTP)", () => {
       sandbox: true,
       simulated: false,
     });
-    expect(body.price).toEqual({ amountMinor: 3799, currency: "brl" });
+    expect(body.price).toEqual({ amountMinor: 4799, currency: "brl" });
     expect(JSON.stringify(body)).not.toContain("pix_char_");
 
     const create = calls.find((call) => call.url.endsWith("/v2/transparents/create"))!;
     const sent = JSON.parse(String(create.init.body));
-    expect(sent).toMatchObject({ method: "PIX", data: { amount: 3799, expiresIn: 1800 } });
+    expect(sent).toMatchObject({ method: "PIX", data: { amount: 4799, expiresIn: 1800 } });
     const stored = repo.list().at(-1)!;
     expect(sent.data.externalId).toBe(stored.id);
-    expect(stored).toMatchObject({ currency: "brl", amountMinor: 3799, providerChargeId: `pix_char_${chargeSequence}`, status: "pending_payment" });
+    expect(stored).toMatchObject({ currency: "brl", amountMinor: 4799, providerChargeId: `pix_char_${chargeSequence}`, status: "pending_payment" });
   });
 
   it("confirms payment only by asking AbacatePay, never from the browser", async () => {

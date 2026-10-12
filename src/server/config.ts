@@ -21,7 +21,7 @@ const serverEnvSchema = z.object({
     .regex(/^[a-z0-9_]{1,32}$/)
     .default("usd_29"),
   /** PIX price in centavos (Brazil). Card payments use PRICE_USD_CENTS. */
-  PRICE_BRL_CENTS: z.coerce.number().int().min(500).max(1_000_000).default(3799),
+  PRICE_BRL_CENTS: z.coerce.number().int().min(500).max(1_000_000).default(4799),
   ABACATEPAY_API_KEY: optionalSecret,
   /** Set when ABACATEPAY_API_KEY is a Dev Mode key: no real money moves, payments are simulated. */
   ABACATEPAY_SANDBOX: z

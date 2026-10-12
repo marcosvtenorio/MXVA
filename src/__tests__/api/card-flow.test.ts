@@ -163,7 +163,7 @@ describe("card checkout (Stripe test mode, faked SDK)", () => {
   it("offers card in dollars; Pix stays simulated in development without an AbacatePay key", async () => {
     const { offers } = await (await routes.options()).json();
     expect(offers).toEqual([
-      { method: "pix", price: { amountMinor: 3799, currency: "brl" }, sandbox: true, simulated: true },
+      { method: "pix", price: { amountMinor: 4799, currency: "brl" }, sandbox: true, simulated: true },
       { method: "card", price: { amountMinor: 2900, currency: "usd" }, sandbox: true, simulated: false },
     ]);
   });

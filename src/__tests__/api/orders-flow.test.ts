@@ -113,7 +113,7 @@ describe("order API (mock payments, development build)", () => {
     const created = await createOrderRoute(post("/api/orders", { ...orderBody, method: "pix" }));
     expect(created.status).toBe(201);
     const body = await created.json();
-    expect(body.price).toEqual({ amountMinor: 3799, currency: "brl" });
+    expect(body.price).toEqual({ amountMinor: 4799, currency: "brl" });
     expect(body.checkout).toMatchObject({ mode: "pix", sandbox: true, simulated: true, brCode: expect.stringContaining("simulated") });
     expect(Date.parse(body.checkout.expiresAt) - Date.now()).toBeGreaterThan(29 * 60_000);
     const cookie = cookieFrom(created);
@@ -123,7 +123,7 @@ describe("order API (mock payments, development build)", () => {
 
     const paid = await (await mockPayRoute(post("/api/dev/mock-pay", { outcome: "succeeded" }, cookie))).json();
     expect(paid.order).toMatchObject({ status: "paid", paid: true, canSubmitPhotos: true });
-    expect(repository.list()[0]).toMatchObject({ currency: "brl", amountMinor: 3799, paymentMode: "mock", stripeCheckoutSessionId: null });
+    expect(repository.list()[0]).toMatchObject({ currency: "brl", amountMinor: 4799, paymentMode: "mock", stripeCheckoutSessionId: null });
   });
 
   it("refuses an unknown payment method", async () => {
