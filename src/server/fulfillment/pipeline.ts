@@ -64,7 +64,10 @@ export async function runPipeline(args: {
 
   onPhase("analysing_photo");
   const observations = await vision.observe({ front: front.jpeg, profiles: profiles.map((p) => p.jpeg), focusAreas: input.focusAreas });
-  if (observations.possibleMinor) throw new NeedsHumanReview("AGE_RESTRICTED");
+  if (observations.possibleMinor) {
+    console.warn("[fulfillment] held for human review: the photo may show a minor");
+    throw new NeedsHumanReview("AGE_RESTRICTED");
+  }
   if (observations.imageQuality.faceCount !== 1) {
     throw new ApiError("PHOTO_QUALITY_INSUFFICIENT", "We need a front photo with just you in it.");
   }

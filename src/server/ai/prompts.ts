@@ -26,7 +26,7 @@ Rules:
 - Give each observation a confidence: high only when lighting and resolution make it obvious.
 - If something can't be judged from the photo, add a short line to cannotAssess instead of guessing.
 - imageQuality.faceCount is the number of human faces visible.
-- possibleMinor is true only if the person plausibly looks under 18; when unsure, prefer true.
+- possibleMinor is true only if the person clearly looks like a child or a young teenager. A young-looking adult (someone who could be 18 to 25) is NOT a minor: the buyer has confirmed they are 18 or older. Do not guess from youthful skin, a slim face or a lack of facial hair alone.
 - Only use areas from this list: skin, brows, eye_area, hair, facial_hair, smile, jaw_presentation.
 Return JSON matching the schema exactly.`;
 
