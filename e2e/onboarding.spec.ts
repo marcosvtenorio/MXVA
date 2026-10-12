@@ -2,13 +2,14 @@ import { expect, test } from "@playwright/test";
 import { runOnboarding } from "./support/flow";
 
 test.describe("onboarding rules", () => {
-  test("under-18 declaration blocks the whole flow", async ({ page }) => {
+  test("starting confirms age and terms in one step, with the policies linked", async ({ page }) => {
     await page.goto("/start");
-    await page.getByText("I'm under 18").click();
-    await expect(page.getByRole("heading", { name: /adults only/ })).toBeVisible();
-    await page.goto("/onboarding/photos");
-    await page.waitForURL("**/start");
-    await expect(page.getByRole("heading", { name: /adults only/ })).toBeVisible();
+    await expect(page.getByText(/By continuing, you confirm you're 18 or older/)).toBeVisible();
+    await expect(page.getByRole("link", { name: "Terms of Use" })).toHaveAttribute("href", "/terms");
+    await expect(page.getByRole("link", { name: "Privacy Policy" })).toHaveAttribute("href", "/privacy");
+    await expect(page.getByRole("radio")).toHaveCount(0);
+    await page.getByRole("button", { name: "Start" }).click();
+    await page.waitForURL("**/onboarding/goals");
   });
 
   test("deep links fall back to the first incomplete step", async ({ page }) => {

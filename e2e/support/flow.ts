@@ -14,7 +14,6 @@ export async function runOnboarding(
   until: "goals" | "photos" | "delivery" | "review" | "done" = "done",
 ) {
   await page.goto("/start");
-  await page.getByText("I'm 18 or older").click();
   await page.getByRole("button", { name: "Start" }).click();
   await page.waitForURL("**/onboarding/goals");
   if (until === "goals") return;

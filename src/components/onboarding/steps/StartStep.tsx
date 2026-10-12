@@ -6,21 +6,13 @@ import { track } from "@/features/analytics/client";
 import { useOnboardingStore } from "@/features/onboarding/store";
 import { useStepNav } from "@/features/onboarding/use-flow";
 import { OnboardingFrame } from "../OnboardingFrame";
-import { ChoiceCards } from "../controls";
 import { StepActions, StepBody } from "./StepBody";
 import { StepHeading } from "../StepHeading";
 
-const AGE_OPTIONS = [
-  { id: "adult", label: "I'm 18 or older" },
-  { id: "minor", label: "I'm under 18" },
-] as const;
-
 export function StartStep() {
   const nav = useStepNav("start");
-  const adultConfirmed = useOnboardingStore((state) => state.adultConfirmed);
   const ageRefused = useOnboardingStore((state) => state.ageRefused);
   const set = useOnboardingStore((state) => state.set);
-  const refuseAge = useOnboardingStore((state) => state.refuseAge);
 
   if (ageRefused) {
     return (
@@ -43,7 +35,9 @@ export function StartStep() {
         <StepActions
           continueLabel="Start"
           onContinue={() => {
-            if (nav.goNext()) track("onboarding_start", {});
+            // Starting is the confirmation (owner decision): 18 or older, Terms and Privacy read.
+            set({ adultConfirmed: true });
+            if (nav.goNext({ validate: false })) track("onboarding_start", {});
           }}
         />
       }
@@ -54,24 +48,9 @@ export function StartStep() {
           <CropMarks />
         </div>
         <p className="-mt-2 mb-6 text-[17px] leading-[1.38] text-ink-2">{nav.definition.description}</p>
-        <ChoiceCards
-          name="age"
-          legend="Confirm your age"
-          options={AGE_OPTIONS}
-          value={adultConfirmed ? "adult" : undefined}
-          onChange={(value) => {
-            if (value === "minor") {
-              track("age_gate_refused", {});
-              refuseAge();
-              return;
-            }
-            set({ adultConfirmed: true });
-            nav.setError(undefined);
-          }}
-        />
-        <p className="mt-4 text-[13px] leading-[1.4] text-ink-2">
-          By starting you agree to our{" "}
-          <Link href="/terms" className="underline underline-offset-2">Terms</Link> and{" "}
+        <p className="border-t border-rule pt-4 text-[15px] leading-[1.45] text-ink-2">
+          By continuing, you confirm you&apos;re 18 or older and that you&apos;ve read and agree to our{" "}
+          <Link href="/terms" className="underline underline-offset-2">Terms of Use</Link> and{" "}
           <Link href="/privacy" className="underline underline-offset-2">Privacy Policy</Link>. No account needed.
         </p>
       </StepBody>
