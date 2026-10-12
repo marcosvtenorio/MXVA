@@ -12,8 +12,8 @@ import { StepActions } from "./StepBody";
 
 export function PhotosStep() {
   const nav = useStepNav("photos");
-  // Children render only on the client (after the step guard), so reading the URL here is safe.
-  const [cleared] = useState(() => new URLSearchParams(window.location.search).has("cleared"));
+  // The notice renders only on the client (children wait for the step guard), so no hydration mismatch.
+  const [cleared] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("cleared"));
   return (
     <OnboardingFrame step="photos" onBack={nav.goBack} action={<StepActions continueLabel="Use these photos" onContinue={() => nav.goNext()} />}>
       <div className="px-5 pb-2 pt-6">
