@@ -525,6 +525,52 @@ export const HAIRCUT_DESCRIPTIONS: Record<HaircutStyle, string> = {
   tidy_current_length: "their current length, freshly trimmed and styled",
 };
 
+/** The cut chosen from the photo, in words a barber can act on, and how to style it each day. */
+export const HAIRCUT_PLANS: Record<HaircutStyle, { title: string; name: string; ask: string; style: string }> = {
+  textured_crop: {
+    title: "Your haircut: a textured crop",
+    name: "a textured crop",
+    ask: "a textured crop: about 3–5 cm on top, point-cut for texture and worn slightly forward, with a low-to-mid taper on the sides and back",
+    style: "towel-dry, work a pea-sized amount of matte clay through the top with your fingers and push the fringe slightly forward",
+  },
+  short_quiff: {
+    title: "Your haircut: a short quiff",
+    name: "a short quiff",
+    ask: "a short quiff: 5–7 cm at the front, graduating shorter toward the crown, with tapered sides and a clean neckline",
+    style: "blow-dry the front up and back on medium heat, then set it with a little light-hold paste",
+  },
+  side_part: {
+    title: "Your haircut: a classic side part",
+    name: "a classic side part",
+    ask: "a classic side part: 4–6 cm on top cut with scissors, the parting on the side your hair naturally falls, and neatly tapered sides",
+    style: "comb the parting into damp hair, blow-dry the top across, and finish with a little cream or light pomade",
+  },
+  fade_textured_top: {
+    title: "Your haircut: a mid fade with a textured top",
+    name: "a mid fade with a textured top",
+    ask: "a mid fade on the sides and back, with 3–5 cm on top cut with texture so it moves",
+    style: "rough-dry the top with your fingers, then twist small sections with matte paste for movement",
+  },
+  buzz_cut: {
+    title: "Your haircut: a clean buzz cut",
+    name: "a clean buzz cut",
+    ask: "an even buzz cut (a #2 or #3 guard all over, or a little longer on top) with a sharp but natural edge-up at the hairline",
+    style: "nothing daily; book a tidy-up every 2–3 weeks to keep the edges sharp",
+  },
+  medium_flow: {
+    title: "Your haircut: a medium-length flow",
+    name: "a medium-length flow",
+    ask: "a medium-length flow: keep the length on top and at the back, take out weight with layers, and shape the sides behind the ears",
+    style: "air-dry with a little sea-salt spray or cream, then push it back with your fingers",
+  },
+  tidy_current_length: {
+    title: "Your haircut: keep your length, reshaped",
+    name: "a reshape at your current length",
+    ask: "a reshape at your current length: clean up the outline, remove bulk, and tidy the neckline and around the ears",
+    style: "work a little cream or light paste through damp hair and shape it with your fingers",
+  },
+};
+
 /**
  * The edits each choice may request in the concept image: a visible glow-up of the same person.
  * Soft tissue, grooming and presentation only; never bone, eye shape, skin tone or age.

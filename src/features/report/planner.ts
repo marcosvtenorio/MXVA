@@ -1,6 +1,6 @@
 import type { FocusArea, ReportInput } from "@/features/onboarding/schema";
 import { FOCUS_OPTIONS } from "@/features/onboarding/steps";
-import { BUDGET_ORDER, HAIRCUT_DESCRIPTIONS, IMAGE_EDIT_LINES, LIBRARY, type RecommendationTemplate } from "./library";
+import { BUDGET_ORDER, HAIRCUT_DESCRIPTIONS, HAIRCUT_PLANS, IMAGE_EDIT_LINES, LIBRARY, type RecommendationTemplate } from "./library";
 import { getSource, onlyRegisteredIds } from "./references";
 import {
   SIMULATION_DISCLAIMER,
@@ -143,12 +143,25 @@ export function buildImageEditInstructions(input: ReportInput): string[] {
   return lines;
 }
 
+/** The haircut advice names the cut chosen from the photo, so a barber can do it. */
+function withChosenCut(template: RecommendationTemplate, input: ReportInput): RecommendationTemplate {
+  if (template.id !== "hair-cut-for-your-face" || !input.haircut) return template;
+  const cut = HAIRCUT_PLANS[input.haircut];
+  return {
+    ...template,
+    title: cut.title,
+    suggestion: `Ask your barber for ${cut.ask}. Show them your concept image. Daily styling, about two minutes: ${cut.style}.`,
+    plan: { ...template.plan, day30: `Get ${cut.name} and show your barber your concept image.` },
+    question: `Will ${cut.name} suit my hair's texture and growth, and how often should I come back to keep it sharp?`,
+  };
+}
+
 export function planReport(
   input: ReportInput,
   observations: VisualObservations,
   options: { simulated: boolean; now?: Date },
 ): PaidReport {
-  const templates = selectTemplates(input);
+  const templates = selectTemplates(input).map((template) => withChosenCut(template, input));
   const recommendations: PriorityRecommendation[] = templates.map((template) => ({
     id: template.id,
     area: template.area,

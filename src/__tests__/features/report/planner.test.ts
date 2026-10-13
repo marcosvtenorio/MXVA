@@ -136,6 +136,17 @@ describe("recommendation planner", () => {
     expect(report.goalsSummary.join(" ")).not.toMatch(/Focus:|My overall look/);
   });
 
+  it("names the haircut chosen from the photo, in words a barber can use", () => {
+    const input: ReportInput = { ...randomInput(3), focusAreas: ["hair"], budget: "flexible", haircut: "textured_crop" };
+    input.preferences = { ...input.preferences, hair: ["cut"] };
+    const report = planReport(input, observations, { simulated: true });
+    const cut = report.recommendations.find((rec) => rec.id === "hair-cut-for-your-face");
+    expect(cut?.title).toBe("Your haircut: a textured crop");
+    expect(cut?.suggestion).toMatch(/^Ask your barber for a textured crop: about 3–5 cm on top/);
+    expect(report.professionalQuestions?.join(" ")).toContain("a textured crop");
+    expect(report.thirtyDayPlan).toContain("Get a textured crop and show your barber your concept image.");
+  });
+
   it("covers each chosen focus area first", () => {
     const input = randomInput(7);
     const fixed = { ...input, focusAreas: ["brows", "smile"] as ReportInput["focusAreas"] };
