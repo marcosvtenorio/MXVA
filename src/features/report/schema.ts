@@ -65,13 +65,13 @@ export const visualObservationsSchema = z
         z
           .object({
             area: z.enum(FOCUS_AREAS),
-            observation: z.string().min(3).max(240),
+            observation: z.string().min(3).max(400),
             confidence: z.enum(CONFIDENCE),
           })
           .strict(),
       )
       .max(14),
-    cannotAssess: z.array(z.string().min(3).max(180)).max(8),
+    cannotAssess: z.array(z.string().min(3).max(300)).max(8),
   })
   .strict();
 
