@@ -25,7 +25,7 @@ export function ConsentBanner() {
   return (
     <section
       aria-label="Cookie choices"
-      className="frost fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-40 mx-auto max-w-[460px] rounded-[24px] p-4 text-ink shadow-[0_12px_40px_rgba(17,20,23,.18)]"
+      className="fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-40 mx-auto max-w-[460px] rounded-[24px] bg-raised p-4 text-ink shadow-[inset_0_0_0_1px_var(--color-rule),0_12px_40px_rgba(17,20,23,.18)]"
     >
       <p className="text-[15px] leading-[1.4]">
         We count visits anonymously to improve MXVA. With your OK, we also use cookies to measure our ads on Meta. Photos and answers are
