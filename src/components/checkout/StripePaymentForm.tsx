@@ -4,6 +4,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { CheckoutElementsProvider, PaymentElement, ExpressCheckoutElement, useCheckoutElements } from "@stripe/react-stripe-js/checkout";
 import { useMemo, useState } from "react";
 import { Lock } from "@/components/common/icons";
+import { useCheckoutStore } from "@/features/checkout/store";
 import { api } from "@/lib/api-client";
 import { publicConfig } from "@/lib/config";
 
@@ -26,6 +27,7 @@ function PaymentBody({ onPaid, onError, onStale }: { onPaid: () => void; onError
   // Cards confirm in place, so the photos stay in memory.
   async function confirm(options: Parameters<typeof checkout.confirm>[0]) {
     setBusy(true);
+    useCheckoutStore.getState().setConfirming(true);
     try {
       const outcome = await checkout.confirm(options);
       if (outcome.type === "success") onPaid();
@@ -36,6 +38,7 @@ function PaymentBody({ onPaid, onError, onStale }: { onPaid: () => void; onError
       onError("The payment couldn't be confirmed. Nothing was charged; try again.");
     } finally {
       setBusy(false);
+      useCheckoutStore.getState().setConfirming(false);
     }
   }
   // This form's session may have been paid or replaced in another tab: ask before showing an error.

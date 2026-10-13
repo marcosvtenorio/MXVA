@@ -16,20 +16,25 @@ type CheckoutState = {
   pix?: PixSession;
   /** This tab took the payment: only it starts the report by itself (other tabs follow). */
   paidHere: boolean;
+  /** A card payment is being confirmed in this tab right now. */
+  confirming: boolean;
   setOffers: (offers: CheckoutOffer[]) => void;
   setMethod: (method: PaymentMethod) => void;
   setCard: (card: CardCheckout | undefined) => void;
   setPix: (pix: PixSession | undefined) => void;
   setPaidHere: (paidHere: boolean) => void;
+  setConfirming: (confirming: boolean) => void;
   clear: () => void;
 };
 
 export const useCheckoutStore = create<CheckoutState>()((set) => ({
   paidHere: false,
+  confirming: false,
   setOffers: (offers) => set({ offers }),
   setMethod: (method) => set({ method }),
   setCard: (card) => set({ card }),
   setPix: (pix) => set({ pix }),
   setPaidHere: (paidHere) => set({ paidHere }),
+  setConfirming: (confirming) => set({ confirming }),
   clear: () => set({ card: undefined, pix: undefined, method: undefined }),
 }));

@@ -124,8 +124,12 @@ export function CheckoutView() {
           if (cancelled) return;
           if (pending) sawOpen = true;
           // This tab holds a checkout (card session or Pix code) for the browser's order.
-          const { card: openCard, pix: openPix } = useCheckoutStore.getState();
-          if (order.unfinished || ((sawOpen || Boolean(openCard || openPix)) && order.paid)) router.replace("/processing");
+          const { card: openCard, pix: openPix, confirming } = useCheckoutStore.getState();
+          if (confirming) return; // this tab's own card payment is finishing: its handler moves on
+          if (!(order.unfinished || ((sawOpen || Boolean(openCard || openPix)) && order.paid))) return;
+          // The Pix code shown here was paid (the bank app): this tab is the one that paid.
+          if (openPix) useCheckoutStore.getState().setPaidHere(true);
+          router.replace("/processing");
         })
         .catch(() => undefined);
     }, 5000);
