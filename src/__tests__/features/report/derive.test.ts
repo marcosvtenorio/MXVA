@@ -1,14 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { reportInputSchema } from "@/features/onboarding/schema";
 import { deriveReportInput } from "@/features/report/derive";
-import { buildImageEditInstructions, planReport } from "@/features/report/planner";
+import { planReport } from "@/features/report/planner";
 import type { VisualObservations } from "@/features/report/schema";
 
 const base: VisualObservations = {
   imageQuality: { usable: true, faceCount: 1, lightingLimitations: "" },
   possibleMinor: false,
   glowUp: {
-    haircut: "fade_textured_top",
     facialHair: "sharpen_lines",
     skin: { blemishes: true, redness: false, unevenTone: true, shine: false },
     browsNeedGrooming: true,
@@ -25,22 +24,15 @@ describe("decisions from the photo", () => {
   it("turns every visible lever on: a full glow-up, short and long term, no budget cap", () => {
     const input = deriveReportInput(base, constraints);
     expect(reportInputSchema.parse(input)).toEqual(input);
-    expect(input).toMatchObject({ goals: ["overall"], timeline: "90d", budget: "flexible", haircut: "fade_textured_top" });
+    expect(input).toMatchObject({ goals: ["overall"], timeline: "90d", budget: "flexible", hairChange: true });
     expect(new Set(input.focusAreas)).toEqual(new Set(["skin", "hair", "jaw_presentation", "brows", "eye_area", "facial_hair", "smile"]));
-    expect(input.preferences.jaw).toContain("leaner");
-
-    const edits = buildImageEditInstructions(input).join("\n");
-    expect(edits).toMatch(/leaner, athletic body-fat level/);
-    expect(edits).toMatch(/mid fade with a textured top/);
-    expect(edits).toMatch(/eyebrows/);
-    expect(edits).toMatch(/barber/);
-    expect(edits).toMatch(/well rested/);
+    expect(input.preferences.hair).toEqual(["cut", "routine"]);
 
     const report = planReport(input, base, { simulated: true });
     expect(report.recommendations.length).toBeGreaterThanOrEqual(8);
-    expect(report.recommendations.map((rec) => rec.title)).toContain("Lean out to show the jaw you already have");
-    // The two most visible changes in the concept lead the plan.
-    expect(report.recommendations.slice(0, 2).map((rec) => rec.id)).toEqual(["hair-cut-for-your-face", "jaw-lean-out"]);
+    // The concept's new cut leads the plan, pointing to the concept image.
+    expect(report.recommendations[0]).toMatchObject({ id: "hair-cut-for-your-face", title: "Get the cut from your concept" });
+    expect(report.recommendations[0]?.suggestion).toMatch(/^Show your barber or stylist the after photo in your concept image/);
   });
 
   it("leaves alone what already works", () => {
@@ -48,7 +40,6 @@ describe("decisions from the photo", () => {
       {
         ...base,
         glowUp: {
-          haircut: "tidy_current_length",
           facialHair: "stay_clean_shaven",
           skin: { blemishes: false, redness: false, unevenTone: false, shine: false },
           browsNeedGrooming: false,
@@ -62,7 +53,5 @@ describe("decisions from the photo", () => {
     expect(input.focusAreas).toEqual(["skin", "hair", "jaw_presentation"]);
     expect(input.preferences.jaw).not.toContain("leaner");
     expect(input.constraints.avoid).toEqual(["fragrance"]);
-    const edits = buildImageEditInstructions(input).join("\n");
-    expect(edits).not.toMatch(/body-fat|eyebrows|barber|The haircut to show/);
   });
 });

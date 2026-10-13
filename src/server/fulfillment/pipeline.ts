@@ -9,7 +9,6 @@ import type { PaidReport } from "@/features/report/schema";
 import { publicConfig } from "@/lib/config";
 import { identityQualityGate } from "../ai/identity-qc";
 import { imageEditProvider } from "../ai/image-edit-adapter";
-import { buildImageEditPrompt } from "../ai/prompts";
 import { visionProvider } from "../ai/vision-adapter";
 import { serverEnv, supportEmail } from "../config";
 import { ApiError } from "../http";
@@ -79,9 +78,13 @@ export async function runPipeline(args: {
   const input = deriveReportInput(observations, constraints);
 
   onPhase("preparing_image");
+  // The owner's prompt, exactly as written; a second try only if the first fails the likeness check.
   let edited: Buffer | undefined;
-  for (const strict of [false, true]) {
-    const raw = await editor.edit({ front: front.jpeg, width: front.width, height: front.height, prompt: buildImageEditPrompt(input, { strict }) });
+  let consultation = "";
+  let comparison = false;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const result = await editor.edit({ front: front.jpeg, width: front.width, height: front.height });
+    const raw = result.image;
     const candidate = await sharp(raw)
       .rotate()
       .resize({ width: CONCEPT_LONG_SIDE, height: CONCEPT_LONG_SIDE, fit: "inside", withoutEnlargement: true })
@@ -92,9 +95,11 @@ export async function runPipeline(args: {
     const verdict = await gate.check({ original: front.jpeg, edited: candidate });
     if (verdict.pass) {
       edited = candidate;
+      consultation = result.consultation;
+      comparison = verdict.comparison;
       break;
     }
-    console.warn(`[fulfillment] concept image failed QC (${verdict.reasons.join(",")}), strict=${strict}`);
+    console.warn(`[fulfillment] concept image failed QC (${verdict.reasons.join(",")}), attempt=${attempt}`);
     candidate.fill(0);
   }
   // Never deliver a distorted likeness: no fallback image of any kind.
@@ -106,7 +111,7 @@ export async function runPipeline(args: {
   let report: PaidReport;
   try {
     if (serverEnv().MOCK_FORCE_FAILURE === "pdf" && simulated) throw new Error("forced");
-    report = planReport(input, observations, { simulated });
+    report = planReport(input, observations, { simulated, consultation, conceptLayout: comparison ? "comparison" : "portrait" });
     pdf = await composeReportPdf({
       report,
       conceptJpeg: edited,

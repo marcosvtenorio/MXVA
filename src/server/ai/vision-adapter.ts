@@ -33,7 +33,6 @@ class MockVisionProvider implements VisionProvider {
       observations: input.focusAreas.map((area) => ({ area, observation: MOCK_LINES[area], confidence: "low" as const })),
       cannotAssess: ["Simulated mode: nothing about this photo was actually analysed."],
       glowUp: {
-        haircut: "textured_crop",
         facialHair: "sharpen_lines",
         skin: { blemishes: true, redness: false, unevenTone: true, shine: false },
         browsNeedGrooming: true,

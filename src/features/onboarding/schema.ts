@@ -22,15 +22,6 @@ export const SMILE_PREFERENCES = ["hygiene", "whitening_info", "alignment_consul
 export const JAW_PREFERENCES = ["leaner", "grooming", "framing", "photo_presentation", "none"] as const;
 
 // The concept and plan are decided from the photo (no aesthetic questions to the buyer).
-export const HAIRCUT_STYLES = [
-  "textured_crop",
-  "short_quiff",
-  "side_part",
-  "fade_textured_top",
-  "buzz_cut",
-  "medium_flow",
-  "tidy_current_length",
-] as const;
 export const FACIAL_HAIR_ACTIONS = ["sharpen_lines", "even_stubble", "clean_shave", "stay_clean_shaven"] as const;
 export const JAW_SOFT_TISSUE = ["defined", "some_fullness", "notable_fullness"] as const;
 
@@ -46,7 +37,6 @@ export type Timeline = (typeof TIMELINES)[number];
 export type Budget = (typeof BUDGETS)[number];
 export type DailyMinutes = (typeof DAILY_MINUTES)[number];
 export type AvoidOption = (typeof AVOID_OPTIONS)[number];
-export type HaircutStyle = (typeof HAIRCUT_STYLES)[number];
 
 /** Multi-select where "none" can only stand alone. Empty array means the step was skipped. */
 function exclusiveNoneList<const T extends readonly [string, ...string[]]>(values: T) {
@@ -175,8 +165,8 @@ export const reportInputSchema = z.object({
   budget: z.enum(BUDGETS),
   preferences: preferencesSchema,
   constraints: constraintsSchema,
-  /** The cut the concept shows, chosen from the photo. */
-  haircut: z.enum(HAIRCUT_STYLES).optional(),
+  /** The concept shows new hair (cut, style or colour), chosen from the photo: the plan leads with it. */
+  hairChange: z.boolean().optional(),
 });
 
 export type ReportInput = z.infer<typeof reportInputSchema>;

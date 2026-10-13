@@ -1,4 +1,4 @@
-import type { Constraints, FocusArea, HaircutStyle, Preferences, ReportInput } from "@/features/onboarding/schema";
+import type { Constraints, FocusArea, Preferences, ReportInput } from "@/features/onboarding/schema";
 import type { VisualObservations } from "./schema";
 
 /**
@@ -19,7 +19,7 @@ export function deriveReportInput(observations: VisualObservations, constraints:
     ],
     brows: g.browsNeedGrooming ? ["shape"] : [],
     eyes: g.eyesLookTired ? ["rested"] : [],
-    hair: g.haircut === "tidy_current_length" ? ["routine"] : ["cut", "routine"],
+    hair: ["cut", "routine"],
     facialHairRelevant: g.facialHair === "stay_clean_shaven" ? "no" : "yes",
     facialHair:
       g.facialHair === "sharpen_lines" ? ["shape"] : g.facialHair === "even_stubble" ? ["stubble"] : g.facialHair === "clean_shave" ? ["clean_shaven"] : [],
@@ -44,6 +44,7 @@ export function deriveReportInput(observations: VisualObservations, constraints:
     budget: "flexible",
     preferences,
     constraints,
-    haircut: g.haircut as HaircutStyle,
+    // The owner's prompt always restyles the hair (cut, colour, part, volume), so the plan leads with it.
+    hairChange: true,
   };
 }

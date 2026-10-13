@@ -1,6 +1,6 @@
 import "@/lib/zod-config";
 import { z } from "zod";
-import { FACIAL_HAIR_ACTIONS, FOCUS_AREAS, HAIRCUT_STYLES, JAW_SOFT_TISSUE } from "@/features/onboarding/schema";
+import { FACIAL_HAIR_ACTIONS, FOCUS_AREAS, JAW_SOFT_TISSUE } from "@/features/onboarding/schema";
 
 // ─── Evidence registry ───
 
@@ -48,10 +48,9 @@ export const visualObservationsSchema = z
       .strict(),
     /** Set when the person may be under 18: the order goes to a human, never to processing. */
     possibleMinor: z.boolean(),
-    /** Objective glow-up decisions from the photo; they drive the plan and the concept image. */
+    /** Objective glow-up decisions from the photo; they drive the plan (the concept image follows the owner's prompt). */
     glowUp: z
       .object({
-        haircut: z.enum(HAIRCUT_STYLES),
         facialHair: z.enum(FACIAL_HAIR_ACTIONS),
         skin: z.object({ blemishes: z.boolean(), redness: z.boolean(), unevenTone: z.boolean(), shine: z.boolean() }).strict(),
         browsNeedGrooming: z.boolean(),
@@ -127,7 +126,10 @@ export const paidReportSchema = z
         })
         .strict(),
     ),
-    imageEditSummary: z.array(z.string()).min(1),
+    /** The consultant's written analysis, as the model wrote it in answer to the owner's prompt. */
+    consultation: z.string(),
+    /** "comparison": the concept is the model's annotated before and after; "portrait": a single after photo. */
+    conceptLayout: z.enum(["comparison", "portrait"]),
     simulated: z.boolean(),
   })
   .strict();

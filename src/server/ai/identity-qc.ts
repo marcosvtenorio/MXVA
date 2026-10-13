@@ -11,6 +11,8 @@ import { IDENTITY_QC_INSTRUCTIONS } from "./prompts";
 
 export const qcVerdictSchema = z
   .object({
+    /** The concept is an annotated before and after rather than a single photo. */
+    comparison: z.boolean(),
     sameAdultPersonLikely: z.boolean(),
     addedPeopleOrFeatures: z.boolean(),
     brokenEyesOrTeeth: z.boolean(),
@@ -20,7 +22,7 @@ export const qcVerdictSchema = z
   .strict();
 
 export type QcVerdict = z.infer<typeof qcVerdictSchema>;
-export type QcResult = { pass: boolean; reasons: string[] };
+export type QcResult = { pass: boolean; reasons: string[]; comparison: boolean };
 
 export function evaluateVerdict(verdict: QcVerdict): QcResult {
   const reasons: string[] = [];
@@ -28,7 +30,7 @@ export function evaluateVerdict(verdict: QcVerdict): QcResult {
   if (verdict.addedPeopleOrFeatures) reasons.push("added_people_or_features");
   if (verdict.brokenEyesOrTeeth) reasons.push("broken_features");
   if (verdict.excludedChanges) reasons.push("excluded_changes");
-  return { pass: reasons.length === 0, reasons };
+  return { pass: reasons.length === 0, reasons, comparison: verdict.comparison };
 }
 
 export interface IdentityQualityGate {
@@ -37,7 +39,9 @@ export interface IdentityQualityGate {
 
 class MockIdentityQualityGate implements IdentityQualityGate {
   async check(): Promise<QcResult> {
-    return serverEnv().MOCK_FORCE_FAILURE === "qc" ? { pass: false, reasons: ["likeness_lost"] } : { pass: true, reasons: [] };
+    return serverEnv().MOCK_FORCE_FAILURE === "qc"
+      ? { pass: false, reasons: ["likeness_lost"], comparison: false }
+      : { pass: true, reasons: [], comparison: false };
   }
 }
 
@@ -56,7 +60,7 @@ class OpenAIIdentityQualityGate implements IdentityQualityGate {
     const response = await client.responses.parse({
       model: env.VISION_MODEL,
       instructions: IDENTITY_QC_INSTRUCTIONS,
-      input: [{ role: "user", content: [{ type: "input_text", text: "Original first, edited second." }, image(input.original), image(input.edited)] }],
+      input: [{ role: "user", content: [{ type: "input_text", text: "Original first, glow-up concept second." }, image(input.original), image(input.edited)] }],
       text: { format: zodTextFormat(qcVerdictSchema, "identity_qc") },
       store: false,
     });

@@ -18,7 +18,7 @@ import {
 } from "@/features/onboarding/schema";
 import { FOCUS_OPTIONS } from "@/features/onboarding/steps";
 import { BUDGET_ORDER, LIBRARY } from "@/features/report/library";
-import { buildImageEditInstructions, planReport } from "@/features/report/planner";
+import { planReport } from "@/features/report/planner";
 import { EVIDENCE_REGISTRY, hasSource } from "@/features/report/references";
 import type { VisualObservations } from "@/features/report/schema";
 
@@ -70,7 +70,6 @@ const observations: VisualObservations = {
   imageQuality: { usable: true, faceCount: 1, lightingLimitations: "" },
   possibleMinor: false,
   glowUp: {
-    haircut: "textured_crop",
     facialHair: "sharpen_lines",
     skin: { blemishes: false, redness: false, unevenTone: true, shine: false },
     browsNeedGrooming: true,
@@ -136,17 +135,23 @@ describe("recommendation planner", () => {
     expect(report.goalsSummary.join(" ")).not.toMatch(/Focus:|My overall look/);
   });
 
-  it("names the haircut chosen from the photo, in words a barber can use", () => {
-    const input: ReportInput = { ...randomInput(3), focusAreas: ["hair"], budget: "flexible", haircut: "textured_crop" };
+  it("points the haircut advice to the cut the concept shows", () => {
+    const input: ReportInput = { ...randomInput(3), focusAreas: ["hair"], budget: "flexible", hairChange: true };
     input.preferences = { ...input.preferences, hair: ["cut"] };
     const report = planReport(input, observations, { simulated: true });
     const cut = report.recommendations.find((rec) => rec.id === "hair-cut-for-your-face");
-    expect(cut?.title).toBe("Your haircut: a textured crop");
+    expect(cut?.title).toBe("Get the cut from your concept");
     // The most visible change leads the plan.
     expect(report.recommendations[0]?.id).toBe("hair-cut-for-your-face");
-    expect(cut?.suggestion).toMatch(/^Ask your barber for a textured crop: about 3–5 cm on top/);
-    expect(report.professionalQuestions?.join(" ")).toContain("a textured crop");
-    expect(report.thirtyDayPlan).toContain("Get a textured crop and show your barber your concept image.");
+    expect(cut?.suggestion).toMatch(/after photo in your concept image and the hair advice in your consultation/);
+    expect(report.thirtyDayPlan).toContain("Get the cut from your concept: show your barber or stylist the after photo.");
+  });
+
+  it("keeps the generic hair advice when the concept doesn't restyle the hair", () => {
+    const input: ReportInput = { ...randomInput(3), focusAreas: ["hair"], budget: "flexible" };
+    input.preferences = { ...input.preferences, hair: ["cut"] };
+    const cut = planReport(input, observations, { simulated: true }).recommendations.find((rec) => rec.id === "hair-cut-for-your-face");
+    expect(cut?.title).toBe("A cut chosen for your face and hair type");
   });
 
   it("covers each chosen focus area first", () => {
@@ -192,15 +197,14 @@ describe("recommendation planner", () => {
     expect(hair?.observation).toMatch(/Not assessed from your photo/);
   });
 
-  it("asks the image edit only for what the buyer chose", () => {
-    const base = randomInput(11);
-    const none = {
-      ...base,
-      focusAreas: ["jaw_presentation"] as ReportInput["focusAreas"],
-      preferences: { skin: [], brows: [], eyes: [], hair: [], facialHairRelevant: "no" as const, facialHair: [], smile: [], jaw: ["photo_presentation" as const] },
-    };
-    expect(buildImageEditInstructions(none)).toEqual([]);
-    const brows = { ...none, focusAreas: ["brows"] as ReportInput["focusAreas"] };
-    expect(buildImageEditInstructions(brows).join(" ")).toMatch(/eyebrows/i);
+  it("carries the consultant's analysis and how the concept is laid out", () => {
+    const plain = planReport(randomInput(5), observations, { simulated: true });
+    expect(plain).toMatchObject({ consultation: "", conceptLayout: "portrait" });
+    const consulted = planReport(randomInput(5), observations, {
+      simulated: false,
+      consultation: "### Hair\n- A textured cut.",
+      conceptLayout: "comparison",
+    });
+    expect(consulted).toMatchObject({ consultation: "### Hair\n- A textured cut.", conceptLayout: "comparison" });
   });
 });

@@ -76,6 +76,7 @@ Covered by unit/integration tests instead: duplicate webhooks (one state change)
 - **Photos:** checked and normalised on the device (`src/features/photos/client-processor.ts`: magic bytes, disguise and decompression-bomb checks, EXIF orientation, metadata stripped by re-encoding, quality heuristics), re-validated on the server with `sharp` (`src/server/photos/validate.ts`).
 - **Orders:** a pure state machine (`src/features/orders/states.ts`) with compare-and-set storage — in memory for development, Postgres in production (`db/migrations/001_orders.sql`, metadata only).
 - **Fulfilment:** `PhotoValidator → VisualObservations → RecommendationPlanner → ImageEdit → IdentityQualityGate → PDFComposer → EmailSender` (`src/server/fulfillment/pipeline.ts`), streamed to the browser as NDJSON phases.
+- **Concept image:** the owner's glow-up prompt, sent exactly as written (`OWNER_PROMPT` in `src/server/ai/prompts.ts`) with the front photo, like ChatGPT: the vision model writes the consultation and calls the image tool, which draws the annotated before and after. The report shows both as returned.
 - **Evidence:** `src/data/evidence-sources.json` — 17 human-verified sources (URLs checked, PubMed records via NCBI E-utilities). The planner can cite nothing else.
 - **Analytics:** first-party `/api/events` with a strict allowlist; forwards to PostHog (anonymous, GeoIP off) and Meta Conversions API (marketing consent only). No photos, answers, emails or free text, ever.
 
@@ -90,7 +91,7 @@ More: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (route map and component tr
 | Card payments | `NEXT_PUBLIC_ENABLE_REAL_PAYMENTS=true`, `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` (production) | Stripe dashboard; webhook → `https://<domain>/api/stripe/webhook` with `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.expired`, `charge.refunded` |
 | Pix payments | `ABACATEPAY_API_KEY`, `ABACATEPAY_SANDBOX`, `ABACATEPAY_WEBHOOK_SECRET` (production), optional `ABACATEPAY_PUBLIC_KEY`, `PRICE_BRL_CENTS` | AbacatePay dashboard; webhook → `https://<domain>/api/abacatepay/webhook?webhookSecret=<ABACATEPAY_WEBHOOK_SECRET>` |
 | Vision + QC (Phase C) | `NEXT_PUBLIC_ENABLE_REAL_AI=true`, `VISION_API_KEY`, `VISION_MODEL` | OpenAI (Responses API, strict JSON) |
-| Image edit (Phase C) | `IMAGE_API_KEY`, `IMAGE_EDIT_MODEL` (default `gpt-image-2`) | OpenAI Images Edit |
+| Image edit (Phase C) | `IMAGE_API_KEY`, `IMAGE_EDIT_MODEL` (default `gpt-image-2`), with `VISION_MODEL` | OpenAI Responses API with the image generation tool |
 | Email (Phase C) | `RESEND_API_KEY`, `EMAIL_FROM`, `SUPPORT_EMAIL` | Resend with a verified sending domain |
 | Analytics | `POSTHOG_PROJECT_API_KEY`, `POSTHOG_HOST` | PostHog project (EU or US) |
 | Meta ads measurement | `META_PIXEL_ID`, `META_CAPI_ACCESS_TOKEN`, optional `META_TEST_EVENT_CODE` | Meta Events Manager (dataset/pixel id + Conversions API token) |

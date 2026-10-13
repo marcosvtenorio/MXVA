@@ -1,6 +1,6 @@
 import type { FocusArea, ReportInput } from "@/features/onboarding/schema";
 import { FOCUS_OPTIONS } from "@/features/onboarding/steps";
-import { BUDGET_ORDER, HAIRCUT_DESCRIPTIONS, HAIRCUT_PLANS, IMAGE_EDIT_LINES, LIBRARY, type RecommendationTemplate } from "./library";
+import { BUDGET_ORDER, LIBRARY, type RecommendationTemplate } from "./library";
 import { getSource, onlyRegisteredIds } from "./references";
 import {
   SIMULATION_DISCLAIMER,
@@ -58,10 +58,8 @@ export function scoreTemplate(template: RecommendationTemplate, input: ReportInp
   if (goalAreas.includes(template.area)) score += 2;
   score += EVIDENCE_SCORE[template.evidenceLevel];
   score += template.impact;
-  // The concept's most visible changes lead the plan, so the buyer sees how to get there:
-  // a new cut chosen from the photo first, then leaning out when the concept shows a leaner face.
-  if (template.id === "hair-cut-for-your-face" && input.haircut && input.haircut !== "tidy_current_length") score += 6;
-  if (template.id === "jaw-lean-out" && input.preferences.jaw.includes("leaner")) score += 4;
+  // The concept's most visible change leads the plan, so the buyer sees how to get there.
+  if (template.id === "hair-cut-for-your-face" && input.hairChange) score += 6;
 
   // Effort against the buyer's daily time.
   if (template.effort === "low") score += 1.5;
@@ -136,38 +134,31 @@ function observationFor(area: FocusArea, observations: VisualObservations): stri
 
 const AREA_LABEL = Object.fromEntries(FOCUS_OPTIONS.map((option) => [option.id, option.label])) as Record<FocusArea, string>;
 
-export function buildImageEditSummary(input: ReportInput): string[] {
-  const lines = IMAGE_EDIT_LINES.filter((entry) => entry.when(input.preferences, input.focusAreas)).map((entry) => entry.summary);
-  return [...lines, "Clean, even lighting; same framing, expression and features"];
-}
-
-export function buildImageEditInstructions(input: ReportInput): string[] {
-  const lines = IMAGE_EDIT_LINES.filter((entry) => entry.when(input.preferences, input.focusAreas)).map((entry) => entry.line);
-  if (input.haircut && input.haircut !== "tidy_current_length" && lines.some((line) => line.includes("haircut"))) {
-    lines.push(`The haircut to show: ${HAIRCUT_DESCRIPTIONS[input.haircut]}.`);
-  }
-  return lines;
-}
-
-/** The haircut advice names the cut chosen from the photo, so a barber can do it. */
-function withChosenCut(template: RecommendationTemplate, input: ReportInput): RecommendationTemplate {
-  if (template.id !== "hair-cut-for-your-face" || !input.haircut) return template;
-  const cut = HAIRCUT_PLANS[input.haircut];
+/** The hair advice points to the cut the concept shows, so a barber or stylist can do it. */
+function withConceptHair(template: RecommendationTemplate, input: ReportInput): RecommendationTemplate {
+  if (template.id !== "hair-cut-for-your-face" || !input.hairChange) return template;
   return {
     ...template,
-    title: cut.title,
-    suggestion: `Ask your barber for ${cut.ask}. Show them your concept image. Daily styling, about two minutes: ${cut.style}.`,
-    plan: { ...template.plan, day30: `Get ${cut.name} and show your barber your concept image.` },
-    question: `Will ${cut.name} suit my hair's texture and growth, and how often should I come back to keep it sharp?`,
+    title: "Get the cut from your concept",
+    suggestion:
+      "Show your barber or stylist the after photo in your concept image and the hair advice in your consultation, and ask for that cut. Ask them for a two-minute way to style it each day.",
+    plan: { ...template.plan, day30: "Get the cut from your concept: show your barber or stylist the after photo." },
+    question: "Will the cut in my concept image suit my hair's texture and growth, and how often should I come back to keep it looking right?",
   };
 }
 
 export function planReport(
   input: ReportInput,
   observations: VisualObservations,
-  options: { simulated: boolean; now?: Date },
+  options: {
+    simulated: boolean;
+    now?: Date;
+    /** The consultant's written analysis (the model's answer to the owner's prompt). */
+    consultation?: string;
+    conceptLayout?: PaidReport["conceptLayout"];
+  },
 ): PaidReport {
-  const templates = selectTemplates(input).map((template) => withChosenCut(template, input));
+  const templates = selectTemplates(input).map((template) => withConceptHair(template, input));
   const recommendations: PriorityRecommendation[] = templates.map((template) => ({
     id: template.id,
     area: template.area,
@@ -221,7 +212,8 @@ export function planReport(
         accessedAt: source.accessedAt,
       };
     }),
-    imageEditSummary: buildImageEditSummary(input),
+    consultation: options.consultation ?? "",
+    conceptLayout: options.conceptLayout ?? "portrait",
     simulated: options.simulated,
   };
   return paidReportSchema.parse(report);

@@ -87,6 +87,73 @@ function CompareHero({ conceptUrl, originalUrl }: { conceptUrl: string; original
   );
 }
 
+/** The consultant's annotated before and after, whole: it carries its own labels, so it isn't cropped or overlaid. */
+function ComparisonHero({ conceptUrl }: { conceptUrl: string }) {
+  return (
+    <a href={conceptUrl} target="_blank" rel="noopener" className="relative block bg-ink" aria-label="Open your before and after full size">
+      {/* eslint-disable-next-line @next/next/no-img-element -- in-memory object URL, never a stored file */}
+      <img src={conceptUrl} alt="Your before and after, annotated by your AI consultant" className="resolve mx-auto block h-auto w-full max-w-[880px]" />
+      <span className="capsule frost mono absolute left-4" style={{ top: "calc(env(safe-area-inset-top) + 12px)" }}>
+        {CONCEPT_LABEL}
+      </span>
+    </a>
+  );
+}
+
+/** Inline **bold** from the consultant's text, without rendering any HTML. */
+function Inline({ text }: { text: string }) {
+  return text.split("**").map((part, index) => (index % 2 === 1 ? <strong key={index}>{part}</strong> : part));
+}
+
+/** The consultant's analysis as the model wrote it: headings, bullets and paragraphs. */
+function Consultation({ text }: { text: string }) {
+  const blocks: React.ReactNode[] = [];
+  let bullets: string[] = [];
+  const flush = () => {
+    if (bullets.length === 0) return;
+    const items = bullets;
+    bullets = [];
+    blocks.push(
+      <ul key={`list-${blocks.length}`} className="grid gap-1.5 pl-4">
+        {items.map((item, index) => (
+          <li key={index} className="list-disc">
+            <Inline text={item} />
+          </li>
+        ))}
+      </ul>,
+    );
+  };
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    const bullet = /^[-*•]\s+(.*)$/.exec(line);
+    if (bullet) {
+      bullets.push(bullet[1]!);
+      continue;
+    }
+    flush();
+    if (!line || /^(-{3,}|\*{3,}|_{3,})$/.test(line)) continue;
+    const heading = /^#{1,6}\s+(.*)$/.exec(line);
+    blocks.push(
+      heading ? (
+        <h3 key={blocks.length} className="mt-2 text-[17px] font-semibold leading-snug">
+          {heading[1]!.replace(/\*\*/g, "")}
+        </h3>
+      ) : (
+        <p key={blocks.length}>
+          <Inline text={line} />
+        </p>
+      ),
+    );
+  }
+  flush();
+  return (
+    <section className="mt-6">
+      <h2 className="mono text-ink-2">Your consultation</h2>
+      <div className="mt-3 grid gap-2.5 text-[15px] leading-[1.45]">{blocks}</div>
+    </section>
+  );
+}
+
 function Recommendations({ report }: { report: PaidReport }) {
   const sourceNumber = new Map(report.usedSources.map((source, index) => [source.id, index + 1]));
   return (
@@ -190,12 +257,18 @@ export function ResultView() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-raised">
-      <div className="relative h-[60dvh] min-h-[340px] bg-ink">
-        {/* Portrait photos: on wide screens a full-width frame would crop to the nose and mouth. */}
-        <div className="relative mx-auto h-full w-full md:max-w-[calc(max(60dvh,340px)*0.75)]">
-          <CompareHero conceptUrl={imageUrl} originalUrl={originalUrl} />
+      {report.conceptLayout === "comparison" ? (
+        <div className="pb-7">
+          <ComparisonHero conceptUrl={imageUrl} />
         </div>
-      </div>
+      ) : (
+        <div className="relative h-[60dvh] min-h-[340px] bg-ink">
+          {/* Portrait photos: on wide screens a full-width frame would crop to the nose and mouth. */}
+          <div className="relative mx-auto h-full w-full md:max-w-[calc(max(60dvh,340px)*0.75)]">
+            <CompareHero conceptUrl={imageUrl} originalUrl={originalUrl} />
+          </div>
+        </div>
+      )}
       <div className="sheet flex-1">
         <div className="grabber" aria-hidden="true" />
         <main id="main" className="mx-auto w-full max-w-[480px] px-5 pb-[max(24px,calc(env(safe-area-inset-bottom)+12px))] pt-4">
@@ -207,6 +280,9 @@ export function ResultView() {
             <p className="mt-3 rounded-[12px] bg-chip-fill p-3 text-[13px] text-ink-2">Development preview: produced by simulated providers, not a real AI edit.</p>
           ) : null}
 
+          {report.consultation ? <Consultation text={report.consultation} /> : null}
+
+          <h2 className="mono mt-8 text-ink-2">What to do, in order</h2>
           <Recommendations report={report} />
 
           <div className="mt-8 grid gap-5 border-t border-rule pt-5">

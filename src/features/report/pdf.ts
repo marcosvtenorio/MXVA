@@ -177,7 +177,7 @@ class Writer {
   }
 }
 
-function drawImagePage(writer: Writer, before: PDFImage, image: PDFImage, report: PaidReport): void {
+function drawImagePage(writer: Writer, before: PDFImage | undefined, image: PDFImage, report: PaidReport): void {
   writer.newPage();
   writer.label("Your AI concept image");
   writer.heading("Your glow-up, on your own face", 18);
@@ -190,31 +190,72 @@ function drawImagePage(writer: Writer, before: PDFImage, image: PDFImage, report
     });
   }
 
-  // Before and after, side by side at the same height: the buyer's photo, then the concept.
-  const gap = 14;
-  const column = (CONTENT_WIDTH - gap) / 2;
-  const maxHeight = PAGE.height * 0.46;
-  const fit = (picture: PDFImage) => Math.min(column / picture.width, maxHeight / picture.height) * picture.height;
-  const height = Math.min(fit(before), fit(image));
-  const labelSize = 9.5;
-  writer.ensure(height + labelSize * 2 + 20);
-  const top = writer.y;
-  const pictures: [PDFImage, string][] = [
-    [before, "Today"],
-    [image, "Your concept"],
-  ];
-  pictures.forEach(([picture, label], index) => {
-    const width = Math.min(column, (picture.width / picture.height) * height);
-    const x = MARGIN + index * (column + gap) + (column - width) / 2;
-    writer.page.drawText(label.toUpperCase(), { x, y: top - labelSize, size: labelSize, font: writer.bold, color: index === 0 ? MUTED : ACCENT });
-    writer.page.drawImage(picture, { x, y: top - labelSize * 1.8 - height, width, height });
-  });
-  writer.y = top - labelSize * 1.8 - height - 16;
-
-  writer.label("What was changed");
-  writer.bullets(report.imageEditSummary, 10);
-  writer.y -= 6;
+  if (!before) {
+    // The consultant's own annotated before and after, full width.
+    const scale = Math.min(CONTENT_WIDTH / image.width, (PAGE.height * 0.62) / image.height);
+    const width = image.width * scale;
+    const height = image.height * scale;
+    writer.ensure(height + 16);
+    writer.page.drawImage(image, { x: MARGIN + (CONTENT_WIDTH - width) / 2, y: writer.y - height, width, height });
+    writer.y -= height + 16;
+  } else {
+    // Before and after, side by side at the same height: the buyer's photo, then the concept.
+    const gap = 14;
+    const column = (CONTENT_WIDTH - gap) / 2;
+    const maxHeight = PAGE.height * 0.46;
+    const fit = (picture: PDFImage) => Math.min(column / picture.width, maxHeight / picture.height) * picture.height;
+    const height = Math.min(fit(before), fit(image));
+    const labelSize = 9.5;
+    writer.ensure(height + labelSize * 2 + 20);
+    const top = writer.y;
+    const pictures: [PDFImage, string][] = [
+      [before, "Today"],
+      [image, "Your concept"],
+    ];
+    pictures.forEach(([picture, label], index) => {
+      const width = Math.min(column, (picture.width / picture.height) * height);
+      const x = MARGIN + index * (column + gap) + (column - width) / 2;
+      writer.page.drawText(label.toUpperCase(), { x, y: top - labelSize, size: labelSize, font: writer.bold, color: index === 0 ? MUTED : ACCENT });
+      writer.page.drawImage(picture, { x, y: top - labelSize * 1.8 - height, width, height });
+    });
+    writer.y = top - labelSize * 1.8 - height - 16;
+  }
   writer.text(report.disclaimer, { size: 9, color: MUTED });
+}
+
+/** The consultant's analysis as the model wrote it; its light markdown becomes headings, bold lines and bullets. */
+function drawConsultation(writer: Writer, text: string): void {
+  if (!text.trim()) return;
+  // Right under the image when it fits, so a wide comparison doesn't leave half a page blank.
+  writer.y -= 18;
+  writer.ensure(160);
+  writer.label("Your consultation");
+  writer.heading("What your AI consultant recommends");
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    if (!line) {
+      writer.y -= 4;
+      continue;
+    }
+    if (/^(-{3,}|\*{3,}|_{3,})$/.test(line)) {
+      writer.rule(10);
+      continue;
+    }
+    const heading = /^#{1,6}\s+(.*)$/.exec(line);
+    if (heading) {
+      writer.ensure(40);
+      writer.y -= 6;
+      writer.text(heading[1]!.replace(/\*\*/g, ""), { size: 12.5, font: writer.bold, gap: 4 });
+      continue;
+    }
+    const bullet = /^[-*•]\s+(.*)$/.exec(line);
+    if (bullet) {
+      writer.bullets([bullet[1]!.replace(/\*\*/g, "")], 10.5);
+      continue;
+    }
+    const wholeBold = /^\*\*(.+)\*\*$/.exec(line);
+    writer.text((wholeBold ? wholeBold[1]! : line).replace(/\*\*/g, ""), { font: wholeBold ? writer.bold : writer.regular, gap: 4 });
+  }
 }
 
 export async function composeReportPdf(input: ComposeInput): Promise<Uint8Array> {
@@ -230,7 +271,8 @@ export async function composeReportPdf(input: ComposeInput): Promise<Uint8Array>
   const regular = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const image = await doc.embedJpg(input.conceptJpeg);
-  const before = await doc.embedJpg(input.originalJpeg);
+  // The consultant's comparison already holds the before; a single after photo sits next to the buyer's own.
+  const before = report.conceptLayout === "comparison" ? undefined : await doc.embedJpg(input.originalJpeg);
   const writer = new Writer(doc, regular, bold);
 
   // ── Cover ──
@@ -245,7 +287,7 @@ export async function composeReportPdf(input: ComposeInput): Promise<Uint8Array>
   writer.y -= 14;
   writer.label("Inside");
   writer.bullets([
-    "Your AI concept image and what was changed",
+    "Your before and after, annotated, and your consultant's analysis",
     `${report.recommendations.length} prioritised suggestions, ranked by fit, evidence, effort and cost`,
     "A 7-day start, a 30-day plan and a 90-day plan",
     "Notes on your photo, questions for professionals, and every source",
@@ -258,8 +300,9 @@ export async function composeReportPdf(input: ComposeInput): Promise<Uint8Array>
     { size: 9.5, color: MUTED },
   );
 
-  // ── Concept image ──
+  // ── Concept image and the consultant's analysis ──
   drawImagePage(writer, before, image, report);
+  drawConsultation(writer, report.consultation);
 
   // ── Observations ──
   writer.newPage();

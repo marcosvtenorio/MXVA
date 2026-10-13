@@ -28,7 +28,7 @@ const FAQ = [
   },
   {
     q: "Will the AI change my face?",
-    a: "It shows your glow-up, not someone else: same bone structure, features and skin tone, with the upgrades your photo calls for: the haircut that suits your face, clear skin, groomed brows and beard, rested eyes, a leaner jawline where it applies, and better light.",
+    a: "It shows your glow-up, not someone else: same features, skin tone, pose and light, with the changes a beauty consultant would make for your face: the haircut, colour and styling that suit you, brows, skin and natural makeup. It doesn't slim your face, shrink your nose or enlarge your eyes, and every change is annotated on your before and after.",
   },
   {
     q: "What happens to my photos?",
