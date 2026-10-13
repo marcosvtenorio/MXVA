@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import { Suspense } from "react";
 import { AnalyticsProvider } from "@/components/common/AnalyticsProvider";
 import { ClientBootstrap } from "@/components/common/ClientBootstrap";
+import { SkipLink } from "@/components/common/SkipLink";
 import { publicConfig } from "@/lib/config";
 import "./globals.css";
 
@@ -48,9 +49,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${instrument.variable} ${fragment.variable}`}>
       <body>
-        <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 pill-link">
-          Skip to content
-        </a>
+        <SkipLink />
         {children}
         <ClientBootstrap />
         <Suspense fallback={null}>
