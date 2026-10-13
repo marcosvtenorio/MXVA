@@ -190,8 +190,11 @@ export function ResultView() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-raised">
-      <div className="relative h-[60dvh] min-h-[340px]">
-        <CompareHero conceptUrl={imageUrl} originalUrl={originalUrl} />
+      <div className="relative h-[60dvh] min-h-[340px] bg-ink">
+        {/* Portrait photos: on wide screens a full-width frame would crop to the nose and mouth. */}
+        <div className="relative mx-auto h-full w-full md:max-w-[calc(max(60dvh,340px)*0.75)]">
+          <CompareHero conceptUrl={imageUrl} originalUrl={originalUrl} />
+        </div>
       </div>
       <div className="sheet flex-1">
         <div className="grabber" aria-hidden="true" />
