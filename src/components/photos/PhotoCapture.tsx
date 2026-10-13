@@ -109,8 +109,9 @@ function FrontSlot() {
             </label>
           ) : null}
         </div>
-        <input id={cameraId} type="file" accept="image/*" capture="user" className="sr-only" onChange={(event) => void handleFiles(event.currentTarget)} />
-        <input id={libraryId} type="file" accept={INPUT_ACCEPT} className="sr-only" onChange={(event) => void handleFiles(event.currentTarget)} />
+        {/* Labelled on their own too: the visible "Choose" label goes away once a photo is in. */}
+        <input id={cameraId} type="file" accept="image/*" capture="user" className="sr-only" aria-label="Take your front photo" onChange={(event) => void handleFiles(event.currentTarget)} />
+        <input id={libraryId} type="file" accept={INPUT_ACCEPT} className="sr-only" aria-label="Choose your front photo" onChange={(event) => void handleFiles(event.currentTarget)} />
       </div>
       <div id={statusId} aria-live="polite">
         {status.state === "working" ? <p className="mt-3 text-[15px] text-ink-2">Checking light, focus and framing…</p> : null}
@@ -151,7 +152,7 @@ function ProfileTile({ slot }: { slot: "left" | "right" }) {
             <span className="sr-only">Add {label.toLowerCase()} photo</span>
           </label>
         )}
-        <input id={inputId} type="file" accept={INPUT_ACCEPT} className="sr-only" onChange={(event) => void handleFiles(event.currentTarget)} />
+        <input id={inputId} type="file" accept={INPUT_ACCEPT} className="sr-only" aria-label={`Add ${label.toLowerCase()} photo`} onChange={(event) => void handleFiles(event.currentTarget)} />
       </div>
       {status.state === "error" ? (
         <p role="alert" className="mt-2 text-[13px] leading-[1.35] text-negative">

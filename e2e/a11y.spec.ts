@@ -25,6 +25,12 @@ test.describe("accessibility (axe, WCAG 2.1 AA)", () => {
     await page.goto("/start");
     await runOnboarding(page, "constraints");
     await axe(page);
+    // The photo step with a photo in (its file inputs lose their visible labels) and the review list.
+    await page.goBack();
+    await page.waitForURL("**/onboarding/photos");
+    await axe(page);
+    await runOnboarding(page, "review");
+    await axe(page);
     await runOnboarding(page);
     await axe(page);
     await page.getByRole("button", { name: /Pay \$29 \(simulated\)/ }).click();

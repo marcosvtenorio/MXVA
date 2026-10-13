@@ -21,9 +21,12 @@ function Row({ title, value, href }: { title: string; value: string; href: strin
     <div className="grid grid-cols-[1fr_auto] items-start gap-x-4 gap-y-1 border-t border-rule py-3.5">
       <dt className="mono pt-0.5 text-ink-2">{title}</dt>
       <dd className="row-start-2 text-[16px] leading-snug">{value || "—"}</dd>
-      <Link href={href} className="row-span-2 self-center text-[15px] font-semibold underline-offset-2 hover:underline" aria-label={`Edit ${title.toLowerCase()}`}>
-        Edit
-      </Link>
+      {/* Inside a <dd>: a <dl> group may only hold terms and descriptions. */}
+      <dd className="col-start-2 row-span-2 row-start-1 self-center">
+        <Link href={href} className="text-[15px] font-semibold underline-offset-2 hover:underline" aria-label={`Edit ${title.toLowerCase()}`}>
+          Edit
+        </Link>
+      </dd>
     </div>
   );
 }
