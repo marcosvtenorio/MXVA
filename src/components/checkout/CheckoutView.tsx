@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import { InlineError } from "@/components/common/InlineError";
 import { Back, Lock, Tick } from "@/components/common/icons";
 import { regionHint } from "@/features/analytics/attribution";
@@ -58,6 +58,9 @@ export function CheckoutView() {
   const [view, setView] = useState<View>(() => (offers && method ? { state: "ready" } : { state: "loading" }));
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
+  // Bumped to try loading the checkout again (after a connection drop) without a reload,
+  // which would drop the in-memory photo and email.
+  const [attempt, setAttempt] = useState(0);
   const started = useRef(false);
   const inflight = useRef<Partial<Record<PaymentMethod, Promise<CreateOrderResponse>>>>({});
 
@@ -108,7 +111,7 @@ export function CheckoutView() {
         setView({ state: "unavailable", message: caught instanceof ApiClientError ? caught.message : "Checkout isn't available right now." });
       }
     })();
-  }, [onboarding, router, setCard, setMethod, setOffers, setPix]);
+  }, [onboarding, router, setCard, setMethod, setOffers, setPix, attempt]);
 
   // Paid in another tab, or a PIX code paid in the bank app: move on from this tab too. Only an
   // order this tab saw open counts, so a finished earlier purchase never blocks buying again.
@@ -198,7 +201,25 @@ export function CheckoutView() {
     };
     // createOrder/failed are stable for this purpose: they read the latest store and onboarding values.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view.state, method, card, router, setCard]);
+  }, [view.state, method, card, router, setCard, attempt]);
+
+  function retry() {
+    started.current = false;
+    inflight.current = {};
+    setError(undefined);
+    setView({ state: "loading" });
+    setAttempt((count) => count + 1);
+  }
+
+  // Back online: load the checkout again by itself.
+  const onOnline = useEffectEvent(() => {
+    if (view.state === "unavailable" || (error && !card && !pix)) retry();
+  });
+  useEffect(() => {
+    const handler = () => onOnline();
+    window.addEventListener("online", handler);
+    return () => window.removeEventListener("online", handler);
+  }, []);
 
   async function generatePix() {
     if (!hasCheckoutDetails()) return router.replace("/onboarding/review");
@@ -332,9 +353,14 @@ export function CheckoutView() {
           <section id="payment" className="mt-6 scroll-mt-4" aria-label="Payment">
             {view.state === "loading" ? <p className="text-[15px] text-ink-2">Preparing checkout…</p> : null}
             {view.state === "unavailable" ? (
-              <p role="alert" className="text-[15px] leading-[1.4] text-negative">
-                {view.message}
-              </p>
+              <>
+                <p role="alert" className="text-[15px] leading-[1.4] text-negative">
+                  {view.message}
+                </p>
+                <button type="button" className="btn btn-secondary mt-4" onClick={retry}>
+                  Try again
+                </button>
+              </>
             ) : null}
 
             {view.state === "ready" && method === "pix" && offer ? (
@@ -388,6 +414,11 @@ export function CheckoutView() {
             ) : null}
 
             <InlineError id="checkout-error">{error}</InlineError>
+            {view.state === "ready" && method === "card" && error && !card ? (
+              <button type="button" className="btn btn-secondary mt-4" onClick={retry}>
+                Try again
+              </button>
+            ) : null}
 
             {view.state === "ready" && otherMethod ? (
               <button type="button" className="pill-link mt-5 text-[15px] font-semibold" onClick={() => switchTo(otherMethod)}>

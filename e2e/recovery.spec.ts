@@ -63,6 +63,19 @@ test.describe("payment and recovery", () => {
     await expect(page.getByText(/in your email/)).toBeVisible();
   });
 
+  test("checkout recovers by itself when the connection comes back (no reload, nothing to redo)", async ({ page, context }) => {
+    await runOnboarding(page, "review");
+    // The connection drops just as checkout loads (production prefetches the page itself).
+    await page.route("**/api/checkout/options", (route) => route.abort("internetdisconnected"));
+    await page.getByRole("button", { name: "Continue to checkout" }).click();
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible({ timeout: 15_000 });
+    await page.unroute("**/api/checkout/options");
+    // Back online: the page loads checkout again on its own, photo and email still in this tab.
+    await context.setOffline(true);
+    await context.setOffline(false);
+    await expect(page.getByRole("button", { name: /Pay \$29 \(simulated\)/ })).toBeVisible({ timeout: 15_000 });
+  });
+
   test("a dropped report stream follows the order: the report still arrives by email", async ({ page }) => {
     // The server finishes the report, but the browser only gets the first line, as if the
     // connection dropped mid-way (a network change on a phone, a deploy).
