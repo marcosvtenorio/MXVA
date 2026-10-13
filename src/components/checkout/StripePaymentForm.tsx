@@ -28,6 +28,8 @@ function PaymentBody({ onPaid, onError }: { onPaid: () => void; onError: (messag
     try {
       const outcome = await checkout.confirm(options);
       if (outcome.type === "success") onPaid();
+      // A decline is already shown on the card field; add what it means instead of repeating it.
+      else if (outcome.error.code === "paymentFailed") onError("Nothing was charged. Check the card details above or try another card.");
       else onError(outcome.error.message);
     } catch {
       onError("The payment couldn't be confirmed. Nothing was charged; try again.");
