@@ -87,16 +87,16 @@ function CompareHero({ conceptUrl, originalUrl }: { conceptUrl: string; original
   );
 }
 
-/** The consultant's annotated before and after, whole: it carries its own labels, so it isn't cropped or overlaid. */
+/** The consultant's annotated before and after, whole: it carries its own labels, so nothing covers or crops it. */
 function ComparisonHero({ conceptUrl }: { conceptUrl: string }) {
   return (
-    <a href={conceptUrl} target="_blank" rel="noopener" className="relative block bg-ink" aria-label="Open your before and after full size">
-      {/* eslint-disable-next-line @next/next/no-img-element -- in-memory object URL, never a stored file */}
-      <img src={conceptUrl} alt="Your before and after, annotated by your AI consultant" className="resolve mx-auto block h-auto w-full max-w-[880px]" />
-      <span className="capsule frost mono absolute left-4" style={{ top: "calc(env(safe-area-inset-top) + 12px)" }}>
-        {CONCEPT_LABEL}
-      </span>
-    </a>
+    <div className="bg-ink pb-10" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+      <a href={conceptUrl} target="_blank" rel="noopener" className="mx-auto block max-w-[880px]" aria-label="Open your before and after full size">
+        {/* eslint-disable-next-line @next/next/no-img-element -- in-memory object URL, never a stored file */}
+        <img src={conceptUrl} alt="Your before and after, annotated by your AI consultant" className="resolve block h-auto w-full" />
+      </a>
+      <p className="mono mx-auto max-w-[880px] px-4 pt-3 text-white/75">{CONCEPT_LABEL} · Tap to enlarge</p>
+    </div>
   );
 }
 
@@ -258,9 +258,7 @@ export function ResultView() {
   return (
     <div className="flex min-h-dvh flex-col bg-raised">
       {report.conceptLayout === "comparison" ? (
-        <div className="pb-7">
-          <ComparisonHero conceptUrl={imageUrl} />
-        </div>
+        <ComparisonHero conceptUrl={imageUrl} />
       ) : (
         <div className="relative h-[60dvh] min-h-[340px] bg-ink">
           {/* Portrait photos: on wide screens a full-width frame would crop to the nose and mouth. */}
