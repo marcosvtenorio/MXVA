@@ -71,7 +71,8 @@ function FrontSlot() {
     ? [
         checkLine("Light", "ok", (i) => i.code === "too_dark" || i.code === "too_bright" || (i.code === "low_contrast" && i.severity === "warn")),
         checkLine("Focus", "sharp", (i) => i.code === "blurry"),
-        checkLine("Framing", "centered", (i) => i.code === "landscape" || (i.code === "low_contrast" && i.severity === "block")),
+        // Only the orientation is checked here (the face itself is judged after payment), so say just that.
+        checkLine("Framing", "portrait", (i) => i.code === "landscape" || (i.code === "low_contrast" && i.severity === "block")),
       ]
     : [];
 
