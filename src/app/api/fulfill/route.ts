@@ -1,7 +1,8 @@
 import { after } from "next/server";
 import { fulfillInputSchema } from "@/features/onboarding/schema";
 import { requireOrderFromRequest, requirePaid } from "@/features/orders/authorization";
-import { claimForFulfillment, markDelivered, markEmailFailed, markFailed } from "@/features/orders/service";
+import { claimForFulfillment, markDelivered, markEmailFailed, markFailed, touchProcessing } from "@/features/orders/service";
+import { PROCESSING_HEARTBEAT_MS } from "@/features/orders/states";
 import { API_ERRORS, type ApiErrorCode } from "@/lib/api-errors";
 import { trackServer } from "@/server/analytics";
 import { ConfigError, serverEnv } from "@/server/config";
@@ -107,6 +108,9 @@ export async function POST(request: Request) {
             open = false; // the browser went away; work continues and email still goes out
           }
         };
+        // While this server works, it refreshes the claim. If it stops (a deploy, a crash), the
+        // claim expires within PROCESSING_LEASE_MS and the buyer's page carries on with a new attempt.
+        const heartbeat = setInterval(() => void touchProcessing(order.id).catch(() => undefined), PROCESSING_HEARTBEAT_MS);
         try {
           const output = await runPipeline({ order: claimed, front, profiles, constraints: input.constraints, timeZone: input.timeZone, onPhase: (phase) => send({ type: "phase", phase }) });
           if (output.emailDelivered && output.messageId) {
@@ -139,6 +143,7 @@ export async function POST(request: Request) {
               : API_ERRORS[code].message;
           send({ type: "error", error: { code, message, retryable } });
         } finally {
+          clearInterval(heartbeat);
           front.jpeg.fill(0);
           for (const profile of profiles) profile.jpeg.fill(0);
           if (open) controller.close();

@@ -8,7 +8,8 @@ import { POST as withdrawRoute } from "@/app/api/consent/withdraw/route";
 import { POST as webhookRoute } from "@/app/api/stripe/webhook/route";
 import { FACE_PROCESSING_CONSENT_VERSION, TERMS_VERSION } from "@/features/onboarding/schema";
 import { InMemoryOrderRepository, setOrderRepositoryForTests } from "@/features/orders/repository";
-import { applyPaymentFact, claimForFulfillment, markDelivered, markFailed } from "@/features/orders/service";
+import { applyPaymentFact, claimForFulfillment, markDelivered, markFailed, touchProcessing } from "@/features/orders/service";
+import { PROCESSING_LEASE_MS } from "@/features/orders/states";
 import { resetServerEnvCache } from "@/server/config";
 import { ApiError } from "@/server/http";
 import { resetRateLimitsForTests } from "@/server/security/rate-limit";
@@ -143,6 +144,32 @@ describe("order API (mock payments, development build)", () => {
     const again = await (await createOrderRoute(post("/api/orders", orderBody, cookie))).json();
     expect(again).toMatchObject({ alreadyPaid: true, order: { status: "failed_retryable", unfinished: true } });
     expect(repository.list()).toHaveLength(1);
+  });
+
+  it("a running report keeps its claim; one whose server stopped can be taken over without paying", async () => {
+    vi.useFakeTimers({ now: new Date("2026-10-12T12:00:00Z"), toFake: ["Date"] });
+    try {
+      const cookie = cookieFrom(await createOrderRoute(post("/api/orders", orderBody)));
+      await mockPayRoute(post("/api/dev/mock-pay", { outcome: "succeeded" }, cookie));
+      const [order] = repository.list();
+      await claimForFulfillment(order!.id);
+      const status = async () => (await (await currentOrderRoute(get("/api/orders/current", cookie))).json()).order;
+
+      // The server is alive: its heartbeats keep the claim, past the lease since the claim.
+      vi.setSystemTime(Date.now() + PROCESSING_LEASE_MS - 1000);
+      await touchProcessing(order!.id);
+      vi.setSystemTime(Date.now() + PROCESSING_LEASE_MS - 1000);
+      await expect(claimForFulfillment(order!.id)).rejects.toMatchObject({ code: "ALREADY_PROCESSING" });
+      expect(await status()).toMatchObject({ status: "processing", canSubmitPhotos: false });
+
+      // Heartbeats stop (a deploy replaced the server): the page may carry on with a new attempt.
+      vi.setSystemTime(Date.now() + PROCESSING_LEASE_MS + 1000);
+      expect(await status()).toMatchObject({ status: "processing", canSubmitPhotos: true });
+      expect(await claimForFulfillment(order!.id)).toMatchObject({ status: "processing", fulfillmentAttempts: 2 });
+      expect(repository.list()).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("simulates Pix in reais through the same payment path", async () => {

@@ -250,6 +250,11 @@ function emit<N extends Parameters<typeof trackServer>[0]>(
 }
 
 export const claimForFulfillment = (orderId: string) => mutate(orderId, claimFulfillment);
+/** Keeps a running fulfilment's claim fresh, so a stopped server's claim expires quickly. */
+export async function touchProcessing(orderId: string): Promise<void> {
+  const repository = await orderRepository();
+  await repository.touchProcessing(orderId, new Date());
+}
 export const markDelivered = (orderId: string, messageId: string) =>
   mutate(orderId, (order, now) => fulfillmentDelivered(order, messageId, now));
 export const markEmailFailed = (orderId: string) => mutate(orderId, emailFailed);

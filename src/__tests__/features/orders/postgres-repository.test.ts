@@ -103,6 +103,17 @@ describe.skipIf(!url)("PostgresOrderRepository on a real database", () => {
     expect(await repository.findByPaymentIntentId(paid.stripePaymentIntentId)).toMatchObject({ status: "paid", version: 2 });
   });
 
+  it("refreshes a running fulfilment's claim without a new version, and only while processing", async () => {
+    const running = { ...order(), status: "processing" as const, processingStartedAt: "2026-10-12T10:00:00.000Z" };
+    await repository.create(running, created);
+    await repository.touchProcessing(running.id, new Date("2026-10-12T10:00:40.000Z"));
+    expect(await repository.findById(running.id)).toMatchObject({ processingStartedAt: "2026-10-12T10:00:40.000Z", version: running.version });
+    const idle = order();
+    await repository.create(idle, created);
+    await repository.touchProcessing(idle.id, new Date("2026-10-12T10:00:40.000Z"));
+    expect((await repository.findById(idle.id))?.processingStartedAt).toBeNull();
+  });
+
   it("records each provider event once", async () => {
     const id = `evt_${randomUUID()}`;
     expect(await repository.markExternalEvent("stripe", id)).toBe(true);

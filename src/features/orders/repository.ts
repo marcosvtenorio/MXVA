@@ -20,6 +20,8 @@ export interface OrderRepository {
   findByProviderChargeId(chargeId: string): Promise<Order | undefined>;
   /** Compare-and-set: writes only if the stored version equals `expectedVersion`. */
   save(order: Order, expectedVersion: number, event: OrderEvent): Promise<boolean>;
+  /** Heartbeat of a running fulfilment: refreshes its claim. No state change, no new version. */
+  touchProcessing(orderId: string, at: Date): Promise<void>;
   /** Records an external (webhook) event id. Returns false when it was already recorded. */
   markExternalEvent(provider: PaymentProviderName, eventId: string): Promise<boolean>;
   hasExternalEvent(provider: PaymentProviderName, eventId: string): Promise<boolean>;
@@ -64,6 +66,11 @@ export class InMemoryOrderRepository implements OrderRepository {
     this.orders.set(order.id, { ...order });
     this.events.push({ ...event, orderId: order.id });
     return true;
+  }
+
+  async touchProcessing(orderId: string, at: Date): Promise<void> {
+    const current = this.orders.get(orderId);
+    if (current?.status === "processing") this.orders.set(orderId, { ...current, processingStartedAt: at.toISOString() });
   }
 
   async markExternalEvent(provider: PaymentProviderName, eventId: string): Promise<boolean> {

@@ -225,7 +225,12 @@ export function ProcessingView() {
   }, [onboarding.hydrated]);
 
   // After a dropped connection: poll the order until it is delivered, failed or retryable.
-  const onOrderSettled = useEffectEvent((order: PublicOrderStatus) => route(order));
+  const onOrderSettled = useEffectEvent((order: PublicOrderStatus) => {
+    // The server making the report stopped (a deploy, a crash) and its claim expired: with the
+    // photo still in this tab, carry on with a new attempt. No second charge.
+    if (order.status === "processing" && order.canSubmitPhotos && photosReady && consentGiven) return void start();
+    route(order);
+  });
   useEffect(() => {
     if (mode.kind !== "reconnecting") return;
     let cancelled = false;

@@ -198,6 +198,10 @@ export class PostgresOrderRepository implements OrderRepository {
     await this.pool.end();
   }
 
+  async touchProcessing(orderId: string, at: Date): Promise<void> {
+    await this.pool.query("update orders set processing_started_at = $2 where id = $1 and status = 'processing'", [orderId, at.toISOString()]);
+  }
+
   async markExternalEvent(provider: PaymentProviderName, eventId: string): Promise<boolean> {
     const result = await this.pool.query(
       "insert into processed_webhook_events (provider, event_id) values ($1, $2) on conflict do nothing",

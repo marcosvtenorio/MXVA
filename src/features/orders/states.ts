@@ -29,8 +29,14 @@ export const ORDER_STATUSES = [
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 export const MAX_FULFILLMENT_ATTEMPTS = 3;
-/** A processing claim older than this is treated as a crashed worker and may be re-claimed. */
-export const PROCESSING_LEASE_MS = 10 * 60_000;
+/** A running fulfilment refreshes its claim this often (the heartbeat in /api/fulfill). */
+export const PROCESSING_HEARTBEAT_MS = 20_000;
+/**
+ * A processing claim not refreshed for this long belongs to a server that stopped mid-report
+ * (a deploy replaced it, it crashed) and may be re-claimed: the buyer's page then carries on
+ * with a new attempt, without a second charge.
+ */
+export const PROCESSING_LEASE_MS = 90_000;
 export const FULFILLMENT_VERSION = "report-v1";
 
 export type Order = {
