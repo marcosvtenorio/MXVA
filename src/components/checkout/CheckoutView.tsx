@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { InlineError } from "@/components/common/InlineError";
 import { Back, Lock, Tick } from "@/components/common/icons";
 import { regionHint } from "@/features/analytics/attribution";
@@ -76,6 +76,11 @@ export function CheckoutView() {
         // (delivered, or with support) doesn't block buying another report.
         if (current?.order.unfinished) return router.replace("/processing");
         if (current?.order.deliveredToEmail && useResultStore.getState().report) return router.replace("/result");
+        // A card or Pix session kept from an order that is no longer open can't take this payment.
+        if (!current?.pending) {
+          setCard(undefined);
+          setPix(undefined);
+        }
         const { offers: available } = await api.checkoutOptions();
         // An open Pix code survives a reload (the order already exists; the email isn't kept in the browser).
         const saved = current?.pending?.method === "pix" ? loadPixSession() : undefined;
@@ -102,7 +107,17 @@ export function CheckoutView() {
         setView({ state: "unavailable", message: caught instanceof ApiClientError ? caught.message : "Checkout isn't available right now." });
       }
     })();
-  }, [onboarding, router, setMethod, setOffers, setPix]);
+  }, [onboarding, router, setCard, setMethod, setOffers, setPix]);
+
+  // Next keeps this page alive (hidden) after leaving it. Coming back (e.g. Back from the
+  // result) must check the order again before showing a payment form.
+  useLayoutEffect(
+    () => () => {
+      started.current = false;
+      setView({ state: "loading" });
+    },
+    [],
+  );
 
   function hasCheckoutDetails(): boolean {
     const details = useOnboardingStore.getState();

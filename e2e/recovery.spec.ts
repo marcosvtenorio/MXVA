@@ -62,4 +62,33 @@ test.describe("payment and recovery", () => {
     await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible();
     await expect(page.getByText(/in your email/)).toBeVisible();
   });
+
+  test("back from the result shows the result again, and the same tab can buy a second report", async ({ page }) => {
+    await runOnboarding(page);
+    await page.getByRole("button", { name: /Pay \$29 \(simulated\)/ }).click();
+    await page.waitForURL("**/result", { timeout: 60_000 });
+
+    // Back lands on the (kept-alive) checkout, which sends the buyer back to their report.
+    await page.goBack();
+    await page.waitForURL("**/result");
+    await expect(page.getByRole("heading", { name: "Your concept and plan" })).toBeVisible();
+
+    // Same tab, no reload: a new purchase opens a new order, not the paid session.
+    await page.getByRole("button", { name: "Clear from this device" }).click();
+    await page.waitForURL((url) => url.pathname === "/");
+    await page.getByRole("link", { name: /^(Start|Get)/ }).first().click();
+    await page.getByRole("button", { name: "Start" }).click();
+    await page.getByRole("button", { name: "Got it" }).click();
+    await addFrontPhoto(page);
+    await page.getByText("These are photos of me").click();
+    await page.getByRole("button", { name: "Use these photos" }).click();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    await page.waitForURL("**/onboarding/delivery");
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    await page.getByRole("button", { name: "Continue to checkout" }).click();
+    await page.waitForURL("**/checkout");
+    await page.getByRole("button", { name: /Pay \$29 \(simulated\)/ }).click();
+    await page.waitForURL("**/result", { timeout: 60_000 });
+    await expect(page.getByRole("heading", { name: "Your concept and plan" })).toBeVisible();
+  });
 });
