@@ -94,6 +94,11 @@ export function useStepNav(step: StepId) {
         const result = validateStep(step, flow);
         if (!result.success) {
           setError(result.error.issues[0]?.message ?? "Check this step and try again.");
+          // The message may sit below the fold, under the action bar: bring it into view.
+          setTimeout(() => {
+            const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            document.getElementById(`${step}-error`)?.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" });
+          }, 0);
           return false;
         }
       }
