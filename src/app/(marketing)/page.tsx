@@ -13,8 +13,8 @@ const STEPS = [
 ];
 
 const INCLUDED = [
-  "An AI concept portrait: your own photo, groomed and well lit. Same face, same framing.",
-  "5 to 8 priorities ranked by fit, evidence, effort and cost, never by looks.",
+  "An AI glow-up concept: your own photo with the cut, skin, brows and beard that suit you. Same face, same framing.",
+  "5 to 10 priorities ranked by fit, evidence, effort and cost, never by looks.",
   "A 7-day start, a 30-day plan and a 90-day plan.",
   "Questions to take to a barber, dermatologist or dentist, and every source with its date.",
 ];

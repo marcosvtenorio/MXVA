@@ -78,7 +78,7 @@ export function ReviewStep() {
           <p className="mono text-ink-2">Included</p>
           <ul className="mt-3 grid gap-2 text-[15px] leading-[1.4]">
             <li className="flex gap-2"><Tick size={16} className="mt-0.5 flex-none text-ink-2" />An AI concept portrait from your own front photo</li>
-            <li className="flex gap-2"><Tick size={16} className="mt-0.5 flex-none text-ink-2" />A PDF roadmap: 5 to 8 priorities, a 7, 30 and 90-day plan, every source</li>
+            <li className="flex gap-2"><Tick size={16} className="mt-0.5 flex-none text-ink-2" />A PDF roadmap: 5 to 10 priorities, a 7, 30 and 90-day plan, every source</li>
             <li className="flex gap-2"><Tick size={16} className="mt-0.5 flex-none text-ink-2" />Delivered by email. The email is your permanent copy.</li>
           </ul>
           <p className="mt-4 flex items-baseline gap-3">

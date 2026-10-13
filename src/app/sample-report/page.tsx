@@ -37,9 +37,9 @@ export default function SampleReportPage() {
           <span className="capsule frost mono absolute bottom-12 left-4">Light test · a real report shows your own face</span>
         </div>
         <p className="mt-4 text-[15px] leading-[1.45] text-ink-2">
-          Every report opens with your AI concept portrait: your own front photo, edited only in the ways you chose, such as grooming, hair and
-          lighting. Then come 5 to 8 priorities like these, ranked by how well they fit your goals, the strength of the evidence, the effort and
-          the cost.
+          Every report opens with your AI glow-up concept: your own front photo, upgraded where it shows room to grow, such as the haircut,
+          skin, brows, beard and lighting. Then come 5 to 10 priorities like these, ranked by how well they fit your face, the strength of the
+          evidence, the effort and the cost.
         </p>
         <ol className="mt-6 grid gap-5">
           {sample.map((template, index) => (
