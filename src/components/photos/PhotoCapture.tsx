@@ -61,12 +61,18 @@ function FrontSlot() {
   const libraryId = useId();
   const statusId = useId();
   const checks = photo?.quality;
-  const checkLine = (code: "too_dark" | "too_bright" | "blurry" | "landscape" | "low_contrast", ok: string, label: string) => {
-    const issue = checks?.issues.find((entry) => entry.code === code);
+  const checkLine = (label: string, ok: string, concerns: (issue: QualityIssue) => boolean) => {
+    const found = checks?.issues.filter(concerns) ?? [];
+    const issue = found.find((entry) => entry.severity === "block") ?? found[0];
     return { label, value: issue ? (issue.severity === "block" ? "fix" : "check") : ok, ok: !issue };
   };
+  // A photo with no readable face can't be "centered"; a flat, hazy one is a light problem.
   const readouts = checks
-    ? [checkLine("too_dark", "ok", "Light"), checkLine("blurry", "sharp", "Focus"), checkLine("landscape", "centered", "Framing")]
+    ? [
+        checkLine("Light", "ok", (i) => i.code === "too_dark" || i.code === "too_bright" || (i.code === "low_contrast" && i.severity === "warn")),
+        checkLine("Focus", "sharp", (i) => i.code === "blurry"),
+        checkLine("Framing", "centered", (i) => i.code === "landscape" || (i.code === "low_contrast" && i.severity === "block")),
+      ]
     : [];
 
   return (
