@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiClientError, api } from "@/lib/api-client";
+import { ConnectionLostError, api } from "@/lib/api-client";
 
 function streamOf(chunks: string[]): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
@@ -35,11 +35,22 @@ describe("api client", () => {
     await expect(api.fulfill(new FormData(), () => undefined)).rejects.toMatchObject({ code: "SIMULATION_QUALITY_FAILED", retryable: true });
   });
 
-  it("reports a dropped stream honestly instead of pretending it failed or succeeded", async () => {
+  it("reports a dropped stream as a lost connection, not as a failed or finished report", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf([JSON.stringify({ type: "phase", phase: "building_report" }) + "\n"]), { status: 200 })));
     const error = await api.fulfill(new FormData(), () => undefined).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(ApiClientError);
-    expect((error as ApiClientError).message).toMatch(/Check your email/);
+    expect(error).toBeInstanceOf(ConnectionLostError);
+  });
+
+  it("treats a stream that breaks mid-way (network error) as a lost connection too", async () => {
+    const broken = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(JSON.stringify({ type: "phase", phase: "preparing_image" }) + "\n"));
+        controller.error(new TypeError("network error"));
+      },
+    });
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(broken, { status: 200 })));
+    const error = await api.fulfill(new FormData(), () => undefined).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ConnectionLostError);
   });
 
   it("maps JSON error bodies and sends the same-origin header", async () => {

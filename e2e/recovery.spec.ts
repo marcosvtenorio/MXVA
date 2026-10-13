@@ -63,6 +63,20 @@ test.describe("payment and recovery", () => {
     await expect(page.getByText(/in your email/)).toBeVisible();
   });
 
+  test("a dropped report stream follows the order: the report still arrives by email", async ({ page }) => {
+    // The server finishes the report, but the browser only gets the first line, as if the
+    // connection dropped mid-way (a network change on a phone, a deploy).
+    await page.route("**/api/fulfill", async (route) => {
+      const response = await route.fetch();
+      const body = await response.text();
+      await route.fulfill({ response, body: `${body.split("\n")[0]}\n` });
+    });
+    await runOnboarding(page);
+    await page.getByRole("button", { name: /Pay \$29 \(simulated\)/ }).click();
+    await expect(page.getByRole("heading", { name: /Your report is in your email/ })).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByRole("heading", { name: /didn't finish/ })).toHaveCount(0);
+  });
+
   test("back from the result shows the result again, and the same tab can buy a second report", async ({ page }) => {
     await runOnboarding(page);
     await page.getByRole("button", { name: /Pay \$29 \(simulated\)/ }).click();

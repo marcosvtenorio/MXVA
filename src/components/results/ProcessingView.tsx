@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import { InlineError } from "@/components/common/InlineError";
 import { Tick } from "@/components/common/icons";
 import { PlasterHead } from "@/components/common/StudioArt";
@@ -14,7 +14,7 @@ import { frontPhotoReady, usePhotoStore } from "@/features/photos/memory-store";
 import { base64ToBlob, useResultStore } from "@/features/results/memory-store";
 import type { PublicOrderStatus } from "@/features/orders/states";
 import { API_ERRORS } from "@/lib/api-errors";
-import { ApiClientError, api, type FulfillmentPhase } from "@/lib/api-client";
+import { ApiClientError, ConnectionLostError, api, type FulfillmentPhase } from "@/lib/api-client";
 
 const PHASES: { id: FulfillmentPhase; label: string }[] = [
   { id: "analysing_photo", label: "Reading your photo" },
@@ -30,6 +30,7 @@ type Mode =
   | { kind: "not_paid" }
   | { kind: "reselect"; reason?: string }
   | { kind: "running"; phase?: FulfillmentPhase }
+  | { kind: "reconnecting" }
   | { kind: "elsewhere" }
   | { kind: "error"; message: string; canRetry: boolean }
   | { kind: "delivered" }
@@ -133,6 +134,12 @@ export function ProcessingView() {
       router.replace("/result");
     } catch (caught) {
       started.current = false;
+      if (caught instanceof ConnectionLostError) {
+        // The server keeps going and emails the report: follow the order instead of failing.
+        track("client_error", { code: "SERVICE_UNAVAILABLE" });
+        setMode({ kind: "reconnecting" });
+        return;
+      }
       const error = caught instanceof ApiClientError ? caught : undefined;
       track("client_error", { code: error?.code ?? "SERVICE_UNAVAILABLE" });
       const action = error ? API_ERRORS[error.code].action : "retry";
@@ -217,6 +224,31 @@ export function ProcessingView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onboarding.hydrated]);
 
+  // After a dropped connection: poll the order until it is delivered, failed or retryable.
+  const onOrderSettled = useEffectEvent((order: PublicOrderStatus) => route(order));
+  useEffect(() => {
+    if (mode.kind !== "reconnecting") return;
+    let cancelled = false;
+    const deadline = Date.now() + 12 * 60_000;
+    const poll = async () => {
+      if (cancelled) return;
+      try {
+        const { order } = await api.currentOrder();
+        if (cancelled) return;
+        if (order.status !== "processing" || order.canSubmitPhotos) return onOrderSettled(order);
+      } catch {
+        // Offline for a moment: keep trying until the deadline.
+      }
+      if (Date.now() < deadline) setTimeout(() => void poll(), 4000);
+      else if (!cancelled) setMode({ kind: "support", message: "Your report is taking longer than it should. Check your email, or contact support — you won't pay again." });
+    };
+    const first = setTimeout(() => void poll(), 2000);
+    return () => {
+      cancelled = true;
+      clearTimeout(first);
+    };
+  }, [mode.kind]);
+
   async function retry() {
     try {
       await api.requestRetry();
@@ -268,6 +300,17 @@ export function ProcessingView() {
               </h1>
               <PhaseList current={mode.phase} />
               <p className="mt-5 text-center text-[15px] leading-[1.4] text-ink-2">Keep this tab open until it finishes. Photos are processed in memory, never stored.</p>
+            </>
+          ) : null}
+
+          {mode.kind === "reconnecting" ? (
+            <>
+              <h1 className="title-28 two-tone">
+                Still making your report. <span>The connection dropped.</span>
+              </h1>
+              <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">
+                It keeps going on our side and arrives by email. Keep this tab open to see when it&apos;s done. You won&apos;t pay again.
+              </p>
             </>
           ) : null}
 

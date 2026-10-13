@@ -16,6 +16,14 @@ export class ApiClientError extends Error {
   }
 }
 
+/**
+ * The report stream broke after the server took the order (a network change, a deploy). The
+ * server keeps working and emails the report, so the page follows the order instead of failing.
+ */
+export class ConnectionLostError extends Error {
+  override readonly name = "ConnectionLostError";
+}
+
 const BASE_HEADERS = { "x-mxva-request": "1" } as const;
 
 async function toError(response: Response): Promise<ApiClientError> {
@@ -115,7 +123,13 @@ async function readFulfillmentStream(
   const decoder = new TextDecoder();
   let buffer = "";
   for (;;) {
-    const { done, value } = await reader.read();
+    let chunk: ReadableStreamReadResult<Uint8Array>;
+    try {
+      chunk = await reader.read();
+    } catch {
+      throw new ConnectionLostError("The connection dropped while your report was being made.");
+    }
+    const { done, value } = chunk;
     buffer += decoder.decode(value, { stream: !done });
     let newline = buffer.indexOf("\n");
     while (newline >= 0) {
@@ -135,12 +149,7 @@ async function readFulfillmentStream(
     if (done) break;
   }
   // The connection ended without a result: the server may still finish and email it.
-  throw new ApiClientError(
-    "SERVICE_UNAVAILABLE",
-    "We lost the connection while your report was being made. Check your email in a few minutes, or contact support.",
-    false,
-    0,
-  );
+  throw new ConnectionLostError("The connection ended before your report arrived.");
 }
 
 export const api = {

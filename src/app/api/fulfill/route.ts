@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { fulfillInputSchema } from "@/features/onboarding/schema";
 import { requireOrderFromRequest, requirePaid } from "@/features/orders/authorization";
 import { claimForFulfillment, markDelivered, markEmailFailed, markFailed } from "@/features/orders/service";
@@ -81,6 +82,19 @@ export async function POST(request: Request) {
     if (claimed.status !== "processing") throw new ApiError("ORDER_NOT_RETRYABLE");
     void trackServer("fulfillment_started", {}, order.id, order.countryHint).catch(() => undefined);
 
+    // If the browser's connection drops (a phone switching networks, a deploy replacing this
+    // server), the work goes on and the report is emailed. Registering it with after() makes a
+    // shutting-down server finish it before exiting.
+    let workDone!: () => void;
+    const work = new Promise<void>((resolve) => {
+      workDone = resolve;
+    });
+    try {
+      after(() => work);
+    } catch {
+      // Outside a Next request (unit tests): there is no server lifetime to extend.
+    }
+
     const encoder = new TextEncoder();
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
@@ -128,6 +142,7 @@ export async function POST(request: Request) {
           front.jpeg.fill(0);
           for (const profile of profiles) profile.jpeg.fill(0);
           if (open) controller.close();
+          workDone();
         }
       },
     });
