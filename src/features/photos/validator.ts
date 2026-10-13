@@ -12,6 +12,13 @@ export const MAX_DECODE_PIXELS = 64_000_000;
 export const MAX_DECODE_SIDE = 12_000;
 /** Long side of the normalised photo sent for processing. */
 export const NORMALISED_LONG_SIDE = 2048;
+/** Profiles only inform the analysis, so they travel smaller. */
+export const PROFILE_LONG_SIDE = 1280;
+/**
+ * Upload size per photo. Hosts cap a request body (Vercel: 4.5 MB), and a paid report must never
+ * fail on size: the front photo and both profiles stay under 4 MB together.
+ */
+export const UPLOAD_BUDGET_BYTES = { front: 2_400_000, profile: 800_000 } as const;
 
 const HEIF_BRANDS = new Set(["heic", "heix", "hevc", "hevx", "heim", "heis", "mif1", "msf1"]);
 

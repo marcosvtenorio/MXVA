@@ -7,6 +7,7 @@ import { track } from "@/features/analytics/client";
 import { processPhoto } from "@/features/photos/client-processor";
 import { usePhotoStore } from "@/features/photos/memory-store";
 import type { PhotoSlot, QualityIssue } from "@/features/photos/types";
+import { PROFILE_LONG_SIDE, UPLOAD_BUDGET_BYTES } from "@/features/photos/validator";
 
 const INPUT_ACCEPT = "image/jpeg,image/png,image/webp,image/heic,image/heif";
 
@@ -22,7 +23,10 @@ function useSlotUpload(slot: PhotoSlot) {
     input.value = "";
     if (!file) return;
     setStatus({ state: "working" });
-    const result = await processPhoto(file);
+    const result = await processPhoto(
+      file,
+      slot === "front" ? { maxUploadBytes: UPLOAD_BUDGET_BYTES.front } : { maxUploadBytes: UPLOAD_BUDGET_BYTES.profile, longSide: PROFILE_LONG_SIDE },
+    );
     if (!result.ok) {
       track("photo_rejected", { reason: result.code });
       setStatus({ state: "error", message: result.message });

@@ -2,6 +2,7 @@ import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import sharp from "sharp";
 import type { ProcessedPhoto, RejectedPhoto } from "../src/features/photos/client-processor";
+import { PROFILE_LONG_SIDE, UPLOAD_BUDGET_BYTES } from "../src/features/photos/validator";
 import { photoProcessorBundle } from "./support/photo-bundle";
 
 const fixture = (name: string) => path.join(__dirname, "fixtures", name);
@@ -20,15 +21,22 @@ type Outcome =
     }
   | { ok: false; code: string; message: string };
 
-async function process(page: Page, files: string | { name: string; mimeType: string; buffer: Buffer }): Promise<Outcome> {
+type ProcessOptions = { maxUploadBytes?: number; longSide?: number };
+
+async function process(
+  page: Page,
+  files: string | { name: string; mimeType: string; buffer: Buffer },
+  options: ProcessOptions = {},
+): Promise<Outcome> {
   await page.setContent('<input type="file" id="file" accept="image/*">');
   await page.addScriptTag({ content: await photoProcessorBundle() });
   await page.setInputFiles("#file", files);
-  return page.evaluate(async () => {
+  return page.evaluate(async (options) => {
     const input = document.querySelector<HTMLInputElement>("#file")!;
-    const api = (window as unknown as { MXVAPhoto: { processPhoto: (f: File) => Promise<ProcessedPhoto | RejectedPhoto> } })
-      .MXVAPhoto;
-    const result = await api.processPhoto(input.files![0]!);
+    const api = (
+      window as unknown as { MXVAPhoto: { processPhoto: (f: File, o: ProcessOptions) => Promise<ProcessedPhoto | RejectedPhoto> } }
+    ).MXVAPhoto;
+    const result = await api.processPhoto(input.files![0]!, options);
     if (!result.ok) return { ok: false, code: result.code, message: result.message };
     const bytes = new Uint8Array(await result.blob.arrayBuffer());
     let exifBytes = 0;
@@ -51,8 +59,22 @@ async function process(page: Page, files: string | { name: string; mimeType: str
       qualityOk: result.quality.ok,
       issues: result.quality.issues.map((i) => `${i.code}:${i.severity}`),
     };
-  });
+  }, options);
 }
+
+/** A 48 MP photo full of fine detail: the hardest case for JPEG size. */
+const noisyPhoto = () =>
+  sharp({
+    create: {
+      width: 6000,
+      height: 8000,
+      channels: 3,
+      background: { r: 0, g: 0, b: 0 },
+      noise: { type: "gaussian", mean: 120, sigma: 40 },
+    },
+  })
+    .jpeg({ quality: 80 })
+    .toBuffer();
 
 test.describe("on-device photo processing", () => {
   test("normalises a synthetic portrait into a clean JPEG", async ({ page }) => {
@@ -85,19 +107,28 @@ test.describe("on-device photo processing", () => {
   });
 
   test("downscales a 48 MP phone photo to a 2048 px long side", async ({ page }) => {
-    const buffer = await sharp({
-      create: {
-        width: 6000,
-        height: 8000,
-        channels: 3,
-        background: { r: 0, g: 0, b: 0 },
-        noise: { type: "gaussian", mean: 120, sigma: 40 },
-      },
-    })
-      .jpeg({ quality: 80 })
-      .toBuffer();
-    const result = await process(page, { name: "IMG_4800.JPG", mimeType: "image/jpeg", buffer });
+    const result = await process(page, { name: "IMG_4800.JPG", mimeType: "image/jpeg", buffer: await noisyPhoto() });
     expect(result).toMatchObject({ ok: true, width: 1536, height: 2048 });
+  });
+
+  test("fits a detailed front photo into its upload size instead of refusing it", async ({ page }) => {
+    const result = await process(
+      page,
+      { name: "IMG_4801.JPG", mimeType: "image/jpeg", buffer: await noisyPhoto() },
+      { maxUploadBytes: UPLOAD_BUDGET_BYTES.front },
+    );
+    expect(result).toMatchObject({ ok: true, width: 1536, height: 2048 });
+    if (result.ok) expect(result.size).toBeLessThanOrEqual(UPLOAD_BUDGET_BYTES.front);
+  });
+
+  test("sends a profile photo smaller, within its upload size", async ({ page }) => {
+    const result = await process(
+      page,
+      { name: "IMG_4802.JPG", mimeType: "image/jpeg", buffer: await noisyPhoto() },
+      { maxUploadBytes: UPLOAD_BUDGET_BYTES.profile, longSide: PROFILE_LONG_SIDE },
+    );
+    expect(result).toMatchObject({ ok: true, width: 960, height: 1280 });
+    if (result.ok) expect(result.size).toBeLessThanOrEqual(UPLOAD_BUDGET_BYTES.profile);
   });
 
   test("rejects oversized originals before decoding", async ({ page }) => {

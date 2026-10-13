@@ -72,7 +72,8 @@ export function StripePaymentForm({
   /** This card session is no longer this browser's open checkout (replaced in another tab). */
   onStale: () => void;
 }) {
-  const stripePromise = useMemo(() => loadStripe(publicConfig.stripePublishableKey), []);
+  // English like the rest of the site: a pt-BR browser otherwise gets "Cartão" and "Pay US$ 29,00".
+  const stripePromise = useMemo(() => loadStripe(publicConfig.stripePublishableKey, { locale: "en" }), []);
   return (
     <CheckoutElementsProvider
       stripe={stripePromise}

@@ -27,7 +27,8 @@ export type ProcessedPhoto = {
 export type RejectedPhoto = { ok: false; code: PhotoRejectionCode; message: string };
 
 const HEAD_BYTES = 64 * 1024;
-const JPEG_QUALITY = 0.9;
+/** Tried in order until the photo fits its upload size; detailed photos step down. */
+const JPEG_QUALITIES = [0.9, 0.82, 0.74, 0.66] as const;
 
 type Canvas2D = {
   canvas: HTMLCanvasElement | OffscreenCanvas;
@@ -53,10 +54,10 @@ function releaseCanvas({ canvas }: Canvas2D): void {
   canvas.height = 0;
 }
 
-async function encodeJpeg({ canvas }: Canvas2D): Promise<Blob> {
-  if ("convertToBlob" in canvas) return canvas.convertToBlob({ type: UPLOAD_MIME, quality: JPEG_QUALITY });
+async function encodeJpeg({ canvas }: Canvas2D, quality: number): Promise<Blob> {
+  if ("convertToBlob" in canvas) return canvas.convertToBlob({ type: UPLOAD_MIME, quality });
   return new Promise((resolve, reject) =>
-    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Encoding failed"))), UPLOAD_MIME, JPEG_QUALITY),
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Encoding failed"))), UPLOAD_MIME, quality),
   );
 }
 
@@ -65,11 +66,11 @@ type Decoded = { source: CanvasImageSource; width: number; height: number; relea
 /** Above this many stored pixels, decode straight to a smaller size (in-app browsers have tight memory). */
 const DOWNSAMPLE_ON_DECODE_PIXELS = 16_000_000;
 
-async function decode(file: Blob, header?: { width: number; height: number }): Promise<Decoded> {
+async function decode(file: Blob, longSide: number, header?: { width: number; height: number }): Promise<Decoded> {
   const options: ImageBitmapOptions = { imageOrientation: "from-image" };
   if (header && header.width * header.height > DOWNSAMPLE_ON_DECODE_PIXELS) {
     // Width only: the height follows proportionally, whichever way EXIF rotates the image.
-    options.resizeWidth = Math.round((header.width * NORMALISED_LONG_SIDE) / Math.max(header.width, header.height));
+    options.resizeWidth = Math.round((header.width * longSide) / Math.max(header.width, header.height));
     options.resizeQuality = "high";
   }
   try {
@@ -99,8 +100,9 @@ function heicHelp(): string {
 
 export async function processPhoto(
   file: File,
-  options: { maxUploadBytes?: number } = {},
+  options: { maxUploadBytes?: number; longSide?: number } = {},
 ): Promise<ProcessedPhoto | RejectedPhoto> {
+  const longSide = options.longSide ?? NORMALISED_LONG_SIDE;
   const head = new Uint8Array(await file.slice(0, HEAD_BYTES).arrayBuffer());
   const basics = checkPhotoBasics({
     head,
@@ -113,7 +115,7 @@ export async function processPhoto(
 
   let decoded: Decoded;
   try {
-    decoded = await decode(file, basics.headerDimensions);
+    decoded = await decode(file, longSide, basics.headerDimensions);
   } catch {
     return {
       ok: false,
@@ -127,7 +129,7 @@ export async function processPhoto(
       return { ok: false, code: "PHOTO_DIMENSIONS_UNSAFE", message: "That image is too large to process safely." };
     }
 
-    const target = fitWithin(decoded.width, decoded.height, NORMALISED_LONG_SIDE);
+    const target = fitWithin(decoded.width, decoded.height, longSide);
     const main = createCanvas(target.width, target.height);
     main.context.imageSmoothingEnabled = true;
     main.context.imageSmoothingQuality = "high";
@@ -144,10 +146,13 @@ export async function processPhoto(
     );
     releaseCanvas(analysis);
 
-    const blob = await encodeJpeg(main);
-    releaseCanvas(main);
-
     const maxUploadBytes = options.maxUploadBytes ?? MAX_UPLOAD_BYTES_DEFAULT;
+    let blob = await encodeJpeg(main, JPEG_QUALITIES[0]);
+    for (const quality of JPEG_QUALITIES.slice(1)) {
+      if (blob.size <= maxUploadBytes) break;
+      blob = await encodeJpeg(main, quality);
+    }
+    releaseCanvas(main);
     if (blob.size > maxUploadBytes) {
       return { ok: false, code: "PHOTO_TOO_LARGE", message: "That photo is too large after processing. Try another one." };
     }

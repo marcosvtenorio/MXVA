@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   MAX_INPUT_BYTES,
+  UPLOAD_BUDGET_BYTES,
   checkPhotoBasics,
   dimensionsAreSafe,
   fitWithin,
@@ -107,5 +108,12 @@ describe("geometry helpers", () => {
   it("fits within a long side without upscaling", () => {
     expect(fitWithin(4032, 3024, 2048)).toEqual({ width: 2048, height: 1536 });
     expect(fitWithin(800, 1000, 2048)).toEqual({ width: 800, height: 1000 });
+  });
+});
+
+describe("upload budget", () => {
+  it("keeps the front photo and both profiles under the host's 4.5 MB request cap", () => {
+    const formOverhead = 64 * 1024; // multipart boundaries, headers and the plan answers
+    expect(UPLOAD_BUDGET_BYTES.front + 2 * UPLOAD_BUDGET_BYTES.profile + formOverhead).toBeLessThan(4_500_000);
   });
 });
