@@ -142,6 +142,8 @@ describe("recommendation planner", () => {
     const report = planReport(input, observations, { simulated: true });
     const cut = report.recommendations.find((rec) => rec.id === "hair-cut-for-your-face");
     expect(cut?.title).toBe("Your haircut: a textured crop");
+    // The most visible change leads the plan.
+    expect(report.recommendations[0]?.id).toBe("hair-cut-for-your-face");
     expect(cut?.suggestion).toMatch(/^Ask your barber for a textured crop: about 3–5 cm on top/);
     expect(report.professionalQuestions?.join(" ")).toContain("a textured crop");
     expect(report.thirtyDayPlan).toContain("Get a textured crop and show your barber your concept image.");

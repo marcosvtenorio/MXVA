@@ -39,6 +39,8 @@ describe("decisions from the photo", () => {
     const report = planReport(input, base, { simulated: true });
     expect(report.recommendations.length).toBeGreaterThanOrEqual(8);
     expect(report.recommendations.map((rec) => rec.title)).toContain("Lean out to show the jaw you already have");
+    // The two most visible changes in the concept lead the plan.
+    expect(report.recommendations.slice(0, 2).map((rec) => rec.id)).toEqual(["hair-cut-for-your-face", "jaw-lean-out"]);
   });
 
   it("leaves alone what already works", () => {

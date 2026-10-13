@@ -58,6 +58,10 @@ export function scoreTemplate(template: RecommendationTemplate, input: ReportInp
   if (goalAreas.includes(template.area)) score += 2;
   score += EVIDENCE_SCORE[template.evidenceLevel];
   score += template.impact;
+  // The concept's most visible changes lead the plan, so the buyer sees how to get there:
+  // a new cut chosen from the photo first, then leaning out when the concept shows a leaner face.
+  if (template.id === "hair-cut-for-your-face" && input.haircut && input.haircut !== "tidy_current_length") score += 6;
+  if (template.id === "jaw-lean-out" && input.preferences.jaw.includes("leaner")) score += 4;
 
   // Effort against the buyer's daily time.
   if (template.effort === "low") score += 1.5;
@@ -116,7 +120,9 @@ export function selectTemplates(input: ReportInput): RecommendationTemplate[] {
     const template = LIBRARY.find((entry) => entry.id === id);
     if (template && !template.excludedBy?.some((option) => input.constraints.avoid.includes(option))) take(template);
   }
-  return chosen.slice(0, MAX_RECOMMENDATIONS);
+  // The report lists priorities in rank order, whichever pass picked them.
+  const scoreOf = new Map(scored.map((entry) => [entry.template.id, entry.score]));
+  return chosen.slice(0, MAX_RECOMMENDATIONS).sort((a, b) => (scoreOf.get(b.id) ?? 0) - (scoreOf.get(a.id) ?? 0));
 }
 
 function observationFor(area: FocusArea, observations: VisualObservations): string {
