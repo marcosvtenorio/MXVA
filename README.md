@@ -111,7 +111,7 @@ Real payments refuse to start unless **every** provider above (payments, AI, ema
 ## Deploy (Railway)
 
 - Project `strong-insight`, environment `production`: services `Postgres` (private network only) and `mxva` (this repo, `main` branch; every push deploys).
-- `railway.json`: Railpack build, `npm run db:migrate` before each deploy, health check `/api/health`.
+- Service settings (set on the service through the Railway API, because deployments showed `railway.json` being read but not applied): pre-deploy `npm run db:migrate` (idempotent), health check `/api/health` (120 s), draining 300 s so a replaced server finishes in-flight reports (the report work is registered with `after()`). `railway.json` mirrors these values.
 - Service variables: everything in `.env.example`, with `DATABASE_URL=${{Postgres.DATABASE_URL}}`, `NEXT_PUBLIC_APP_URL` = the public URL, `RAILPACK_NODE_VERSION=24`.
 - Staging: `STAGING=true` allows sandbox keys in the production build and marks every page noindex. An optional `STAGING_PASSWORD` (12+ characters) also puts the site behind a password (user `mxva`). While staging is open, anyone with the link can get a real AI report with a Stripe test card, so cap OpenAI spend in its dashboard. Remove both for launch, together with switching to live keys.
 - Webhooks: Stripe endpoint `https://<domain>/api/stripe/webhook` (created via API in test mode; its secret is `STRIPE_WEBHOOK_SECRET`). AbacatePay: dashboard → Webhooks → URL `https://<domain>/api/abacatepay/webhook`, secret = `ABACATEPAY_WEBHOOK_SECRET`.
