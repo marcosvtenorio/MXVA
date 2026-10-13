@@ -224,7 +224,8 @@ export function ProcessingView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onboarding.hydrated]);
 
-  // After a dropped connection: poll the order until it is delivered, failed or retryable.
+  // After a dropped connection, or while the report is made elsewhere (another tab, or this tab
+  // before a reload): poll the order until it is delivered, failed or can be taken over.
   const onOrderSettled = useEffectEvent((order: PublicOrderStatus) => {
     // The server making the report stopped (a deploy, a crash) and its claim expired: with the
     // photo still in this tab, carry on with a new attempt. No second charge.
@@ -232,7 +233,7 @@ export function ProcessingView() {
     route(order);
   });
   useEffect(() => {
-    if (mode.kind !== "reconnecting") return;
+    if (mode.kind !== "reconnecting" && mode.kind !== "elsewhere") return;
     let cancelled = false;
     const deadline = Date.now() + 12 * 60_000;
     const poll = async () => {
@@ -330,7 +331,8 @@ export function ProcessingView() {
                 <label className="mt-4 flex cursor-pointer items-start gap-3 text-[15px] leading-[1.4]">
                   <input type="checkbox" className="checkbox" checked={consent} onChange={(event) => setConsent(event.currentTarget.checked)} />
                   <span>
-                    I agree that my photo is sent to MXVA&apos;s server and its AI providers, only to create my report (
+                    I agree that my photo is sent to MXVA&apos;s server and its AI providers, only to create my report, which is emailed to me
+                    with my photo next to my concept (
                     <Link href="/privacy" target="_blank" className="underline underline-offset-2">Privacy Policy</Link>).
                   </span>
                 </label>
@@ -352,9 +354,9 @@ export function ProcessingView() {
           {mode.kind === "elsewhere" ? (
             <>
               <h1 className="title-28 two-tone">
-                Your report is being created. <span>Possibly in another tab.</span>
+                Your report is being made. <span>It arrives by email.</span>
               </h1>
-              <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">Check your email in a few minutes. You won&apos;t pay again.</p>
+              <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">This page updates when it&apos;s done. You won&apos;t pay again.</p>
             </>
           ) : null}
 
