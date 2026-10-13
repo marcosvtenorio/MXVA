@@ -69,6 +69,7 @@ export function CheckoutView() {
   useEffect(() => {
     if (started.current || !onboarding.hydrated) return;
     started.current = true;
+    useCheckoutStore.getState().setPaidHere(false);
     (async () => {
       try {
         const current = await api.currentOrder().catch(() => undefined);
@@ -230,6 +231,7 @@ export function CheckoutView() {
       : formatPrice(DISPLAY_PRICE_USD_CENTS, "usd");
 
   function paid() {
+    useCheckoutStore.getState().setPaidHere(true);
     clearPixSession();
     track("cta_clicked", { cta: "pay" });
     router.push("/processing");

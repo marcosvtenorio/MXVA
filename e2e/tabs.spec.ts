@@ -11,7 +11,9 @@ test.describe("several tabs", () => {
 
     await first.bringToFront();
     await first.getByRole("button", { name: /Pay \$29 \(simulated\)/ }).click();
+    // The tab that took the payment makes the report (the other tab never takes it over).
     await first.waitForURL("**/result", { timeout: 60_000 });
+    await expect(first.getByRole("heading", { name: "Your concept and plan" })).toBeVisible();
 
     // The other tab notices on its own and never asks for a second payment.
     await second.bringToFront();

@@ -9,6 +9,7 @@ import { PlasterHead } from "@/components/common/StudioArt";
 import { PhotoCapture } from "@/components/photos/PhotoCapture";
 import { track } from "@/features/analytics/client";
 import { fulfillInputSchema, timeZoneSchema } from "@/features/onboarding/schema";
+import { useCheckoutStore } from "@/features/checkout/store";
 import { useOnboardingStore } from "@/features/onboarding/store";
 import { frontPhotoReady, usePhotoStore } from "@/features/photos/memory-store";
 import { base64ToBlob, useResultStore } from "@/features/results/memory-store";
@@ -31,7 +32,7 @@ type Mode =
   | { kind: "reselect"; reason?: string }
   | { kind: "running"; phase?: FulfillmentPhase }
   | { kind: "reconnecting" }
-  | { kind: "elsewhere" }
+  | { kind: "elsewhere"; canStartHere?: boolean }
   | { kind: "error"; message: string; canRetry: boolean }
   | { kind: "delivered" }
   | { kind: "support"; message: string };
@@ -96,6 +97,8 @@ export function ProcessingView() {
   const photosReady = usePhotoStore((s) => frontPhotoReady(s) && s.ownershipConfirmed);
   const setResult = useResultStore((s) => s.setResult);
   const hasResult = useResultStore((s) => Boolean(s.report));
+  // Only the tab that took the payment starts the report by itself; other tabs follow it.
+  const paidHere = useCheckoutStore((s) => s.paidHere);
   const confirmedTracked = useRef(false);
   const started = useRef(false);
 
@@ -142,6 +145,11 @@ export function ProcessingView() {
       }
       const error = caught instanceof ApiClientError ? caught : undefined;
       track("client_error", { code: error?.code ?? "SERVICE_UNAVAILABLE" });
+      if (error?.code === "ALREADY_PROCESSING") {
+        // Another tab already started this report: follow it instead of showing an error.
+        setMode({ kind: "elsewhere" });
+        return;
+      }
       const action = error ? API_ERRORS[error.code].action : "retry";
       if (error && action === "reselect_photo") {
         // The failed attempt left the order retryable: reset it (no charge) before a new photo.
@@ -171,7 +179,9 @@ export function ProcessingView() {
         case "expired":
           return setMode({ kind: "not_paid" });
         case "paid":
-          if (photosReady && consentGiven) return void start();
+          if (photosReady && consentGiven && paidHere) return void start();
+          // Paid in another tab, which is about to make the report: follow it, or make it here.
+          if (photosReady && consentGiven) return setMode({ kind: "elsewhere", canStartHere: true });
           return setMode({ kind: "reselect" });
         case "processing":
           return setMode(order.canSubmitPhotos ? { kind: "reselect" } : { kind: "elsewhere" });
@@ -189,7 +199,7 @@ export function ProcessingView() {
           return setMode({ kind: "support", message: "Our team needs to take a look at this order. We'll email you — you won't pay again." });
       }
     },
-    [consentGiven, hasResult, photosReady, router, start],
+    [consentGiven, hasResult, paidHere, photosReady, router, start],
   );
 
   // Server-confirmed status; polls briefly while the payment provider confirms.
@@ -234,6 +244,7 @@ export function ProcessingView() {
   });
   useEffect(() => {
     if (mode.kind !== "reconnecting" && mode.kind !== "elsewhere") return;
+    const following = mode.kind === "elsewhere";
     let cancelled = false;
     const deadline = Date.now() + 12 * 60_000;
     const poll = async () => {
@@ -241,7 +252,9 @@ export function ProcessingView() {
       try {
         const { order } = await api.currentOrder();
         if (cancelled) return;
-        if (order.status !== "processing" || order.canSubmitPhotos) return onOrderSettled(order);
+        // Still being made (or, while following another tab, paid and about to be started there).
+        const waiting = (order.status === "processing" && !order.canSubmitPhotos) || (following && order.status === "paid");
+        if (!waiting) return onOrderSettled(order);
       } catch {
         // Offline for a moment: keep trying until the deadline.
       }
@@ -357,6 +370,18 @@ export function ProcessingView() {
                 Your report is being made. <span>It arrives by email.</span>
               </h1>
               <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">This page updates when it&apos;s done. You won&apos;t pay again.</p>
+              {mode.canStartHere ? (
+                <button
+                  type="button"
+                  className="btn btn-secondary mt-6"
+                  onClick={() => {
+                    track("reselect_requested", {});
+                    void start();
+                  }}
+                >
+                  Make it in this tab instead
+                </button>
+              ) : null}
             </>
           ) : null}
 
