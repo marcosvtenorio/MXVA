@@ -5,7 +5,7 @@ const ORDER = {
   method: "card",
   email: "prod.check@example.com",
   adultConfirmed: true,
-  faceProcessingConsentVersion: "2026-10-11.v1",
+  faceProcessingConsentVersion: "2026-10-13.v1",
   termsVersion: "2026-10-11.v1",
   marketingOptIn: false,
 };

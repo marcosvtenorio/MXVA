@@ -24,7 +24,7 @@ const input: ReportInput = {
 };
 
 describe("report PDF", () => {
-  it("embeds the concept image, links every source and passes the audit", async () => {
+  it("embeds the before and after, links every source and passes the audit", async () => {
     const report = planReport(
       input,
       {
@@ -48,11 +48,16 @@ describe("report PDF", () => {
       .resize(1200)
       .jpeg()
       .toBuffer();
-    const pdf = await composeReportPdf({ report, conceptJpeg: concept, brandName: "MXVA", supportEmail: "support@example.com" });
+    const original = await sharp(readFileSync(new URL("../../../../e2e/fixtures/synthetic-front.jpg", import.meta.url)))
+      .resize(900)
+      .jpeg()
+      .toBuffer();
+    const pdf = await composeReportPdf({ report, conceptJpeg: concept, originalJpeg: original, brandName: "MXVA", supportEmail: "support@example.com" });
     const audit = await auditReportPdf(pdf, report);
     expect(audit.problems).toEqual([]);
     expect(audit.ok).toBe(true);
-    expect(audit.images).toBeGreaterThanOrEqual(1);
+    // Before and after: the buyer's photo and the concept, side by side.
+    expect(audit.images).toBeGreaterThanOrEqual(2);
     expect(audit.pages).toBeGreaterThanOrEqual(5);
     expect(new Set(audit.links)).toEqual(new Set(report.usedSources.map((source) => source.url)));
     expect(pdf.byteLength).toBeLessThan(5 * 1024 * 1024);

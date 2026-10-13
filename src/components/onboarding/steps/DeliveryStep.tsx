@@ -76,7 +76,8 @@ export function DeliveryStep() {
                 {...form.register("faceProcessingConsent")}
               />
               <span>
-                I agree that my photos are sent to MXVA&apos;s server and its AI providers, only to create my report, as described in the{" "}
+                I agree that my photos are sent to MXVA&apos;s server and its AI providers, only to create my report, and that my report
+                (my photo next to my concept) is emailed to me, as described in the{" "}
                 <Link href="/privacy" target="_blank" className="underline underline-offset-2">
                   Privacy Policy
                 </Link>

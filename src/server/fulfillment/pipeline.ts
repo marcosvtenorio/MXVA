@@ -107,7 +107,14 @@ export async function runPipeline(args: {
   try {
     if (serverEnv().MOCK_FORCE_FAILURE === "pdf" && simulated) throw new Error("forced");
     report = planReport(input, observations, { simulated });
-    pdf = await composeReportPdf({ report, conceptJpeg: edited, brandName: publicConfig.brandName, supportEmail: supportEmail(), timeZone });
+    pdf = await composeReportPdf({
+      report,
+      conceptJpeg: edited,
+      originalJpeg: front.jpeg,
+      brandName: publicConfig.brandName,
+      supportEmail: supportEmail(),
+      timeZone,
+    });
     const audit = await auditReportPdf(pdf, report);
     if (!audit.ok) {
       console.error(`[fulfillment] pdf audit failed: ${audit.problems.join(",")}`);

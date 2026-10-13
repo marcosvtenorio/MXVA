@@ -72,7 +72,7 @@ const orderBody = {
   method: "pix",
   email: "pix.buyer@example.com",
   adultConfirmed: true,
-  faceProcessingConsentVersion: "2026-10-11.v1",
+  faceProcessingConsentVersion: "2026-10-13.v1",
   termsVersion: "2026-10-11.v1",
   marketingOptIn: false,
   countryHint: "BR",

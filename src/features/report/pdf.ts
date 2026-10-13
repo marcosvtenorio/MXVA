@@ -45,6 +45,8 @@ const REPLACEMENTS: Record<string, string> = { "≥": ">=", "≤": "<=", "→": 
 export type ComposeInput = {
   report: PaidReport;
   conceptJpeg: Uint8Array;
+  /** The buyer's own front photo (normalised JPEG), shown next to the concept: before and after. */
+  originalJpeg: Uint8Array;
   brandName: string;
   supportEmail: string;
   /** The buyer's IANA time zone; the date is theirs, not the server's (UTC). */
@@ -175,7 +177,7 @@ class Writer {
   }
 }
 
-function drawImagePage(writer: Writer, image: PDFImage, report: PaidReport): void {
+function drawImagePage(writer: Writer, before: PDFImage, image: PDFImage, report: PaidReport): void {
   writer.newPage();
   writer.label("Your AI concept image");
   writer.heading("Your glow-up, on your own face", 18);
@@ -188,13 +190,26 @@ function drawImagePage(writer: Writer, image: PDFImage, report: PaidReport): voi
     });
   }
 
+  // Before and after, side by side at the same height: the buyer's photo, then the concept.
+  const gap = 14;
+  const column = (CONTENT_WIDTH - gap) / 2;
   const maxHeight = PAGE.height * 0.46;
-  const scale = Math.min(CONTENT_WIDTH / image.width, maxHeight / image.height, 1);
-  const width = image.width * scale;
-  const height = image.height * scale;
-  writer.ensure(height + 20);
-  writer.page.drawImage(image, { x: MARGIN + (CONTENT_WIDTH - width) / 2, y: writer.y - height, width, height });
-  writer.y -= height + 16;
+  const fit = (picture: PDFImage) => Math.min(column / picture.width, maxHeight / picture.height) * picture.height;
+  const height = Math.min(fit(before), fit(image));
+  const labelSize = 9.5;
+  writer.ensure(height + labelSize * 2 + 20);
+  const top = writer.y;
+  const pictures: [PDFImage, string][] = [
+    [before, "Today"],
+    [image, "Your concept"],
+  ];
+  pictures.forEach(([picture, label], index) => {
+    const width = Math.min(column, (picture.width / picture.height) * height);
+    const x = MARGIN + index * (column + gap) + (column - width) / 2;
+    writer.page.drawText(label.toUpperCase(), { x, y: top - labelSize, size: labelSize, font: writer.bold, color: index === 0 ? MUTED : ACCENT });
+    writer.page.drawImage(picture, { x, y: top - labelSize * 1.8 - height, width, height });
+  });
+  writer.y = top - labelSize * 1.8 - height - 16;
 
   writer.label("What was changed");
   writer.bullets(report.imageEditSummary, 10);
@@ -215,6 +230,7 @@ export async function composeReportPdf(input: ComposeInput): Promise<Uint8Array>
   const regular = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const image = await doc.embedJpg(input.conceptJpeg);
+  const before = await doc.embedJpg(input.originalJpeg);
   const writer = new Writer(doc, regular, bold);
 
   // ── Cover ──
@@ -243,7 +259,7 @@ export async function composeReportPdf(input: ComposeInput): Promise<Uint8Array>
   );
 
   // ── Concept image ──
-  drawImagePage(writer, image, report);
+  drawImagePage(writer, before, image, report);
 
   // ── Observations ──
   writer.newPage();
