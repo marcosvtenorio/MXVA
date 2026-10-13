@@ -17,7 +17,9 @@ const MAX_KEYS = 50_000;
 export type RateRule = { limit: number; windowMs: number };
 
 export const RATE_RULES = {
-  createOrder: { limit: 10, windowMs: 10 * 60_000 },
+  // Generous enough for several tabs, method switches and mobile carriers that put many
+  // buyers behind one IP (CGNAT, common in Brazil); still caps checkout-session spam.
+  createOrder: { limit: 30, windowMs: 10 * 60_000 },
   orderStatus: { limit: 120, windowMs: 60_000 },
   fulfill: { limit: 6, windowMs: 10 * 60_000 },
   retry: { limit: 10, windowMs: 10 * 60_000 },
