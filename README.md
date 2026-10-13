@@ -51,19 +51,20 @@ The end-to-end suite starts its own dev server (port 3100, build dir `.next-e2e`
 
 Payments are confirmed only on the server: by the provider's webhook or by the server asking Stripe / AbacatePay for the payment state. Locally no webhook is needed.
 
-## Test results (12 Oct 2026)
+## Test results (13 Oct 2026)
 
 | Suite | Result |
 |---|---|
-| Vitest (unit + API integration) | **142 passed** (26 files), plus 5 opt-in real-database tests |
-| Postgres repository contract (opt-in) | **5 passed** on Postgres 17 (local) and Postgres 18 (Railway) |
-| Playwright, dev server (Chrome desktop, Android Chrome, iPhone Safari/WebKit) | **129 passed** (43 tests × 3 engines) |
+| Vitest (unit + API integration) | **162 passed** (28 files), plus opt-in real-database and live-AI tests |
+| Postgres repository contract (opt-in) | **6 passed** on Postgres 17 (local); migrations run on Railway before each deploy |
+| Playwright, dev server (Chrome desktop, Android Chrome) | **90 passed** (45 tests × 2 engines; `E2E_WEBKIT=1` adds iPhone Safari) |
 | Playwright, production build | **3 passed** |
 | Stripe test mode, local dev server | 4242 paid → report; 4000…0002 declined, order left unpaid; 3D Secure challenge → paid |
 | AbacatePay Dev Mode, local dev server | real sandbox Pix code (QR + copy) → simulated payment → server check → report |
 | Live AI (opt-in, `LIVE_AI_PHOTO=…`) | vision 9 s, image edit 75 s, identity check passed first try, PDF audit passed, email accepted |
 | Full flow, local dev server | Pix sandbox → real AI concept and plan in 90 s → PDF → email received |
 | axe-core (WCAG 2.1 A/AA) on landing, start, sample, privacy, help and the funnel | no serious or critical violations |
+| Manual QA on the live staging site, UI only (iPhone WebKit, Android Chrome, desktop, small phone, dark mode) | card (paid, declined, 3D Secure), Pix, two tabs (card and Pix share one checkout; only the paying tab makes the report), leaving and coming back, reload and background tab mid-report, double taps, offline, a server restart mid-report (the page carries on by itself) |
 
 What the end-to-end matrix covers (spec §12): start-to-result, conditionals, invalid uploads, reload clears photos (answers stay), age gate, consent gate, payment redirect with reselect and no second charge, faked `paid=true` refused (`ORDER_NOT_PAID`), refresh after delivery points to email, storage and network leak checks before payment, console never logs photo data, 320/375/768/1440 px without horizontal scroll, production flags block every mock.
 Covered by unit/integration tests instead: duplicate webhooks (one state change), Stripe signature verification, QC failure → retry → never delivered, email failure keeps the report downloadable, concurrent fulfilment (exactly one runs).
