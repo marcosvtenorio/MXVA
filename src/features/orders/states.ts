@@ -49,6 +49,8 @@ export type Order = {
   /** AbacatePay PIX charge id (transparent checkout). */
   providerChargeId: string | null;
   chargeExpiresAt: string | null;
+  /** The PIX copy-and-paste code, so another tab can show the same charge. */
+  providerBrCode: string | null;
   email: string;
   currency: "usd" | "brl";
   amountMinor: number;

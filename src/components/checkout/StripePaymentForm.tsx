@@ -4,13 +4,14 @@ import { loadStripe } from "@stripe/stripe-js";
 import { CheckoutElementsProvider, PaymentElement, ExpressCheckoutElement, useCheckoutElements } from "@stripe/react-stripe-js/checkout";
 import { useMemo, useState } from "react";
 import { Lock } from "@/components/common/icons";
+import { api } from "@/lib/api-client";
 import { publicConfig } from "@/lib/config";
 
 /**
  * Phase B: Stripe Checkout Sessions with the embedded Payment Element. Only mounted when
  * the server returned a Stripe client secret (real payments enabled and fully configured).
  */
-function PaymentBody({ onPaid, onError }: { onPaid: () => void; onError: (message: string) => void }) {
+function PaymentBody({ onPaid, onError, onStale }: { onPaid: () => void; onError: (message: string) => void; onStale: () => void }) {
   const result = useCheckoutElements();
   const [busy, setBusy] = useState(false);
   if (result.type !== "success") {
@@ -30,12 +31,19 @@ function PaymentBody({ onPaid, onError }: { onPaid: () => void; onError: (messag
       if (outcome.type === "success") onPaid();
       // A decline is already shown on the card field; add what it means instead of repeating it.
       else if (outcome.error.code === "paymentFailed") onError("Nothing was charged. Check the card details above or try another card.");
-      else onError(outcome.error.message);
+      else await settleElsewhere(outcome.error.message);
     } catch {
       onError("The payment couldn't be confirmed. Nothing was charged; try again.");
     } finally {
       setBusy(false);
     }
+  }
+  // This form's session may have been paid or replaced in another tab: ask before showing an error.
+  async function settleElsewhere(message: string) {
+    const current = await api.currentOrder().catch(() => undefined);
+    if (current?.order.unfinished) return onPaid();
+    if (!current?.pending || current.pending.method !== "card") return onStale();
+    onError(message);
   }
   return (
     <div className="grid gap-4">
@@ -53,10 +61,13 @@ export function StripePaymentForm({
   clientSecret,
   onPaid,
   onError,
+  onStale,
 }: {
   clientSecret: string;
   onPaid: () => void;
   onError: (message: string) => void;
+  /** This card session is no longer this browser's open checkout (replaced in another tab). */
+  onStale: () => void;
 }) {
   const stripePromise = useMemo(() => loadStripe(publicConfig.stripePublishableKey), []);
   return (
@@ -82,7 +93,7 @@ export function StripePaymentForm({
         },
       }}
     >
-      <PaymentBody onPaid={onPaid} onError={onError} />
+      <PaymentBody onPaid={onPaid} onError={onError} onStale={onStale} />
     </CheckoutElementsProvider>
   );
 }

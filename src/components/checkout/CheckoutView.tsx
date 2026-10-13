@@ -109,6 +109,31 @@ export function CheckoutView() {
     })();
   }, [onboarding, router, setCard, setMethod, setOffers, setPix]);
 
+  // Paid in another tab, or a PIX code paid in the bank app: move on from this tab too. Only an
+  // order this tab saw open counts, so a finished earlier purchase never blocks buying again.
+  useEffect(() => {
+    if (view.state !== "ready") return;
+    let cancelled = false;
+    let sawOpen = false;
+    const timer = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      api
+        .currentOrder()
+        .then(({ order, pending }) => {
+          if (cancelled) return;
+          if (pending) sawOpen = true;
+          // This tab holds a checkout (card session or Pix code) for the browser's order.
+          const { card: openCard, pix: openPix } = useCheckoutStore.getState();
+          if (order.unfinished || ((sawOpen || Boolean(openCard || openPix)) && order.paid)) router.replace("/processing");
+        })
+        .catch(() => undefined);
+    }, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [view.state, router]);
+
   // Next keeps this page alive (hidden) after leaving it. Coming back (e.g. Back from the
   // result) must check the order again before showing a payment form.
   useLayoutEffect(
@@ -321,7 +346,17 @@ export function CheckoutView() {
               <>
                 {!card && !error ? <p className="text-[15px] text-ink-2">Preparing card payment…</p> : null}
                 {card?.checkout.mode === "stripe" ? (
-                  <StripePaymentForm clientSecret={card.checkout.clientSecret} onPaid={paid} onError={(message) => failed("ORDER_NOT_PAID", message)} />
+                  <StripePaymentForm
+                    key={card.checkout.clientSecret}
+                    clientSecret={card.checkout.clientSecret}
+                    onPaid={paid}
+                    onError={(message) => failed("ORDER_NOT_PAID", message)}
+                    onStale={() => {
+                      // Checkout was opened again in another tab: load this browser's current one.
+                      setError("Your checkout was refreshed. Please enter your card again.");
+                      setCard(undefined);
+                    }}
+                  />
                 ) : null}
                 {card?.checkout.mode === "mock" && devPreviewEnabled ? (
                   <div className="grid gap-3">

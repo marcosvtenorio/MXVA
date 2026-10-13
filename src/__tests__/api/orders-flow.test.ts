@@ -172,6 +172,45 @@ describe("order API (mock payments, development build)", () => {
     }
   });
 
+  it("gives a second tab the checkout already open (same method and email), not a new order", async () => {
+    const first = await createOrderRoute(post("/api/orders", orderBody));
+    const cookie = cookieFrom(first);
+    const again = await createOrderRoute(post("/api/orders", orderBody, cookie));
+    expect(again.status).toBe(200);
+    expect(await again.json()).toMatchObject({ alreadyPaid: false, checkout: { mode: "mock" }, order: { status: "pending_payment" } });
+    expect(repository.list()).toHaveLength(1);
+
+    // A Pix code is shown again as the same code.
+    const pix = await createOrderRoute(post("/api/orders", { ...orderBody, method: "pix" }));
+    const pixCookie = cookieFrom(pix);
+    const code = (await pix.json()).checkout.brCode;
+    const samePix = await (await createOrderRoute(post("/api/orders", { ...orderBody, method: "pix" }, pixCookie))).json();
+    expect(samePix.checkout.brCode).toBe(code);
+    expect(repository.list()).toHaveLength(2);
+
+    // Another email is another purchase.
+    const other = await createOrderRoute(post("/api/orders", { ...orderBody, email: "someone.else@example.com" }, cookie));
+    expect(other.status).toBe(201);
+    expect(repository.list()).toHaveLength(3);
+  });
+
+  it("follows an earlier Pix code that was paid after checkout was opened again with another method", async () => {
+    const pix = await createOrderRoute(post("/api/orders", { ...orderBody, method: "pix" }));
+    const pixCookie = cookieFrom(pix);
+    // The buyer switches to card: a new order, but the Pix code may still be paid in the bank app.
+    const card = await createOrderRoute(post("/api/orders", orderBody, pixCookie));
+    expect(card.status).toBe(201);
+    const cardCookie = cookieFrom(card);
+    // ...and it is: the bank pays the first code.
+    await mockPayRoute(post("/api/dev/mock-pay", { outcome: "succeeded" }, pixCookie));
+
+    const current = await currentOrderRoute(get("/api/orders/current", cardCookie));
+    expect(await current.json()).toMatchObject({ order: { status: "paid", unfinished: true }, pending: null });
+    expect(current.headers.get("set-cookie")).toMatch(/mxva_order=/);
+    const checkoutAgain = await (await createOrderRoute(post("/api/orders", orderBody, cardCookie))).json();
+    expect(checkoutAgain).toMatchObject({ alreadyPaid: true, order: { status: "paid" } });
+  });
+
   it("simulates Pix in reais through the same payment path", async () => {
     const created = await createOrderRoute(post("/api/orders", { ...orderBody, method: "pix" }));
     expect(created.status).toBe(201);

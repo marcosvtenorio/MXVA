@@ -27,6 +27,7 @@ const base: Order = {
   stripePaymentIntentId: null,
   providerChargeId: null,
   chargeExpiresAt: null,
+  providerBrCode: null,
   email: "buyer@example.com",
   currency: "usd",
   amountMinor: 2900,

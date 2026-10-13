@@ -11,6 +11,7 @@ type OrderRow = {
   stripe_payment_intent_id: string | null;
   provider_charge_id: string | null;
   charge_expires_at: Date | null;
+  provider_br_code: string | null;
   email: string;
   currency: "usd" | "brl";
   amount_minor: number;
@@ -42,6 +43,7 @@ function fromRow(row: OrderRow): Order {
     stripePaymentIntentId: row.stripe_payment_intent_id,
     providerChargeId: row.provider_charge_id,
     chargeExpiresAt: iso(row.charge_expires_at),
+    providerBrCode: row.provider_br_code,
     email: row.email,
     currency: row.currency,
     amountMinor: row.amount_minor,
@@ -71,6 +73,7 @@ const COLUMNS = [
   "stripe_payment_intent_id",
   "provider_charge_id",
   "charge_expires_at",
+  "provider_br_code",
   "email",
   "currency",
   "amount_minor",
@@ -100,6 +103,7 @@ function values(order: Order): unknown[] {
     order.stripePaymentIntentId,
     order.providerChargeId,
     order.chargeExpiresAt,
+    order.providerBrCode,
     order.email,
     order.currency,
     order.amountMinor,

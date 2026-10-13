@@ -17,6 +17,8 @@ export const ORDER_COOKIE_NAME = isProductionBuild ? "__Host-mxva_order" : "mxva
 const payloadSchema = z.object({
   v: z.literal(1),
   oid: z.uuid(),
+  /** An earlier PIX order this browser was shown and could still pay (see paidPreviousOrder). */
+  prv: z.uuid().optional(),
   iat: z.number().int(),
   exp: z.number().int(),
 });
@@ -27,8 +29,19 @@ function sign(data: string, secret: string): string {
   return createHmac("sha256", secret).update(data).digest("base64url");
 }
 
-export function createOrderSessionToken(orderId: string, nowSeconds = Math.floor(Date.now() / 1000), secret = cookieSigningSecret()): string {
-  const payload: OrderSession = { v: 1, oid: orderId, iat: nowSeconds, exp: nowSeconds + ORDER_SESSION_TTL_SECONDS };
+export function createOrderSessionToken(
+  orderId: string,
+  nowSeconds = Math.floor(Date.now() / 1000),
+  secret = cookieSigningSecret(),
+  previous?: string,
+): string {
+  const payload: OrderSession = {
+    v: 1,
+    oid: orderId,
+    ...(previous && previous !== orderId ? { prv: previous } : {}),
+    iat: nowSeconds,
+    exp: nowSeconds + ORDER_SESSION_TTL_SECONDS,
+  };
   const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return `${data}.${sign(data, secret)}`;
 }

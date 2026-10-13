@@ -1,10 +1,11 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import type { ApiErrorCode } from "@/lib/api-errors";
-import { paymentOffer, serverEnv, type PaymentMethod } from "@/server/config";
+import { paymentOffer, providerIsSandbox, sandboxToolsAllowed, serverEnv, type PaymentMethod } from "@/server/config";
 import { trackServer } from "@/server/analytics";
 import { ApiError } from "@/server/http";
 import { paymentProvider, type CheckoutInit, type PaymentFact } from "@/server/payment/adapter";
+import { readOrderCookie, verifyOrderSessionToken } from "@/server/security/session";
 import { orderRepository } from "./repository";
 import {
   FULFILLMENT_VERSION,
@@ -15,6 +16,7 @@ import {
   emailFailed,
   fulfillmentDelivered,
   fulfillmentFailed,
+  isPaidStatus,
   paymentSucceeded,
   refunded,
   retryRequested,
@@ -49,6 +51,58 @@ export function orderMethod(order: Order): PaymentMethod {
   return order.providerChargeId ? "pix" : "card";
 }
 
+/** Shorter than this left on a PIX code, another tab gets a fresh one instead. */
+const PIX_REUSE_MIN_MS = 2 * 60_000;
+
+/** A pending PIX order whose code can still be paid in a bank app. */
+export function hasPayablePixCharge(order: Order, now = Date.now()): boolean {
+  return order.status === "pending_payment" && Boolean(order.providerChargeId) && Date.parse(order.chargeExpiresAt ?? "") > now;
+}
+
+/**
+ * One open checkout per browser. Another tab (or a return to checkout) asking for the same
+ * method and email gets the checkout that is already open, so every tab pays the same order:
+ * no card form goes stale and no second PIX code is issued. Undefined when it can't be reused.
+ */
+export async function reusableCheckout(order: Order, method: PaymentMethod, email: string): Promise<CheckoutInit | undefined> {
+  if (order.status !== "pending_payment" || orderMethod(order) !== method || order.email !== email) return undefined;
+  if (method === "pix") {
+    if (!order.providerChargeId || !order.providerBrCode || !order.chargeExpiresAt) return undefined;
+    if (Date.parse(order.chargeExpiresAt) - Date.now() < PIX_REUSE_MIN_MS) return undefined;
+    const simulated = order.paymentMode === "mock";
+    const sandbox = simulated || providerIsSandbox("abacatepay");
+    return {
+      mode: "pix",
+      chargeId: order.providerChargeId,
+      brCode: order.providerBrCode,
+      expiresAt: order.chargeExpiresAt,
+      sandbox,
+      simulated,
+      canSimulate: simulated || (sandbox && sandboxToolsAllowed()),
+    };
+  }
+  if (!order.stripeCheckoutSessionId) return undefined;
+  if (order.paymentMode === "mock") return { mode: "mock", checkoutSessionId: order.stripeCheckoutSessionId };
+  if (order.paymentMode !== "stripe") return undefined;
+  const { openSessionClientSecret } = await import("@/server/payment/stripe");
+  const clientSecret = await openSessionClientSecret(order.stripeCheckoutSessionId);
+  return clientSecret ? { mode: "stripe", checkoutSessionId: order.stripeCheckoutSessionId, clientSecret } : undefined;
+}
+
+/**
+ * An earlier PIX order this browser was shown, if it got paid after a newer checkout replaced it
+ * (e.g. the buyer paid the first code in the bank app, then opened checkout again). The browser
+ * then follows that paid order instead of the newer, unpaid one.
+ */
+export async function paidPreviousOrder(request: Request): Promise<Order | undefined> {
+  const previousId = verifyOrderSessionToken(readOrderCookie(request))?.prv;
+  if (!previousId) return undefined;
+  const previous = await (await orderRepository()).findById(previousId);
+  if (!previous) return undefined;
+  const fresh = await refreshPaymentStatus(previous).catch(() => previous);
+  return isPaidStatus(fresh.status) && fresh.status !== "refunded" ? fresh : undefined;
+}
+
 export async function createOrder(input: CreateOrderInput): Promise<{ order: Order; checkout: CheckoutInit }> {
   const offer = paymentOffer(input.method);
   if (!offer) throw new ApiError("SERVICE_UNAVAILABLE", "This payment method isn't available right now. Try the other one, or check back soon.");
@@ -76,6 +130,7 @@ export async function createOrder(input: CreateOrderInput): Promise<{ order: Ord
     stripePaymentIntentId: null,
     providerChargeId: checkout.mode === "pix" ? checkout.chargeId : null,
     chargeExpiresAt: checkout.mode === "pix" ? checkout.expiresAt : null,
+    providerBrCode: checkout.mode === "pix" ? checkout.brCode : null,
     email: input.email,
     currency: price.currency,
     amountMinor: price.amountMinor,

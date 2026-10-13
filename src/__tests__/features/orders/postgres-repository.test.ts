@@ -29,6 +29,7 @@ const order = (overrides: Partial<Order> = {}): Order => ({
   stripePaymentIntentId: null,
   providerChargeId: `pix_char_${randomUUID()}`,
   chargeExpiresAt: "2026-10-12T10:30:00.000Z",
+  providerBrCode: "00020101021226850014br.gov.bcb.pix0136pg-contract5204000053039865406047.995802BR6304ABCD",
   email: "pg.contract@example.com",
   currency: "brl",
   amountMinor: 4799,

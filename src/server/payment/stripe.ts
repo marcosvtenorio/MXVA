@@ -102,6 +102,12 @@ export async function checkCheckoutSession(sessionId: string): Promise<PaymentFa
   return undefined;
 }
 
+/** The client secret of a session that can still be paid, so another tab shows the same card form. */
+export async function openSessionClientSecret(sessionId: string): Promise<string | undefined> {
+  const session = await stripe().checkout.sessions.retrieve(sessionId);
+  return session.status === "open" && session.client_secret ? session.client_secret : undefined;
+}
+
 /** Closes an unpaid session so it can't be paid after the buyer switched method. Best effort. */
 export async function expireCheckoutSession(sessionId: string): Promise<void> {
   try {
