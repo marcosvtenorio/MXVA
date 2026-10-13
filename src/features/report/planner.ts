@@ -1,5 +1,5 @@
 import type { FocusArea, ReportInput } from "@/features/onboarding/schema";
-import { FOCUS_OPTIONS, GOAL_OPTIONS } from "@/features/onboarding/steps";
+import { FOCUS_OPTIONS } from "@/features/onboarding/steps";
 import { BUDGET_ORDER, HAIRCUT_DESCRIPTIONS, IMAGE_EDIT_LINES, LIBRARY, type RecommendationTemplate } from "./library";
 import { getSource, onlyRegisteredIds } from "./references";
 import {
@@ -179,10 +179,8 @@ export function planReport(
     title: "Your appearance roadmap",
     createdAt: (options.now ?? new Date()).toISOString(),
     disclaimer: SIMULATION_DISCLAIMER,
-    goalsSummary: [
-      ...input.goals.map((goal) => GOAL_OPTIONS.find((option) => option.id === goal)?.label ?? goal),
-      ...input.focusAreas.map((area) => `Focus: ${AREA_LABEL[area]}`),
-    ],
+    // The areas the plan covers (chosen from the photo, not by the buyer).
+    goalsSummary: input.focusAreas.map((area) => AREA_LABEL[area]),
     observations: observations.observations.filter((entry) => input.focusAreas.includes(entry.area)),
     cannotAssess: observations.cannotAssess.slice(0, 10),
     recommendations,

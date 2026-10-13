@@ -8,7 +8,7 @@ import { Tick } from "@/components/common/icons";
 import { PlasterHead } from "@/components/common/StudioArt";
 import { PhotoCapture } from "@/components/photos/PhotoCapture";
 import { track } from "@/features/analytics/client";
-import { fulfillInputSchema } from "@/features/onboarding/schema";
+import { fulfillInputSchema, timeZoneSchema } from "@/features/onboarding/schema";
 import { useOnboardingStore } from "@/features/onboarding/store";
 import { frontPhotoReady, usePhotoStore } from "@/features/photos/memory-store";
 import { base64ToBlob, useResultStore } from "@/features/results/memory-store";
@@ -37,6 +37,16 @@ type Mode =
 
 const RESELECT_COPY =
   "Your payment is safe. Please reselect your photos so we can complete your report — there is no second charge.";
+
+/** The buyer's time zone, so the report carries their date. Left out if the browser's is unknown. */
+function browserTimeZone(): string | undefined {
+  try {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return timeZoneSchema.safeParse(zone).success ? zone : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 function Sheet({ children }: { children: React.ReactNode }) {
   return (
@@ -89,7 +99,7 @@ export function ProcessingView() {
   const started = useRef(false);
 
   // The plan and the concept are decided from the photo; only the buyer's constraints go along.
-  const reportInput = fulfillInputSchema.safeParse({ constraints: onboarding.constraints });
+  const reportInput = fulfillInputSchema.safeParse({ constraints: onboarding.constraints, timeZone: browserTimeZone() });
   const consentGiven = onboarding.faceProcessingConsent || consent;
 
   const start = useCallback(async () => {

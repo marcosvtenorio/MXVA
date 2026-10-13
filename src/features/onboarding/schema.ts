@@ -181,6 +181,19 @@ export const reportInputSchema = z.object({
 export type ReportInput = z.infer<typeof reportInputSchema>;
 
 /** What the browser sends to /api/fulfill (no photos, no aesthetic choices). */
-export const fulfillInputSchema = z.object({ constraints: constraintsSchema }).strict();
+/** An IANA time zone such as "America/Sao_Paulo": the report is dated in the buyer's day. */
+export const timeZoneSchema = z
+  .string()
+  .max(64)
+  .refine((zone) => {
+    try {
+      new Intl.DateTimeFormat("en-GB", { timeZone: zone });
+      return true;
+    } catch {
+      return false;
+    }
+  });
+
+export const fulfillInputSchema = z.object({ constraints: constraintsSchema, timeZone: timeZoneSchema.optional() }).strict();
 
 export type FulfillInput = z.infer<typeof fulfillInputSchema>;

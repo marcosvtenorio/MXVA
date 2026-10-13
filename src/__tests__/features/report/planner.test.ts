@@ -16,6 +16,7 @@ import {
   reportInputSchema,
   type ReportInput,
 } from "@/features/onboarding/schema";
+import { FOCUS_OPTIONS } from "@/features/onboarding/steps";
 import { BUDGET_ORDER, LIBRARY } from "@/features/report/library";
 import { buildImageEditInstructions, planReport } from "@/features/report/planner";
 import { EVIDENCE_REGISTRY, hasSource } from "@/features/report/references";
@@ -126,6 +127,13 @@ describe("recommendation planner", () => {
       expect(report.sevenDayPlan.length).toBeGreaterThan(0);
       expect(report.ninetyDayPlan.length).toBeGreaterThan(0);
     }
+  });
+
+  it("summarises the areas the plan covers, not goals the buyer never chose", () => {
+    const input = randomInput(7);
+    const report = planReport(input, observations, { simulated: true });
+    expect(report.goalsSummary).toEqual(input.focusAreas.map((area) => FOCUS_OPTIONS.find((option) => option.id === area)!.label));
+    expect(report.goalsSummary.join(" ")).not.toMatch(/Focus:|My overall look/);
   });
 
   it("covers each chosen focus area first", () => {

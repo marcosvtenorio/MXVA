@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   FACE_PROCESSING_CONSENT_VERSION,
   TERMS_VERSION,
+  fulfillInputSchema,
   onboardingAnswersSchema,
   stepSchemas,
 } from "@/features/onboarding/schema";
@@ -67,6 +68,13 @@ describe("onboarding schemas", () => {
     expect(stepSchemas.delivery.safeParse({ ...base, faceProcessingConsent: false }).success).toBe(false);
     expect(stepSchemas.delivery.safeParse({ ...base, termsAccepted: false }).success).toBe(false);
     expect(stepSchemas.delivery.safeParse({ ...base, email: "not-an-email" }).success).toBe(false);
+  });
+
+  it("takes the buyer's time zone for the report date, and only a real one", () => {
+    const constraints = { avoid: [] };
+    expect(fulfillInputSchema.safeParse({ constraints, timeZone: "America/Sao_Paulo" }).success).toBe(true);
+    expect(fulfillInputSchema.safeParse({ constraints }).success).toBe(true);
+    expect(fulfillInputSchema.safeParse({ constraints, timeZone: "Mars/Olympus_Mons" }).success).toBe(false);
   });
 
   it("rejects outdated consent or terms versions", () => {

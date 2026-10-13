@@ -55,9 +55,11 @@ export async function runPipeline(args: {
   front: ServerPhoto;
   profiles: ServerPhoto[];
   constraints: Constraints;
+  /** The buyer's IANA time zone, for the report's date. */
+  timeZone?: string;
   onPhase: (phase: FulfillmentPhase) => void;
 }): Promise<FulfillmentOutput> {
-  const { order, front, profiles, constraints, onPhase } = args;
+  const { order, front, profiles, constraints, timeZone, onPhase } = args;
   const vision = visionProvider();
   const editor = imageEditProvider();
   const gate = identityQualityGate();
@@ -105,7 +107,7 @@ export async function runPipeline(args: {
   try {
     if (serverEnv().MOCK_FORCE_FAILURE === "pdf" && simulated) throw new Error("forced");
     report = planReport(input, observations, { simulated });
-    pdf = await composeReportPdf({ report, conceptJpeg: edited, brandName: publicConfig.brandName, supportEmail: supportEmail() });
+    pdf = await composeReportPdf({ report, conceptJpeg: edited, brandName: publicConfig.brandName, supportEmail: supportEmail(), timeZone });
     const audit = await auditReportPdf(pdf, report);
     if (!audit.ok) {
       console.error(`[fulfillment] pdf audit failed: ${audit.problems.join(",")}`);

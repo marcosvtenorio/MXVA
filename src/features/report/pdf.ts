@@ -47,6 +47,8 @@ export type ComposeInput = {
   conceptJpeg: Uint8Array;
   brandName: string;
   supportEmail: string;
+  /** The buyer's IANA time zone; the date is theirs, not the server's (UTC). */
+  timeZone?: string;
 };
 
 class Writer {
@@ -176,7 +178,7 @@ class Writer {
 function drawImagePage(writer: Writer, image: PDFImage, report: PaidReport): void {
   writer.newPage();
   writer.label("Your AI concept image");
-  writer.heading("A concept of you, groomed and well lit", 18);
+  writer.heading("Your glow-up, on your own face", 18);
   writer.text(CONCEPT_LABEL, { size: 9.5, font: writer.bold, color: ACCENT, gap: report.simulated ? 2 : 10 });
   if (report.simulated) {
     writer.text("Development preview: produced by simulated providers, not a real AI edit.", {
@@ -219,10 +221,10 @@ export async function composeReportPdf(input: ComposeInput): Promise<Uint8Array>
   writer.text(input.brandName.toUpperCase(), { size: 11, font: bold, gap: 40 });
   writer.text(report.title, { size: 30, font: bold, leading: 36, gap: 8 });
   writer.text(
-    new Date(report.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
+    new Date(report.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: input.timeZone ?? "UTC" }),
     { size: 11, color: MUTED, gap: 28 },
   );
-  writer.label("Your goals");
+  writer.label("Your plan covers");
   writer.bullets(report.goalsSummary, 11);
   writer.y -= 14;
   writer.label("Inside");
