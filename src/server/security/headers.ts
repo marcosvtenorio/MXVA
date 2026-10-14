@@ -74,7 +74,7 @@ export const PRIVATE_ROUTE_SOURCES = [
   "/onboarding/:path*",
   "/checkout",
   "/processing",
-  "/result",
+  "/resume",
   "/api/:path*",
 ] as const;
 

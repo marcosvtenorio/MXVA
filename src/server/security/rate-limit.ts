@@ -26,6 +26,7 @@ export const RATE_RULES = {
   consent: { limit: 10, windowMs: 10 * 60_000 },
   events: { limit: 240, windowMs: 60_000 },
   devMockPay: { limit: 30, windowMs: 60_000 },
+  resume: { limit: 20, windowMs: 10 * 60_000 },
 } satisfies Record<string, RateRule>;
 
 /** Returns seconds until the next allowed hit, or 0 when allowed (and records the hit). */

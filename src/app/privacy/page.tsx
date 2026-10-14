@@ -9,12 +9,14 @@ export default function PrivacyPage() {
   const brand = publicConfig.brandName;
   const email = supportEmail();
   return (
-    <ProsePage title="Privacy Policy." tail="What happens to your photos and data." updated="Last updated 11 Oct 2026 · draft pending legal review">
+    <ProsePage title="Privacy Policy." tail="What happens to your photos and data." updated="Last updated 14 Oct 2026 · draft pending legal review">
       <h2>Your photos</h2>
       <ul>
         <li>Before you pay, your photos stay in your browser tab. They are not uploaded, and they are not saved to cookies, local storage or any other browser storage. Reloading or closing the tab clears them.</li>
         <li>After payment, your photos are transmitted temporarily to {brand}&apos;s server and to the AI providers we use, only to create the report you bought.</li>
         <li>No raw photo is intentionally written to storage controlled by {brand}. Photos are processed in memory and discarded when your report is done.</li>
+        <li>Your report is made in a queue: while it waits its turn (usually minutes), your photo is held only in our server&apos;s memory. If that server restarts, the photo is lost and we email you a link to send it again, at no charge.</li>
+        <li>If your report can&apos;t be made, our team gets an automatic alert with your order number, email address and the technical error, never your photo, your concept image or your report.</li>
         <li>Our AI and email providers process data under their own terms, including their own safety review and retention schedules. We choose providers and settings that limit retention where they offer it, but their retention is outside our direct control.</li>
         <li>We don&apos;t create face embeddings, facial-recognition templates or any biometric identifier. A person can still be identifiable from a face photo, so we treat your photos as sensitive.</li>
       </ul>

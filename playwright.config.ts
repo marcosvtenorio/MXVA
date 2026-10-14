@@ -37,6 +37,8 @@ export default defineConfig({
       NEXT_PUBLIC_ENABLE_REAL_AI: "false",
       NEXT_PUBLIC_SHOW_DEV_PREVIEW: "true",
       DATABASE_URL: "",
+      // Every parallel test's report goes through this one server's queue.
+      FULFILLMENT_CONCURRENCY: "12",
     },
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

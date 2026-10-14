@@ -20,6 +20,7 @@ test.describe("accessibility (axe, WCAG 2.1 AA)", () => {
   }
 
   test("no serious violations across the funnel", async ({ page }) => {
+    test.slow();
     await runOnboarding(page, "photos");
     await axe(page);
     await page.goto("/start");
@@ -34,7 +35,9 @@ test.describe("accessibility (axe, WCAG 2.1 AA)", () => {
     await runOnboarding(page);
     await axe(page);
     await page.getByRole("button", { name: /Pay \$29 \(simulated\)/ }).click();
-    await page.waitForURL("**/result", { timeout: 60_000 });
+    await expect(page.getByRole("heading", { name: /Request received/ })).toBeVisible({ timeout: 30_000 });
+    await axe(page);
+    await expect(page.getByRole("heading", { name: /Your report is in your email/ })).toBeVisible({ timeout: 60_000 });
     await axe(page);
   });
 });

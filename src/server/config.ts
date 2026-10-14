@@ -56,6 +56,14 @@ const serverEnvSchema = z.object({
     .min(512 * 1024)
     .max(15 * 1024 * 1024)
     .default(8 * 1024 * 1024),
+  /** Reports made at the same time; the rest wait in the queue. Keep it under the OpenAI account's image rate limit. */
+  FULFILLMENT_CONCURRENCY: z.coerce.number().int().min(1).max(50).default(4),
+  /** Reports the queue holds (waiting or running) before new requests are asked to try again shortly. */
+  FULFILLMENT_MAX_QUEUED: z.coerce.number().int().min(1).max(5000).default(300),
+  /** First wait before an automatic retry; later retries wait longer (×4). */
+  FULFILLMENT_RETRY_DELAY_MS: z.coerce.number().int().min(10).max(10 * 60_000).default(30_000),
+  /** Where failure alerts go (order metadata and error logs only, never images). */
+  OWNER_ALERT_EMAIL: z.email().optional().or(z.literal("").transform(() => undefined)),
   POSTHOG_PROJECT_API_KEY: optionalSecret,
   POSTHOG_HOST: z.url().optional().or(z.literal("").transform(() => undefined)),
   /** Development/test only: force a mock pipeline failure to exercise error paths. */

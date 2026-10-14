@@ -22,6 +22,9 @@ export const API_ERROR_CODES = [
   "FORBIDDEN_ORIGIN",
   "NOT_FOUND",
   "ORDER_NOT_RETRYABLE",
+  // The report queue (src/server/fulfillment/queue.ts):
+  "QUEUE_FULL",
+  "FULFILLMENT_INTERRUPTED",
 ] as const;
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[number];
@@ -91,7 +94,7 @@ export const API_ERRORS: Record<ApiErrorCode, ErrorSpec> = {
   ALREADY_PROCESSING: {
     status: 409,
     retryable: true,
-    message: "Your report is already being created. Keep this tab open.",
+    message: "Your report is already being made. It arrives by email.",
     action: "wait",
   },
   AI_PROVIDER_FAILED: {
@@ -115,7 +118,7 @@ export const API_ERRORS: Record<ApiErrorCode, ErrorSpec> = {
   EMAIL_FAILED: {
     status: 502,
     retryable: true,
-    message: "Your report is ready but the email didn't go out. Download it here and we'll retry.",
+    message: "We couldn't email your report. Create it again — there's no second charge.",
     action: "retry",
   },
   RATE_LIMITED: {
@@ -148,6 +151,18 @@ export const API_ERRORS: Record<ApiErrorCode, ErrorSpec> = {
     retryable: false,
     message: "This order can't be retried automatically. Contact support and we'll sort it out.",
     action: "contact_support",
+  },
+  QUEUE_FULL: {
+    status: 503,
+    retryable: true,
+    message: "We're making a lot of reports right now. Try again in a few minutes — your payment is safe.",
+    action: "retry",
+  },
+  FULFILLMENT_INTERRUPTED: {
+    status: 503,
+    retryable: true,
+    message: "Your report was interrupted on our side. Create it again — there's no second charge.",
+    action: "retry",
   },
 };
 

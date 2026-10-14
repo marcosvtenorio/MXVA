@@ -15,7 +15,6 @@ function pageFor(pathname: string): PageId {
     "/start": "start",
     "/checkout": "checkout",
     "/processing": "processing",
-    "/result": "result",
     "/help": "help",
     "/privacy": "privacy",
     "/terms": "terms",

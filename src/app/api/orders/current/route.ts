@@ -1,6 +1,7 @@
 import { requireOrderFromRequest } from "@/features/orders/authorization";
 import { orderMethod, paidPreviousOrder, refreshPaymentStatus } from "@/features/orders/service";
 import { isPaidStatus, publicStatus } from "@/features/orders/states";
+import { ensureFulfillmentWorker } from "@/server/fulfillment/queue";
 import { handle, json } from "@/server/http";
 import { clientIp, enforceRateLimit } from "@/server/security/rate-limit";
 import { createOrderSessionToken, orderCookieHeader } from "@/server/security/session";
@@ -9,6 +10,7 @@ import { createOrderSessionToken, orderCookieHeader } from "@/server/security/se
 export async function GET(request: Request) {
   return handle(async () => {
     enforceRateLimit("orderStatus", clientIp(request));
+    ensureFulfillmentWorker();
     // Confirms with AbacatePay / Stripe directly instead of waiting for (or trusting) a webhook.
     const order = await refreshPaymentStatus(await requireOrderFromRequest(request));
     if (!isPaidStatus(order.status)) {

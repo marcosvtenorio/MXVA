@@ -1,32 +1,13 @@
-import { after } from "next/server";
 import { fulfillInputSchema } from "@/features/onboarding/schema";
 import { requireOrderFromRequest, requirePaid } from "@/features/orders/authorization";
-import { claimForFulfillment, markDelivered, markEmailFailed, markFailed, touchProcessing } from "@/features/orders/service";
-import { PROCESSING_HEARTBEAT_MS } from "@/features/orders/states";
-import { API_ERRORS, type ApiErrorCode } from "@/lib/api-errors";
-import { trackServer } from "@/server/analytics";
-import { ConfigError, serverEnv } from "@/server/config";
-import { NeedsHumanReview, runPipeline, type FulfillmentPhase } from "@/server/fulfillment/pipeline";
-import { ApiError, handle, readBytesLimited } from "@/server/http";
-import { REPORT_FILENAME } from "@/server/mail/email-adapter";
+import { claimForFulfillment, markFailed } from "@/features/orders/service";
+import { publicStatus } from "@/features/orders/states";
+import { serverEnv } from "@/server/config";
+import { fulfillmentQueue } from "@/server/fulfillment/queue";
+import { ApiError, handle, json, readBytesLimited } from "@/server/http";
 import { validateUploadedPhoto, type ServerPhoto } from "@/server/photos/validate";
 import { assertSameOriginRequest } from "@/server/security/csrf";
-import { NO_STORE_HEADERS } from "@/server/security/headers";
 import { enforceRateLimit } from "@/server/security/rate-limit";
-
-// Long AI calls: needs a persistent Node server (see README → hosting).
-export const maxDuration = 300;
-
-type StreamLine =
-  | { type: "phase"; phase: FulfillmentPhase }
-  | {
-      type: "result";
-      report: unknown;
-      image: { mime: "image/jpeg"; base64: string };
-      pdf: { filename: string; base64: string };
-      emailDelivered: boolean;
-    }
-  | { type: "error"; error: { code: ApiErrorCode; message: string; retryable: boolean } };
 
 function optionalFile(form: FormData, name: string): File | undefined {
   const value = form.get(name);
@@ -34,8 +15,9 @@ function optionalFile(form: FormData, name: string): File | undefined {
 }
 
 /**
- * Paid fulfilment. Photos arrive as multipart, are validated and processed in memory,
- * and the results stream back as NDJSON (real phases, then the result). Nothing is stored.
+ * Paid fulfilment request. The photos arrive as multipart and are validated here, then the report
+ * goes into the server's queue (photos in RAM only) and this answers at once with the buyer's place
+ * in line and an estimate: the report arrives by email. Nobody waits on an open request.
  */
 export async function POST(request: Request) {
   return handle(async () => {
@@ -72,89 +54,31 @@ export async function POST(request: Request) {
     const frontFile = optionalFile(form, "front");
     if (!frontFile) throw new ApiError("PHOTO_REQUIRED");
     // Validate everything before claiming, so a bad photo never costs an attempt.
-    const front = await validateUploadedPhoto(frontFile, maxBytes);
-    const profiles: ServerPhoto[] = [];
-    for (const name of ["left", "right"]) {
-      const file = optionalFile(form, name);
-      if (file) profiles.push(await validateUploadedPhoto(file, maxBytes));
-    }
-
-    const claimed = await claimForFulfillment(order.id);
-    if (claimed.status !== "processing") throw new ApiError("ORDER_NOT_RETRYABLE");
-    void trackServer("fulfillment_started", {}, order.id, order.countryHint).catch(() => undefined);
-
-    // If the browser's connection drops (a phone switching networks, a deploy replacing this
-    // server), the work goes on and the report is emailed. Registering it with after() makes a
-    // shutting-down server finish it before exiting.
-    let workDone!: () => void;
-    const work = new Promise<void>((resolve) => {
-      workDone = resolve;
-    });
+    const photos: ServerPhoto[] = [];
+    const wipe = () => photos.forEach((photo) => photo.jpeg.fill(0));
     try {
-      after(() => work);
-    } catch {
-      // Outside a Next request (unit tests): there is no server lifetime to extend.
+      const front = await validateUploadedPhoto(frontFile, maxBytes);
+      photos.push(front);
+      for (const name of ["left", "right"]) {
+        const file = optionalFile(form, name);
+        if (file) photos.push(await validateUploadedPhoto(file, maxBytes));
+      }
+      const queue = fulfillmentQueue();
+      queue.assertCapacity();
+      const claimed = await claimForFulfillment(order.id);
+      if (claimed.status !== "processing") throw new ApiError("ORDER_NOT_RETRYABLE");
+      let ticket;
+      try {
+        ticket = queue.enqueue({ order: claimed, front, profiles: photos.slice(1), constraints: input.constraints, timeZone: input.timeZone });
+      } catch (error) {
+        // Filled up while this claim was saved: free the order so the buyer can send it again shortly.
+        await markFailed(order.id, "QUEUE_FULL", true).catch(() => undefined);
+        throw error;
+      }
+      return json({ order: publicStatus(claimed), queue: ticket }, { status: 202 });
+    } catch (error) {
+      wipe();
+      throw error;
     }
-
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream<Uint8Array>({
-      async start(controller) {
-        let open = true;
-        const send = (line: StreamLine) => {
-          if (!open) return;
-          try {
-            controller.enqueue(encoder.encode(`${JSON.stringify(line)}\n`));
-          } catch {
-            open = false; // the browser went away; work continues and email still goes out
-          }
-        };
-        // While this server works, it refreshes the claim. If it stops (a deploy, a crash), the
-        // claim expires within PROCESSING_LEASE_MS and the buyer's page carries on with a new attempt.
-        const heartbeat = setInterval(() => void touchProcessing(order.id).catch(() => undefined), PROCESSING_HEARTBEAT_MS);
-        try {
-          const output = await runPipeline({ order: claimed, front, profiles, constraints: input.constraints, timeZone: input.timeZone, onPhase: (phase) => send({ type: "phase", phase }) });
-          if (output.emailDelivered && output.messageId) {
-            await markDelivered(order.id, output.messageId);
-            void trackServer("email_provider_accepted", {}, order.id, order.countryHint).catch(() => undefined);
-          } else {
-            await markEmailFailed(order.id);
-            void trackServer("fulfillment_failed", { code: "EMAIL_FAILED" }, order.id, order.countryHint).catch(() => undefined);
-          }
-          send({
-            type: "result",
-            report: output.report,
-            image: { mime: "image/jpeg", base64: output.conceptJpeg.toString("base64") },
-            pdf: { filename: REPORT_FILENAME, base64: Buffer.from(output.pdf).toString("base64") },
-            emailDelivered: output.emailDelivered,
-          });
-          output.conceptJpeg.fill(0);
-        } catch (error) {
-          const code: ApiErrorCode =
-            error instanceof ApiError ? error.code : error instanceof ConfigError ? "SERVICE_UNAVAILABLE" : "AI_PROVIDER_FAILED";
-          const humanReview = error instanceof NeedsHumanReview;
-          const retryable = !humanReview && API_ERRORS[code].retryable;
-          if (!(error instanceof ApiError)) console.error(`[fulfillment] ${error instanceof Error ? error.name : "unknown"} failure`);
-          await markFailed(order.id, code, retryable).catch(() => undefined);
-          void trackServer("fulfillment_failed", { code }, order.id, order.countryHint).catch(() => undefined);
-          const message = humanReview
-            ? "We need to review your order before creating a report. Our support team will email you."
-            : error instanceof ApiError
-              ? error.message
-              : API_ERRORS[code].message;
-          send({ type: "error", error: { code, message, retryable } });
-        } finally {
-          clearInterval(heartbeat);
-          front.jpeg.fill(0);
-          for (const profile of profiles) profile.jpeg.fill(0);
-          if (open) controller.close();
-          workDone();
-        }
-      },
-    });
-
-    return new Response(stream, {
-      status: 200,
-      headers: { ...NO_STORE_HEADERS, "Content-Type": "application/x-ndjson; charset=utf-8", "X-Accel-Buffering": "no" },
-    });
   });
 }

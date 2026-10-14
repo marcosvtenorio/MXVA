@@ -1,10 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import { InlineError } from "@/components/common/InlineError";
-import { Tick } from "@/components/common/icons";
 import { PlasterHead } from "@/components/common/StudioArt";
 import { PhotoCapture } from "@/components/photos/PhotoCapture";
 import { track } from "@/features/analytics/client";
@@ -12,33 +10,32 @@ import { fulfillInputSchema, timeZoneSchema } from "@/features/onboarding/schema
 import { useCheckoutStore } from "@/features/checkout/store";
 import { useOnboardingStore } from "@/features/onboarding/store";
 import { frontPhotoReady, usePhotoStore } from "@/features/photos/memory-store";
-import { base64ToBlob, useResultStore } from "@/features/results/memory-store";
 import type { PublicOrderStatus } from "@/features/orders/states";
 import { API_ERRORS } from "@/lib/api-errors";
-import { ApiClientError, ConnectionLostError, api, type FulfillmentPhase } from "@/lib/api-client";
-
-const PHASES: { id: FulfillmentPhase; label: string }[] = [
-  { id: "analysing_photo", label: "Reading your photo" },
-  { id: "preparing_image", label: "Preparing image" },
-  { id: "checking_image", label: "Checking likeness" },
-  { id: "building_report", label: "Building report" },
-  { id: "sending_email", label: "Sending email" },
-];
+import { ApiClientError, api, type QueueTicket } from "@/lib/api-client";
 
 type Mode =
   | { kind: "checking" }
   | { kind: "waiting_payment" }
   | { kind: "not_paid" }
   | { kind: "reselect"; reason?: string }
-  | { kind: "running"; phase?: FulfillmentPhase }
-  | { kind: "reconnecting" }
+  | { kind: "sending" }
+  /** The report is in the server's queue. The ticket is known only in the tab that sent the photo. */
+  | { kind: "queued"; ticket?: QueueTicket }
+  /** Paid in another tab, which is about to send its photo. */
   | { kind: "elsewhere"; canStartHere?: boolean }
-  | { kind: "error"; message: string; canRetry: boolean }
+  /** The photo didn't reach the queue; nothing was started. */
+  | { kind: "request_error"; message: string; canRetry: boolean }
+  /** The report failed after the server's retries; the buyer was emailed a link too. */
+  | { kind: "failed"; canRetry: boolean }
   | { kind: "delivered" }
   | { kind: "support"; message: string };
 
 const RESELECT_COPY =
   "Your payment is safe. Please reselect your photos so we can complete your report — there is no second charge.";
+
+/** How long an open page keeps checking for the email to go out. The report arrives either way. */
+const FOLLOW_FOR_MS = 90 * 60_000;
 
 /** The buyer's time zone, so the report carries their date. Left out if the browser's is unknown. */
 function browserTimeZone(): string | undefined {
@@ -50,6 +47,10 @@ function browserTimeZone(): string | undefined {
   }
 }
 
+function minutes(value: number): string {
+  return value <= 1 ? "about a minute" : `about ${value} minutes`;
+}
+
 function Sheet({ children }: { children: React.ReactNode }) {
   return (
     <div className="sheet flex-1">
@@ -59,45 +60,18 @@ function Sheet({ children }: { children: React.ReactNode }) {
   );
 }
 
-function PhaseList({ current }: { current?: FulfillmentPhase }) {
-  const index = current ? PHASES.findIndex((phase) => phase.id === current) : -1;
-  return (
-    <ol className="mt-4 grid gap-1" aria-label="Progress">
-      {PHASES.map((phase, i) => {
-        const state = i < index ? "done" : i === index ? "now" : "todo";
-        return (
-          <li
-            key={phase.id}
-            aria-current={state === "now" ? "step" : undefined}
-            className={`mono grid h-[34px] grid-cols-[30px_1fr_auto] items-center rounded-lg px-2.5 ${
-              state === "now" ? "bg-accent text-on-accent" : state === "done" ? "text-ink" : "text-ink-2"
-            }`}
-          >
-            <span>{String(i + 1).padStart(2, "0")}</span>
-            <span>{phase.label}</span>
-            <span>{state === "done" ? <Tick size={14} className="text-positive" /> : state === "now" ? "Now" : ""}</span>
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
 /**
- * After payment: the result layout with the key light off. Confirms payment with the
- * server (never the URL), sends the in-memory photos for fulfilment, streams the real
- * phases, and recovers without a second charge when the browser lost the photos.
+ * After payment. Confirms payment with the server (never the URL), sends the in-memory photo and
+ * shows that the request was received: the report is made in the server's queue and arrives by
+ * email. Nobody waits for it here. Recovers without a second charge when the browser lost the photo.
  */
 export function ProcessingView() {
-  const router = useRouter();
   const [mode, setMode] = useState<Mode>({ kind: "checking" });
   const [consent, setConsent] = useState(false);
   const onboarding = useOnboardingStore();
   const front = usePhotoStore((s) => s.photos.front);
   const photosReady = usePhotoStore((s) => frontPhotoReady(s) && s.ownershipConfirmed);
-  const setResult = useResultStore((s) => s.setResult);
-  const hasResult = useResultStore((s) => Boolean(s.report));
-  // Only the tab that took the payment starts the report by itself; other tabs follow it.
+  // Only the tab that took the payment sends the photo by itself; other tabs follow it.
   const paidHere = useCheckoutStore((s) => s.paidHere);
   const confirmedTracked = useRef(false);
   const started = useRef(false);
@@ -118,7 +92,7 @@ export function ProcessingView() {
       return;
     }
     started.current = true;
-    setMode({ kind: "running" });
+    setMode({ kind: "sending" });
     const form = new FormData();
     form.set("front", new File([photos.front.blob], "front.jpg", { type: "image/jpeg" }));
     if (photos.left) form.set("left", new File([photos.left.blob], "left.jpg", { type: "image/jpeg" }));
@@ -126,46 +100,29 @@ export function ProcessingView() {
     form.set("input", JSON.stringify(reportInput.data));
     form.set("faceProcessingConsent", "true");
     try {
-      const result = await api.fulfill(form, (phase) => setMode({ kind: "running", phase }));
-      setResult({
-        report: result.report,
-        image: base64ToBlob(result.image.base64, result.image.mime),
-        pdf: base64ToBlob(result.pdf.base64, "application/pdf"),
-        pdfFilename: result.pdf.filename,
-        emailDelivered: result.emailDelivered,
-      });
-      router.replace("/result");
+      const { queue } = await api.fulfill(form);
+      // The photo is with the server now: nothing of it stays in this tab.
+      usePhotoStore.getState().clearAll();
+      track("report_requested", {});
+      setMode({ kind: "queued", ticket: queue });
     } catch (caught) {
       started.current = false;
-      if (caught instanceof ConnectionLostError) {
-        // The server keeps going and emails the report: follow the order instead of failing.
-        track("client_error", { code: "SERVICE_UNAVAILABLE" });
-        setMode({ kind: "reconnecting" });
-        return;
-      }
       const error = caught instanceof ApiClientError ? caught : undefined;
       track("client_error", { code: error?.code ?? "SERVICE_UNAVAILABLE" });
       if (error?.code === "ALREADY_PROCESSING") {
-        // Another tab already started this report: follow it instead of showing an error.
-        setMode({ kind: "elsewhere" });
+        // Another tab already sent it: this one just shows that it's on its way.
+        setMode({ kind: "queued" });
         return;
       }
-      const action = error ? API_ERRORS[error.code].action : "retry";
-      if (error && action === "reselect_photo") {
-        // The failed attempt left the order retryable: reset it (no charge) before a new photo.
-        try {
-          await api.requestRetry();
-        } catch {
-          setMode({ kind: "support", message: "We couldn't use these photos and the retries are used up. Contact support — you won't pay again." });
-          return;
-        }
+      if (error && API_ERRORS[error.code].action === "reselect_photo") {
+        // Refused before anything started (no attempt used): pick another photo.
         usePhotoStore.getState().clearAll();
         setMode({ kind: "reselect", reason: error.message });
         return;
       }
-      setMode({ kind: "error", message: error?.message ?? "Something interrupted your report.", canRetry: Boolean(error?.retryable) });
+      setMode({ kind: "request_error", message: error?.message ?? "We couldn't send your photo.", canRetry: error?.retryable ?? true });
     }
-  }, [reportInput, router, setResult]);
+  }, [reportInput]);
 
   const route = useCallback(
     (order: PublicOrderStatus) => {
@@ -180,17 +137,16 @@ export function ProcessingView() {
           return setMode({ kind: "not_paid" });
         case "paid":
           if (photosReady && consentGiven && paidHere) return void start();
-          // Paid in another tab, which is about to make the report: follow it, or make it here.
+          // Paid in another tab, which is about to send its photo: follow it, or send it from here.
           if (photosReady && consentGiven) return setMode({ kind: "elsewhere", canStartHere: true });
           return setMode({ kind: "reselect" });
         case "processing":
-          return setMode(order.canSubmitPhotos ? { kind: "reselect" } : { kind: "elsewhere" });
+          return setMode((current) => (current.kind === "queued" ? current : { kind: "queued" }));
         case "delivered_to_provider":
-          if (hasResult) return router.replace("/result");
           return setMode({ kind: "delivered" });
         case "failed_retryable":
         case "generated_email_failed":
-          return setMode({ kind: "error", message: "Your last attempt didn't finish.", canRetry: order.canRequestRetry });
+          return setMode({ kind: "failed", canRetry: order.canRequestRetry });
         case "withdrawn":
           return setMode({ kind: "support", message: "You withdrew consent, so nothing will be processed. Contact support for your refund." });
         case "refunded":
@@ -199,7 +155,7 @@ export function ProcessingView() {
           return setMode({ kind: "support", message: "Our team needs to take a look at this order. We'll email you — you won't pay again." });
       }
     },
-    [consentGiven, hasResult, paidHere, photosReady, router, start],
+    [consentGiven, paidHere, photosReady, start],
   );
 
   // Server-confirmed status; polls briefly while the payment provider confirms.
@@ -234,34 +190,28 @@ export function ProcessingView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onboarding.hydrated]);
 
-  // After a dropped connection, or while the report is made elsewhere (another tab, or this tab
-  // before a reload): poll the order until it is delivered, failed or can be taken over.
-  const onOrderSettled = useEffectEvent((order: PublicOrderStatus) => {
-    // The server making the report stopped (a deploy, a crash) and its claim expired: with the
-    // photo still in this tab, carry on with a new attempt. No second charge.
-    if (order.status === "processing" && order.canSubmitPhotos && photosReady && consentGiven) return void start();
-    route(order);
-  });
+  // While the report is in the queue (or another tab is about to send it), an open page follows the
+  // order so it can say when the email went out. Closing the page changes nothing.
+  const onOrderSettled = useEffectEvent((order: PublicOrderStatus) => route(order));
   useEffect(() => {
-    if (mode.kind !== "reconnecting" && mode.kind !== "elsewhere") return;
+    if (mode.kind !== "queued" && mode.kind !== "elsewhere") return;
     const following = mode.kind === "elsewhere";
     let cancelled = false;
-    const deadline = Date.now() + 12 * 60_000;
+    const deadline = Date.now() + FOLLOW_FOR_MS;
+    const every = following ? 4000 : 10_000;
     const poll = async () => {
       if (cancelled) return;
       try {
         const { order } = await api.currentOrder();
         if (cancelled) return;
-        // Still being made (or, while following another tab, paid and about to be started there).
-        const waiting = (order.status === "processing" && !order.canSubmitPhotos) || (following && order.status === "paid");
+        const waiting = following ? order.status === "paid" : order.status === "processing";
         if (!waiting) return onOrderSettled(order);
       } catch {
         // Offline for a moment: keep trying until the deadline.
       }
-      if (Date.now() < deadline) setTimeout(() => void poll(), 4000);
-      else if (!cancelled) setMode({ kind: "support", message: "Your report is taking longer than it should. Check your email, or contact support — you won't pay again." });
+      if (Date.now() < deadline) setTimeout(() => void poll(), every);
     };
-    const first = setTimeout(() => void poll(), 2000);
+    const first = setTimeout(() => void poll(), every);
     return () => {
       cancelled = true;
       clearTimeout(first);
@@ -312,25 +262,36 @@ export function ProcessingView() {
             </>
           ) : null}
 
-          {mode.kind === "running" ? (
+          {mode.kind === "sending" ? (
             <>
               <h1 className="title-28 two-tone">
-                Payment confirmed. <span>Let&apos;s create your report.</span>
+                Payment confirmed. <span>Sending your photo.</span>
               </h1>
-              <PhaseList current={mode.phase} />
-              <p className="mt-5 text-center text-[15px] leading-[1.4] text-ink-2">Keep this tab open until it finishes. Photos are processed in memory, never stored.</p>
+              <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">This takes a few seconds.</p>
             </>
           ) : null}
 
-          {mode.kind === "reconnecting" ? (
-            <>
-              <h1 className="title-28 two-tone">
-                Still making your report. <span>The connection dropped.</span>
-              </h1>
-              <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">
-                It keeps going on our side and arrives by email. Keep this tab open to see when it&apos;s done. You won&apos;t pay again.
-              </p>
-            </>
+          {mode.kind === "queued" ? (
+            mode.ticket ? (
+              <>
+                <h1 className="title-28 two-tone">
+                  Request received. <span>Your report arrives by email in {minutes(mode.ticket.etaMinutes)}.</span>
+                </h1>
+                {mode.ticket.position > 1 ? (
+                  <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">You&apos;re number {mode.ticket.position} in line.</p>
+                ) : null}
+                <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">
+                  You can close this page. If anything goes wrong, we&apos;ll email you a link to try again — you won&apos;t pay again.
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 className="title-28 two-tone">
+                  Your report is being made. <span>It arrives by email.</span>
+                </h1>
+                <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">You can close this page. You won&apos;t pay again.</p>
+              </>
+            )
           ) : null}
 
           {mode.kind === "reselect" ? (
@@ -367,9 +328,9 @@ export function ProcessingView() {
           {mode.kind === "elsewhere" ? (
             <>
               <h1 className="title-28 two-tone">
-                Your report is being made. <span>It arrives by email.</span>
+                Your report is on its way. <span>It arrives by email.</span>
               </h1>
-              <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">This page updates when it&apos;s done. You won&apos;t pay again.</p>
+              <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">Another tab is sending your photo. You won&apos;t pay again.</p>
               {mode.canStartHere ? (
                 <button
                   type="button"
@@ -391,17 +352,36 @@ export function ProcessingView() {
                 Your report is in your email. <span>It&apos;s your permanent copy.</span>
               </h1>
               <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">
-                This page doesn&apos;t keep your report after a reload. Look for “Your personalized looksmaxxing report is ready”.
+                Look for “Your personalized looksmaxxing report is ready”. If it isn&apos;t there, check your spam folder.
               </p>
             </>
           ) : null}
 
-          {mode.kind === "error" ? (
+          {mode.kind === "request_error" ? (
+            <>
+              <h1 className="title-28 two-tone">
+                We couldn&apos;t send your photo. <span>Your payment is safe.</span>
+              </h1>
+              <InlineError id="processing-error">{mode.message}</InlineError>
+              {mode.canRetry ? (
+                <button type="button" className="btn mt-6" onClick={() => void start()}>
+                  Try again
+                </button>
+              ) : null}
+              <p className="mt-4 text-[15px] text-ink-2">
+                Still stuck? <Link href="/help" className="underline underline-offset-2">Contact support</Link>. You won&apos;t pay again.
+              </p>
+            </>
+          ) : null}
+
+          {mode.kind === "failed" ? (
             <>
               <h1 className="title-28 two-tone">
                 That didn&apos;t finish. <span>Your payment is safe.</span>
               </h1>
-              <InlineError id="processing-error">{mode.message}</InlineError>
+              <InlineError id="processing-error">
+                We couldn&apos;t make your report, even after trying again. We emailed you a link to create it again; you can also do it here.
+              </InlineError>
               {mode.canRetry ? (
                 <button type="button" className="btn mt-6" onClick={() => void retry()}>
                   Try again

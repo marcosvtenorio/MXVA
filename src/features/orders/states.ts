@@ -5,12 +5,15 @@ import type { ApiErrorCode } from "@/lib/api-errors";
  * the app goes through here, so duplicate webhooks or double submits cannot skip or
  * repeat a step.
  *
- *   pending_payment ──payment──▶ paid ──claim──▶ processing ──▶ delivered_to_provider
- *         │                       ▲                │
- *         └─expire─▶ expired      │ retry          ├─▶ generated_email_failed ─┐
- *                                 └────────────────├─▶ failed_retryable ───────┤
- *                                                  └─▶ needs_support           │
- *   any paid state ──refund──▶ refunded           (retry resets to paid) ◀─────┘
+ *   pending_payment ──payment──▶ paid ──photo──▶ processing ──▶ delivered_to_provider
+ *         │                       ▲          (queued, then made) │
+ *         └─expire─▶ expired      │ retry                        ├─▶ generated_email_failed ─┐
+ *                                 └──────────────────────────────├─▶ failed_retryable ───────┤
+ *                                                                └─▶ needs_support           │
+ *   any paid state ──refund──▶ refunded                         (retry resets to paid) ◀─────┘
+ *
+ * "processing" covers the whole time the report is in the server's queue: waiting its turn,
+ * then being made and emailed (src/server/fulfillment/queue.ts).
  */
 
 export const ORDER_STATUSES = [
@@ -29,12 +32,12 @@ export const ORDER_STATUSES = [
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 export const MAX_FULFILLMENT_ATTEMPTS = 3;
-/** A running fulfilment refreshes its claim this often (the heartbeat in /api/fulfill). */
+/** The server holding a queued or running report refreshes its claim this often. */
 export const PROCESSING_HEARTBEAT_MS = 20_000;
 /**
- * A processing claim not refreshed for this long belongs to a server that stopped mid-report
- * (a deploy replaced it, it crashed) and may be re-claimed: the buyer's page then carries on
- * with a new attempt, without a second charge.
+ * A processing claim not refreshed for this long belongs to a server that stopped (a deploy
+ * replaced it, it crashed) and took the photo in its memory with it. The queue's sweeper then
+ * fails the order and emails the buyer a link to create the report again, without a second charge.
  */
 export const PROCESSING_LEASE_MS = 90_000;
 export const FULFILLMENT_VERSION = "report-v1";
@@ -224,6 +227,17 @@ export function fulfillmentFailed(order: Order, code: ApiErrorCode, retryable: b
   });
 }
 
+/** True when no server has refreshed this order's processing claim within the lease. */
+export function isStaleProcessing(order: Order, now: Date): boolean {
+  return order.status === "processing" && now.getTime() - Date.parse(order.processingStartedAt ?? order.createdAt) >= PROCESSING_LEASE_MS;
+}
+
+/** The server making this report stopped: the order can be made again, without paying. */
+export function fulfillmentInterrupted(order: Order, now: Date): TransitionResult {
+  if (!isStaleProcessing(order, now)) return { order };
+  return fulfillmentFailed(order, "FULFILLMENT_INTERRUPTED", true, now);
+}
+
 export function retryRequested(order: Order, now: Date): TransitionResult {
   if (order.status === "paid") return { order };
   if (order.status !== "failed_retryable" && order.status !== "generated_email_failed") {
@@ -268,16 +282,15 @@ export type PublicOrderStatus = {
   deliveredToEmail: boolean;
 };
 
-export function publicStatus(order: Order, now = new Date()): PublicOrderStatus {
-  const staleProcessing =
-    order.status === "processing" &&
-    now.getTime() - Date.parse(order.processingStartedAt ?? order.createdAt) >= PROCESSING_LEASE_MS;
+export function publicStatus(order: Order): PublicOrderStatus {
   const attemptsRemaining = Math.max(0, MAX_FULFILLMENT_ATTEMPTS - order.fulfillmentAttempts);
   return {
     status: order.status,
     paid: isPaidStatus(order.status) && order.status !== "refunded",
     unfinished: isUnfinishedPaidStatus(order.status),
-    canSubmitPhotos: (order.status === "paid" || staleProcessing) && attemptsRemaining > 0,
+    // A report in the queue is never sent again from a browser: if its server stops, the queue's
+    // sweeper fails it and emails the buyer a link to start over (src/server/fulfillment/queue.ts).
+    canSubmitPhotos: order.status === "paid" && attemptsRemaining > 0,
     canRequestRetry:
       (order.status === "failed_retryable" || order.status === "generated_email_failed") && attemptsRemaining > 0,
     attemptsRemaining,

@@ -21,8 +21,8 @@ test.describe("Pix for visitors in Brazil (simulated)", () => {
     await expect(page.getByRole("status")).toContainText("Waiting for your payment");
 
     await page.getByRole("button", { name: "Simulate Pix payment" }).click();
-    await page.waitForURL("**/result", { timeout: 60_000 });
-    await expect(page.getByRole("heading", { name: "Your concept and plan" })).toBeVisible();
+    await page.waitForURL("**/processing", { timeout: 60_000 });
+    await expect(page.getByRole("heading", { name: /Request received/ })).toBeVisible({ timeout: 30_000 });
   });
 
   test("a reload while paying in the bank app shows the same code, and the page notices the payment by itself", async ({ page }) => {

@@ -13,7 +13,7 @@ import { clearPixSession, loadPixSession, savePixSession } from "@/features/chec
 import { useCheckoutStore } from "@/features/checkout/store";
 import { FACE_PROCESSING_CONSENT_VERSION, TERMS_VERSION } from "@/features/onboarding/schema";
 import { useOnboardingStore } from "@/features/onboarding/store";
-import { useResultStore } from "@/features/results/memory-store";
+import { usePhotoStore } from "@/features/photos/memory-store";
 import { ApiClientError, api, type CreateOrderResponse, type PaymentMethod } from "@/lib/api-client";
 import { DISPLAY_PRICE_BRL_CENTS, DISPLAY_PRICE_USD_CENTS, devPreviewEnabled, formatPrice } from "@/lib/config";
 import { ExampleCompare } from "./ExampleCompare";
@@ -79,7 +79,8 @@ export function CheckoutView() {
         // A paid order still being made is finished there, never paid twice. A finished order
         // (delivered, or with support) doesn't block buying another report.
         if (current?.order.unfinished) return router.replace("/processing");
-        if (current?.order.deliveredToEmail && useResultStore.getState().report) return router.replace("/result");
+        // Back from a report that went out (its photo already left this tab): show that, not a new payment.
+        if (current?.order.deliveredToEmail && !usePhotoStore.getState().photos.front) return router.replace("/processing");
         // A card or Pix session kept from an order that is no longer open can't take this payment.
         if (!current?.pending) {
           setCard(undefined);

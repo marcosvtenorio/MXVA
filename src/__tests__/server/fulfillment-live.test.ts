@@ -2,12 +2,11 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Constraints } from "@/features/onboarding/schema";
-import type { Order } from "@/features/orders/states";
 
 /**
  * LIVE providers (OpenAI vision + image edit + identity QC, Resend), opt-in and paid per run.
  * Use only with a photo of a consenting adult or a fictional generated face:
- *   LIVE_AI_PHOTO=/path/photo.jpg LIVE_AI_OUT=/tmp/out [LIVE_EMAIL_TO=delivered@resend.dev] npx vitest run fulfillment-live
+ *   LIVE_AI_PHOTO=/path/photo.jpg LIVE_AI_OUT=/tmp/out npx vitest run fulfillment-live
  * Keys come from the environment (VISION_API_KEY, VISION_MODEL, IMAGE_API_KEY, IMAGE_EDIT_MODEL,
  * RESEND_API_KEY, EMAIL_FROM). Outputs (observations, concept, PDF) are written to LIVE_AI_OUT.
  */
@@ -37,31 +36,23 @@ describe.skipIf(!photoPath)("live fulfilment (real OpenAI + Resend)", () => {
     vi.resetModules();
   });
 
-  it("analyses the photo, makes a recognisable concept that passes QC, builds and emails the PDF", async () => {
+  it("analyses the photo, makes a recognisable concept that passes QC and builds the PDF", async () => {
     const { validateUploadedPhoto } = await import("@/server/photos/validate");
-    const { runPipeline } = await import("@/server/fulfillment/pipeline");
+    const { generateReport } = await import("@/server/fulfillment/pipeline");
     const { fulfillmentMode } = await import("@/server/config");
     expect(fulfillmentMode()).toBe("real");
 
     const bytes = readFileSync(photoPath!);
     const front = await validateUploadedPhoto(new File([bytes], "front.jpg", { type: "image/jpeg" }), 15 * 1024 * 1024);
-    const order = {
-      id: crypto.randomUUID(),
-      email: process.env.LIVE_EMAIL_TO ?? "delivered@resend.dev",
-      fulfillmentAttempts: 1,
-    } as Order;
 
     const phases: { phase: string; at: number }[] = [];
     const started = Date.now();
-    const output = await runPipeline({ order, front, profiles: [], constraints, onPhase: (phase) => phases.push({ phase, at: Date.now() - started }) });
+    const output = await generateReport({ front, profiles: [], constraints, onPhase: (phase) => phases.push({ phase, at: Date.now() - started }) });
 
-    writeFileSync(path.join(outDir, "concept.jpg"), output.conceptJpeg);
     writeFileSync(path.join(outDir, "report.pdf"), output.pdf);
-    writeFileSync(path.join(outDir, "report.json"), JSON.stringify({ phases, totalMs: Date.now() - started, report: output.report, emailDelivered: output.emailDelivered }, null, 2));
+    writeFileSync(path.join(outDir, "report.json"), JSON.stringify({ phases, totalMs: Date.now() - started, report: output.report }, null, 2));
 
     expect(output.report.simulated).toBe(false);
-    expect(output.conceptJpeg.subarray(0, 2).toString("hex")).toBe("ffd8");
     expect(Buffer.from(output.pdf.subarray(0, 5)).toString()).toBe("%PDF-");
-    expect(output.emailDelivered).toBe(true);
   }, 600_000);
 });

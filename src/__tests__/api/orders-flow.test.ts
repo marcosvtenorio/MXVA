@@ -8,7 +8,7 @@ import { POST as withdrawRoute } from "@/app/api/consent/withdraw/route";
 import { POST as webhookRoute } from "@/app/api/stripe/webhook/route";
 import { FACE_PROCESSING_CONSENT_VERSION, TERMS_VERSION } from "@/features/onboarding/schema";
 import { InMemoryOrderRepository, setOrderRepositoryForTests } from "@/features/orders/repository";
-import { applyPaymentFact, claimForFulfillment, markDelivered, markFailed, touchProcessing } from "@/features/orders/service";
+import { applyPaymentFact, claimForFulfillment, markDelivered, markFailed, markInterrupted, touchProcessing } from "@/features/orders/service";
 import { PROCESSING_LEASE_MS } from "@/features/orders/states";
 import { resetServerEnvCache } from "@/server/config";
 import { ApiError } from "@/server/http";
@@ -146,7 +146,7 @@ describe("order API (mock payments, development build)", () => {
     expect(repository.list()).toHaveLength(1);
   });
 
-  it("a running report keeps its claim; one whose server stopped can be taken over without paying", async () => {
+  it("a queued report keeps its claim; one whose server stopped is failed for a new attempt, without paying", async () => {
     vi.useFakeTimers({ now: new Date("2026-10-12T12:00:00Z"), toFake: ["Date"] });
     try {
       const cookie = cookieFrom(await createOrderRoute(post("/api/orders", orderBody)));
@@ -157,15 +157,18 @@ describe("order API (mock payments, development build)", () => {
 
       // The server is alive: its heartbeats keep the claim, past the lease since the claim.
       vi.setSystemTime(Date.now() + PROCESSING_LEASE_MS - 1000);
-      await touchProcessing(order!.id);
+      await touchProcessing([order!.id]);
       vi.setSystemTime(Date.now() + PROCESSING_LEASE_MS - 1000);
       await expect(claimForFulfillment(order!.id)).rejects.toMatchObject({ code: "ALREADY_PROCESSING" });
+      expect(await markInterrupted(order!.id)).toMatchObject({ changed: false });
       expect(await status()).toMatchObject({ status: "processing", canSubmitPhotos: false });
 
-      // Heartbeats stop (a deploy replaced the server): the page may carry on with a new attempt.
+      // Heartbeats stop (a deploy replaced the server): the order is failed once, for a free new attempt.
       vi.setSystemTime(Date.now() + PROCESSING_LEASE_MS + 1000);
-      expect(await status()).toMatchObject({ status: "processing", canSubmitPhotos: true });
-      expect(await claimForFulfillment(order!.id)).toMatchObject({ status: "processing", fulfillmentAttempts: 2 });
+      expect(await status()).toMatchObject({ status: "processing", canSubmitPhotos: false });
+      const [interrupted, again] = await Promise.all([markInterrupted(order!.id), markInterrupted(order!.id)]);
+      expect([interrupted.changed, again.changed].filter(Boolean)).toHaveLength(1);
+      expect(await status()).toMatchObject({ status: "failed_retryable", canRequestRetry: true, attemptsRemaining: 2 });
       expect(repository.list()).toHaveLength(1);
     } finally {
       vi.useRealTimers();

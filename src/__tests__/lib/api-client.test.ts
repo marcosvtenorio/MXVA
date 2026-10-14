@@ -1,56 +1,36 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ConnectionLostError, api } from "@/lib/api-client";
-
-function streamOf(chunks: string[]): ReadableStream<Uint8Array> {
-  const encoder = new TextEncoder();
-  return new ReadableStream({
-    start(controller) {
-      for (const chunk of chunks) controller.enqueue(encoder.encode(chunk));
-      controller.close();
-    },
-  });
-}
+import { api } from "@/lib/api-client";
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe("api client", () => {
-  it("reads streamed phases split across chunks, then the result", async () => {
-    const lines = [
-      JSON.stringify({ type: "phase", phase: "analysing_photo" }),
-      JSON.stringify({ type: "phase", phase: "preparing_image" }),
-      JSON.stringify({ type: "result", report: { title: "x" }, image: { mime: "image/jpeg", base64: "AA==" }, pdf: { filename: "a.pdf", base64: "AA==" }, emailDelivered: true }),
-    ].join("\n") + "\n";
-    const chunks = [lines.slice(0, 17), lines.slice(17, 80), lines.slice(80)];
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf(chunks), { status: 200, headers: { "content-type": "application/x-ndjson" } })));
-    const phases: string[] = [];
-    const result = await api.fulfill(new FormData(), (phase) => phases.push(phase));
-    expect(phases).toEqual(["analysing_photo", "preparing_image"]);
-    expect(result.emailDelivered).toBe(true);
-    expect(result.pdf.filename).toBe("a.pdf");
+  it("sends the photo as multipart and gets the queue ticket back at once", async () => {
+    const fetchMock = vi.fn(async () =>
+      Response.json({ order: { status: "processing" }, queue: { position: 3, etaMinutes: 9 } }, { status: 202 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const form = new FormData();
+    form.set("faceProcessingConsent", "true");
+    const result = await api.fulfill(form);
+    expect(result.queue).toEqual({ position: 3, etaMinutes: 9 });
+    const [path, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(path).toBe("/api/fulfill");
+    expect(init.body).toBe(form);
+    // The browser sets the multipart boundary itself: no JSON content type.
+    expect((init.headers as Record<string, string>)["content-type"]).toBeUndefined();
   });
 
-  it("turns a streamed error into a typed error", async () => {
-    const body = JSON.stringify({ type: "error", error: { code: "SIMULATION_QUALITY_FAILED", message: "nope", retryable: true } }) + "\n";
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf([body]), { status: 200 })));
-    await expect(api.fulfill(new FormData(), () => undefined)).rejects.toMatchObject({ code: "SIMULATION_QUALITY_FAILED", retryable: true });
+  it("turns a refused report request into a typed error", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ error: { code: "QUEUE_FULL", message: "busy", retryable: true } }, { status: 503 })),
+    );
+    await expect(api.fulfill(new FormData())).rejects.toMatchObject({ code: "QUEUE_FULL", retryable: true, status: 503 });
   });
 
-  it("reports a dropped stream as a lost connection, not as a failed or finished report", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf([JSON.stringify({ type: "phase", phase: "building_report" }) + "\n"]), { status: 200 })));
-    const error = await api.fulfill(new FormData(), () => undefined).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(ConnectionLostError);
-  });
-
-  it("treats a stream that breaks mid-way (network error) as a lost connection too", async () => {
-    const broken = new ReadableStream<Uint8Array>({
-      start(controller) {
-        controller.enqueue(new TextEncoder().encode(JSON.stringify({ type: "phase", phase: "preparing_image" }) + "\n"));
-        controller.error(new TypeError("network error"));
-      },
-    });
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(broken, { status: 200 })));
-    const error = await api.fulfill(new FormData(), () => undefined).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(ConnectionLostError);
+  it("reports being offline as a retryable error, not a failed report", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new TypeError("network error"))));
+    await expect(api.fulfill(new FormData())).rejects.toMatchObject({ code: "SERVICE_UNAVAILABLE", retryable: true, status: 0 });
   });
 
   it("maps JSON error bodies and sends the same-origin header", async () => {

@@ -4,6 +4,7 @@ import { parseEventBatch } from "@/features/analytics/events";
 import { optionalOrderFromRequest } from "@/features/orders/authorization";
 import { isPaidStatus } from "@/features/orders/states";
 import { publicConfig } from "@/lib/config";
+import { ensureFulfillmentWorker } from "@/server/fulfillment/queue";
 import {
   dispatchClientBatch,
   metaConfigured,
@@ -33,6 +34,8 @@ export async function POST(request: Request) {
     assertSameSite(request);
     const ip = clientIp(request);
     enforceRateLimit("events", ip);
+    // Page views reach this on every visit: after a restart, the queue's sweeper starts with the first one.
+    ensureFulfillmentWorker();
 
     let raw: unknown;
     try {

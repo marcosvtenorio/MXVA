@@ -13,9 +13,19 @@ export type ReportEmail = {
   idempotencyKey: string;
 };
 
+/** A plain notice: "create your report again" to a buyer, or an alert to the owner. No attachments. */
+export type NoticeEmail = {
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+  idempotencyKey: string;
+};
+
 export interface EmailProvider {
   readonly simulated: boolean;
   sendReport(email: ReportEmail): Promise<{ messageId: string }>;
+  sendNotice(email: NoticeEmail): Promise<{ messageId: string }>;
 }
 
 export function reportEmailContent(): { subject: string; text: string; html: string } {
@@ -42,9 +52,24 @@ export function reportEmailContent(): { subject: string; text: string; html: str
   return { subject, text, html };
 }
 
-function maskEmail(email: string): string {
+export function maskEmail(email: string): string {
   const [name = "", domain = ""] = email.split("@");
   return `${name.slice(0, 1)}***@${domain}`;
+}
+
+/** What the development mailer would have sent: kinds and subjects only, never a PDF. */
+export type MockSentEmail = { kind: "report" | "notice"; to: string; subject: string; text?: string };
+const mockOutbox = globalThis as unknown as { __mxvaMockOutbox?: MockSentEmail[] };
+
+/** Development and tests: the emails the mock mailer "sent", newest last. */
+export function mockSentEmails(): MockSentEmail[] {
+  return (mockOutbox.__mxvaMockOutbox ??= []);
+}
+
+function recordMock(email: MockSentEmail): void {
+  const outbox = mockSentEmails();
+  outbox.push(email);
+  if (outbox.length > 500) outbox.splice(0, outbox.length - 500);
 }
 
 /** Development only: nothing is sent. Logs metadata, never content. */
@@ -53,6 +78,12 @@ class MockEmailProvider implements EmailProvider {
   async sendReport(email: ReportEmail): Promise<{ messageId: string }> {
     if (serverEnv().MOCK_FORCE_FAILURE === "email") throw new ApiError("EMAIL_FAILED");
     console.info(`[mail:mock] report to ${maskEmail(email.to)} (${Math.round(email.pdf.length / 1024)} KB PDF) — not sent`);
+    recordMock({ kind: "report", to: email.to, subject: reportEmailContent().subject });
+    return { messageId: `mock_msg_${randomUUID()}` };
+  }
+  async sendNotice(email: NoticeEmail): Promise<{ messageId: string }> {
+    console.info(`[mail:mock] "${email.subject}" to ${maskEmail(email.to)} — not sent`);
+    recordMock({ kind: "notice", to: email.to, subject: email.subject, text: email.text });
     return { messageId: `mock_msg_${randomUUID()}` };
   }
 }
@@ -81,6 +112,22 @@ class ResendEmailProvider implements EmailProvider {
     if (error || !data?.id) {
       // Error class only: Resend's messages can contain addresses.
       console.error(`[mail] resend rejected the report email: ${error?.name ?? "no_id"}`);
+      throw new ApiError("EMAIL_FAILED");
+    }
+    return { messageId: data.id };
+  }
+
+  async sendNotice(email: NoticeEmail): Promise<{ messageId: string }> {
+    const env = serverEnv();
+    if (!env.RESEND_API_KEY || !env.EMAIL_FROM) throw new ConfigError("RESEND_API_KEY and EMAIL_FROM are required.");
+    const { Resend } = await import("resend");
+    const resend = new Resend(env.RESEND_API_KEY);
+    const { data, error } = await resend.emails.send(
+      { from: env.EMAIL_FROM, to: email.to, replyTo: supportEmail(), subject: email.subject, text: email.text, html: email.html },
+      { idempotencyKey: email.idempotencyKey },
+    );
+    if (error || !data?.id) {
+      console.error(`[mail] resend rejected a notice: ${error?.name ?? "no_id"}`);
       throw new ApiError("EMAIL_FAILED");
     }
     return { messageId: data.id };

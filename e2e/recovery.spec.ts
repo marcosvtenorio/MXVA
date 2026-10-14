@@ -3,6 +3,8 @@ import { addFrontPhoto, runOnboarding } from "./support/flow";
 
 test.describe("payment and recovery", () => {
   test("a payment that opens another page: server-confirmed, reselect photos, no second charge", async ({ page }) => {
+    // Waits for the queue to email the report.
+    test.slow();
     await runOnboarding(page);
     await page.getByRole("button", { name: "Simulate bank page" }).click();
     await page.waitForURL("**/processing");
@@ -14,8 +16,8 @@ test.describe("payment and recovery", () => {
     // Consent lived in memory and was lost with the reload, so it is asked again.
     await page.getByRole("checkbox", { name: /photo is sent/ }).check();
     await page.getByRole("button", { name: "Create my report" }).click();
-    await page.waitForURL("**/result", { timeout: 60_000 });
-    await expect(page.getByRole("heading", { name: "Your concept and plan" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Request received/ })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { name: /Your report is in your email/ })).toBeVisible({ timeout: 60_000 });
 
     // The report was delivered, so checking out again is a new purchase (a new order), not a
     // second charge for this one. Unfinished paid orders still block it (unit-tested).
@@ -54,13 +56,18 @@ test.describe("payment and recovery", () => {
     expect(result.body.error.code).toBe("ORDER_NOT_PAID");
   });
 
-  test("a refresh after delivery points to the email, not to another payment", async ({ page }) => {
+  test("a refresh after the request, and after delivery, points to the email, not to another payment", async ({ page }) => {
+    // Waits for the queue to email the report.
+    test.slow();
     await runOnboarding(page);
     await page.getByRole("button", { name: /Pay \$29 \(simulated\)/ }).click();
-    await page.waitForURL("**/result", { timeout: 60_000 });
+    await expect(page.getByRole("heading", { name: /Request received/ })).toBeVisible({ timeout: 30_000 });
     await page.reload();
-    await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible();
-    await expect(page.getByText(/in your email/)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Your report is (being made|in your email)/ })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { name: /Your report is in your email/ })).toBeVisible({ timeout: 60_000 });
+    await page.reload();
+    await expect(page.getByRole("heading", { name: /Your report is in your email/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Pay/ })).toHaveCount(0);
   });
 
   test("checkout recovers by itself when the connection comes back (no reload, nothing to redo)", async ({ page, context }) => {
@@ -76,46 +83,41 @@ test.describe("payment and recovery", () => {
     await expect(page.getByRole("button", { name: /Pay \$29 \(simulated\)/ })).toBeVisible({ timeout: 15_000 });
   });
 
-  test("a dropped report stream follows the order: the report still arrives by email", async ({ page }) => {
-    // The server finishes the report, but the browser only gets the first line, as if the
-    // connection dropped mid-way (a network change on a phone, a deploy).
+  test("a dropped connection while sending the photo offers a retry, without a second charge", async ({ page }) => {
+    // Waits for the queue to email the report.
+    test.slow();
+    let dropped = false;
     await page.route("**/api/fulfill", async (route) => {
-      const response = await route.fetch();
-      const body = await response.text();
-      await route.fulfill({ response, body: `${body.split("\n")[0]}\n` });
+      if (dropped) return route.continue();
+      dropped = true;
+      await route.abort("internetdisconnected");
     });
     await runOnboarding(page);
     await page.getByRole("button", { name: /Pay \$29 \(simulated\)/ }).click();
+    await expect(page.getByRole("heading", { name: /We couldn't send your photo/ })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/Your payment is safe/)).toBeVisible();
+    // The photo is still in this tab: one tap sends it again.
+    await page.getByRole("button", { name: "Try again" }).click();
+    await expect(page.getByRole("heading", { name: /Request received/ })).toBeVisible({ timeout: 30_000 });
     await expect(page.getByRole("heading", { name: /Your report is in your email/ })).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByRole("heading", { name: /didn't finish/ })).toHaveCount(0);
   });
 
-  test("back from the result shows the result again, and the same tab can buy a second report", async ({ page }) => {
+  test("back after the request doesn't offer a payment again, and the same tab can buy a second report", async ({ page }) => {
+    // Waits for the queue to email the report.
+    test.slow();
     await runOnboarding(page);
     await page.getByRole("button", { name: /Pay \$29 \(simulated\)/ }).click();
-    await page.waitForURL("**/result", { timeout: 60_000 });
+    await expect(page.getByRole("heading", { name: /Your report is in your email/ })).toBeVisible({ timeout: 60_000 });
 
-    // Back lands on the (kept-alive) checkout, which sends the buyer back to their report.
+    // Back lands on checkout, which sends the buyer back to where their report went.
     await page.goBack();
-    await page.waitForURL("**/result");
-    await expect(page.getByRole("heading", { name: "Your concept and plan" })).toBeVisible();
+    await page.waitForURL("**/processing");
+    await expect(page.getByRole("heading", { name: /Your report is in your email/ })).toBeVisible();
 
-    // Same tab, no reload: a new purchase opens a new order, not the paid session.
-    await page.getByRole("button", { name: "Clear from this device" }).click();
-    await page.waitForURL((url) => url.pathname === "/");
-    await page.getByRole("link", { name: /^(Start|Get)/ }).first().click();
-    await page.getByRole("button", { name: "Start" }).click();
-    await page.getByRole("button", { name: "Got it" }).click();
-    await addFrontPhoto(page);
-    await page.getByText("These are photos of me").click();
-    await page.getByRole("button", { name: "Use these photos" }).click();
-    await page.getByRole("button", { name: "Continue", exact: true }).click();
-    await page.waitForURL("**/onboarding/delivery");
-    await page.getByRole("button", { name: "Continue", exact: true }).click();
-    await page.getByRole("button", { name: "Continue to checkout" }).click();
-    await page.waitForURL("**/checkout");
+    // Same tab: a new purchase (the intake again, since email and photo live only in memory) opens a
+    // new order, not the paid session.
+    await runOnboarding(page);
     await page.getByRole("button", { name: /Pay \$29 \(simulated\)/ }).click();
-    await page.waitForURL("**/result", { timeout: 60_000 });
-    await expect(page.getByRole("heading", { name: "Your concept and plan" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Request received/ })).toBeVisible({ timeout: 30_000 });
   });
 });

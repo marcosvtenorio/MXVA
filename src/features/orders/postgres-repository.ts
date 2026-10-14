@@ -202,8 +202,20 @@ export class PostgresOrderRepository implements OrderRepository {
     await this.pool.end();
   }
 
-  async touchProcessing(orderId: string, at: Date): Promise<void> {
-    await this.pool.query("update orders set processing_started_at = $2 where id = $1 and status = 'processing'", [orderId, at.toISOString()]);
+  async touchProcessing(orderIds: readonly string[], at: Date): Promise<void> {
+    if (orderIds.length === 0) return;
+    await this.pool.query("update orders set processing_started_at = $2 where id = any($1::uuid[]) and status = 'processing'", [
+      [...orderIds],
+      at.toISOString(),
+    ]);
+  }
+
+  async findStaleProcessing(before: Date, limit: number): Promise<Order[]> {
+    const { rows } = await this.pool.query<OrderRow>(
+      `select ${COLUMNS.join(", ")} from orders where status = 'processing' and coalesce(processing_started_at, created_at) < $1 order by processing_started_at limit $2`,
+      [before.toISOString(), limit],
+    );
+    return rows.map(fromRow);
   }
 
   async markExternalEvent(provider: PaymentProviderName, eventId: string): Promise<boolean> {

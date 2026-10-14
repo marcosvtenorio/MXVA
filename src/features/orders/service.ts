@@ -16,6 +16,7 @@ import {
   emailFailed,
   fulfillmentDelivered,
   fulfillmentFailed,
+  fulfillmentInterrupted,
   isPaidStatus,
   paymentSucceeded,
   refunded,
@@ -159,6 +160,14 @@ export async function createOrder(input: CreateOrderInput): Promise<{ order: Ord
  * transition, so e.g. two simultaneous fulfilment claims yield exactly one winner.
  */
 async function mutate(orderId: string, transition: (order: Order, now: Date) => TransitionResult): Promise<Order> {
+  return (await mutateTracked(orderId, transition)).order;
+}
+
+/** Like mutate, and tells whether this call made the change (false: nothing to do, or another writer did it). */
+async function mutateTracked(
+  orderId: string,
+  transition: (order: Order, now: Date) => TransitionResult,
+): Promise<{ order: Order; changed: boolean }> {
   const repository = await orderRepository();
   for (let attempt = 0; attempt < 5; attempt++) {
     const current = await repository.findById(orderId);
@@ -170,8 +179,8 @@ async function mutate(orderId: string, transition: (order: Order, now: Date) => 
       if (error instanceof OrderTransitionError) throw new ApiError(error.code);
       throw error;
     }
-    if (!result.event) return result.order;
-    if (await repository.save(result.order, current.version, result.event)) return result.order;
+    if (!result.event) return { order: result.order, changed: false };
+    if (await repository.save(result.order, current.version, result.event)) return { order: result.order, changed: true };
   }
   throw new ApiError("ALREADY_PROCESSING");
 }
@@ -305,11 +314,17 @@ function emit<N extends Parameters<typeof trackServer>[0]>(
 }
 
 export const claimForFulfillment = (orderId: string) => mutate(orderId, claimFulfillment);
-/** Keeps a running fulfilment's claim fresh, so a stopped server's claim expires quickly. */
-export async function touchProcessing(orderId: string): Promise<void> {
+/** Keeps the claims of this server's queued and running reports fresh, so a stopped server's expire quickly. */
+export async function touchProcessing(orderIds: readonly string[]): Promise<void> {
   const repository = await orderRepository();
-  await repository.touchProcessing(orderId, new Date());
+  await repository.touchProcessing(orderIds, new Date());
 }
+/** Orders whose server stopped while they were queued or being made. */
+export async function findStaleProcessing(before: Date, limit = 50): Promise<Order[]> {
+  return (await orderRepository()).findStaleProcessing(before, limit);
+}
+/** Fails an order whose server stopped. `changed` is true only for the caller that made the change. */
+export const markInterrupted = (orderId: string) => mutateTracked(orderId, fulfillmentInterrupted);
 export const markDelivered = (orderId: string, messageId: string) =>
   mutate(orderId, (order, now) => fulfillmentDelivered(order, messageId, now));
 export const markEmailFailed = (orderId: string) => mutate(orderId, emailFailed);

@@ -39,5 +39,6 @@ export async function runOnboarding(page: Page, until: "photos" | "constraints" 
 export async function addFrontPhoto(page: Page, name = "synthetic-front.jpg") {
   // The library input (the second file input) for the front slot.
   await page.locator('input[type="file"]').nth(1).setInputFiles(fixture(name));
-  await expect(page.getByAltText("Your front photo")).toBeVisible();
+  // On-device processing can take a few seconds while many tests share the machine.
+  await expect(page.getByAltText("Your front photo")).toBeVisible({ timeout: 15_000 });
 }

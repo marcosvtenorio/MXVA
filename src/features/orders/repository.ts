@@ -20,8 +20,10 @@ export interface OrderRepository {
   findByProviderChargeId(chargeId: string): Promise<Order | undefined>;
   /** Compare-and-set: writes only if the stored version equals `expectedVersion`. */
   save(order: Order, expectedVersion: number, event: OrderEvent): Promise<boolean>;
-  /** Heartbeat of a running fulfilment: refreshes its claim. No state change, no new version. */
-  touchProcessing(orderId: string, at: Date): Promise<void>;
+  /** Heartbeat of queued or running reports: refreshes their claims. No state change, no new version. */
+  touchProcessing(orderIds: readonly string[], at: Date): Promise<void>;
+  /** Orders still "processing" whose claim nobody has refreshed since `before` (their server stopped). */
+  findStaleProcessing(before: Date, limit: number): Promise<Order[]>;
   /** Records an external (webhook) event id. Returns false when it was already recorded. */
   markExternalEvent(provider: PaymentProviderName, eventId: string): Promise<boolean>;
   hasExternalEvent(provider: PaymentProviderName, eventId: string): Promise<boolean>;
@@ -68,9 +70,18 @@ export class InMemoryOrderRepository implements OrderRepository {
     return true;
   }
 
-  async touchProcessing(orderId: string, at: Date): Promise<void> {
-    const current = this.orders.get(orderId);
-    if (current?.status === "processing") this.orders.set(orderId, { ...current, processingStartedAt: at.toISOString() });
+  async touchProcessing(orderIds: readonly string[], at: Date): Promise<void> {
+    for (const orderId of orderIds) {
+      const current = this.orders.get(orderId);
+      if (current?.status === "processing") this.orders.set(orderId, { ...current, processingStartedAt: at.toISOString() });
+    }
+  }
+
+  async findStaleProcessing(before: Date, limit: number): Promise<Order[]> {
+    return [...this.orders.values()]
+      .filter((order) => order.status === "processing" && Date.parse(order.processingStartedAt ?? order.createdAt) < before.getTime())
+      .slice(0, limit)
+      .map((order) => ({ ...order }));
   }
 
   async markExternalEvent(provider: PaymentProviderName, eventId: string): Promise<boolean> {

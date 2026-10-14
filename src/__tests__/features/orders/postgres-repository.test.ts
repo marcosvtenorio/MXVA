@@ -104,15 +104,19 @@ describe.skipIf(!url)("PostgresOrderRepository on a real database", () => {
     expect(await repository.findByPaymentIntentId(paid.stripePaymentIntentId)).toMatchObject({ status: "paid", version: 2 });
   });
 
-  it("refreshes a running fulfilment's claim without a new version, and only while processing", async () => {
+  it("refreshes queued reports' claims without a new version, only while processing, and finds stale ones", async () => {
     const running = { ...order(), status: "processing" as const, processingStartedAt: "2026-10-12T10:00:00.000Z" };
-    await repository.create(running, created);
-    await repository.touchProcessing(running.id, new Date("2026-10-12T10:00:40.000Z"));
-    expect(await repository.findById(running.id)).toMatchObject({ processingStartedAt: "2026-10-12T10:00:40.000Z", version: running.version });
+    const stopped = { ...order(), status: "processing" as const, processingStartedAt: "2026-10-12T09:58:00.000Z" };
     const idle = order();
+    await repository.create(running, created);
+    await repository.create(stopped, created);
     await repository.create(idle, created);
-    await repository.touchProcessing(idle.id, new Date("2026-10-12T10:00:40.000Z"));
+    await repository.touchProcessing([running.id, idle.id], new Date("2026-10-12T10:00:40.000Z"));
+    expect(await repository.findById(running.id)).toMatchObject({ processingStartedAt: "2026-10-12T10:00:40.000Z", version: running.version });
     expect((await repository.findById(idle.id))?.processingStartedAt).toBeNull();
+    const stale = await repository.findStaleProcessing(new Date("2026-10-12T09:59:30.000Z"), 10);
+    expect(stale.map((o) => o.id)).toContain(stopped.id);
+    expect(stale.map((o) => o.id)).not.toContain(running.id);
   });
 
   it("records each provider event once", async () => {

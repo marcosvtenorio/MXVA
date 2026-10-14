@@ -21,7 +21,7 @@ const payloadSchema = z.object({
   prv: z.uuid().optional(),
   iat: z.number().int(),
   exp: z.number().int(),
-});
+}).strict();
 
 export type OrderSession = z.infer<typeof payloadSchema>;
 
