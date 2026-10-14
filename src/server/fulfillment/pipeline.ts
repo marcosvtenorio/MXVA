@@ -4,7 +4,7 @@ import { FOCUS_AREAS, type Constraints } from "@/features/onboarding/schema";
 import { deriveReportInput } from "@/features/report/derive";
 import { auditReportPdf, composeReportPdf } from "@/features/report/pdf";
 import { planReport } from "@/features/report/planner";
-import type { PaidReport } from "@/features/report/schema";
+import type { PaidReport, VisualObservations } from "@/features/report/schema";
 import { publicConfig } from "@/lib/config";
 import { identityQualityGate } from "../ai/identity-qc";
 import { imageEditProvider } from "../ai/image-edit-adapter";
@@ -24,6 +24,12 @@ export type FulfillmentPhase = "analysing_photo" | "preparing_image" | "checking
 
 export type GeneratedReport = { report: PaidReport; pdf: Uint8Array };
 
+/**
+ * What a report's earlier try already learned, kept in RAM by the queue so a retry (e.g. after the
+ * image step was rate-limited) doesn't pay for the photo analysis again. Dropped with the job.
+ */
+export type ReportCache = { observations?: VisualObservations };
+
 /** Thrown when a human must review the order before anything else happens. */
 export class NeedsHumanReview extends ApiError {}
 
@@ -36,14 +42,15 @@ export async function generateReport(args: {
   /** The buyer's IANA time zone, for the report's date. */
   timeZone?: string;
   onPhase: (phase: FulfillmentPhase) => void;
+  cache?: ReportCache;
 }): Promise<GeneratedReport> {
-  const { front, profiles, constraints, timeZone, onPhase } = args;
+  const { front, profiles, constraints, timeZone, onPhase, cache = {} } = args;
   const vision = visionProvider();
   const editor = imageEditProvider();
   const gate = identityQualityGate();
 
   onPhase("analysing_photo");
-  const observations = await vision.observe({ front: front.jpeg, profiles: profiles.map((p) => p.jpeg), focusAreas: FOCUS_AREAS });
+  const observations = (cache.observations ??= await vision.observe({ front: front.jpeg, profiles: profiles.map((p) => p.jpeg), focusAreas: FOCUS_AREAS }));
   if (observations.possibleMinor) {
     console.warn("[fulfillment] held for human review: the photo may show a minor");
     throw new NeedsHumanReview("AGE_RESTRICTED");

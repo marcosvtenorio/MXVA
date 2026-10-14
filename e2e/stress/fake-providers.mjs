@@ -3,7 +3,7 @@
 // AI credits or sends a real email. Latency, jitter and an optional OpenAI-style rate limit are set
 // per run, so a test can model how the real services behave under load.
 import { createServer } from "node:http";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import sharp from "sharp";
 
 const CONSULTATION = `## Your glow-up, explained
@@ -59,16 +59,21 @@ const QC_VERDICT = {
 
 /**
  * @param {{ port?: number, visionMs?: number, imageMs?: number, qcMs?: number, jitter?: number,
- *           imageConcurrencyLimit?: number, log?: (line: string) => void }} options
+ *           imageConcurrencyLimit?: number, retryAfterSeconds?: number, failRate?: number,
+ *           log?: (line: string) => void }} options
+ *   imageConcurrencyLimit: images accepted at once; the rest get 429 with Retry-After.
+ *   failRate: share of buyers whose photo always makes the image call fail (500), chosen by the
+ *   photo's hash, so their report fails on every retry.
  */
 export function startFakeProviders(options = {}) {
-  const { port = 4010, visionMs = 0, imageMs = 0, qcMs = 0, jitter = 0, imageConcurrencyLimit = Infinity } = options;
+  const { port = 4010, visionMs = 0, imageMs = 0, qcMs = 0, jitter = 0, imageConcurrencyLimit = Infinity, retryAfterSeconds = 20, failRate = 0 } = options;
   const stats = {
     calls: { vision: 0, image: 0, qc: 0, email: 0, unknown: 0 },
     rateLimited: 0,
+    failed: 0,
     inFlight: { vision: 0, image: 0, qc: 0 },
     maxInFlight: { vision: 0, image: 0, qc: 0 },
-    /** Every email the app sent: recipient, idempotency key and the attached PDF. */
+    /** Every email the app sent: recipient, subject, text, idempotency key and the attached PDF (if any). */
     emails: [],
   };
 
@@ -151,8 +156,15 @@ export function startFakeProviders(options = {}) {
         res,
         429,
         { error: { message: "Rate limit reached for images (load-test stand-in).", type: "requests", code: "rate_limit_exceeded" } },
-        { "retry-after": "20" },
+        { "retry-after": String(retryAfterSeconds) },
       );
+    }
+    if (kind === "image" && failRate > 0) {
+      const [front] = inputImages(body);
+      if (createHash("sha256").update(front).digest()[0] / 256 < failRate) {
+        stats.failed++;
+        return send(res, 500, { error: { message: "The image service failed (load-test stand-in).", type: "server_error", code: null } });
+      }
     }
 
     stats.inFlight[kind]++;
@@ -195,7 +207,15 @@ export function startFakeProviders(options = {}) {
             ? Buffer.from(content)
             : Buffer.alloc(0);
     const to = Array.isArray(body.to) ? body.to[0] : body.to;
-    stats.emails.push({ to, idempotencyKey: req.headers["idempotency-key"] ?? null, pdf });
+    stats.emails.push({
+      to,
+      subject: body.subject ?? "",
+      text: body.text ?? "",
+      html: body.html ?? "",
+      at: Date.now(),
+      idempotencyKey: req.headers["idempotency-key"] ?? null,
+      pdf: attachment ? pdf : null,
+    });
     send(res, 200, { id: `fake_email_${randomUUID()}` });
   }
 

@@ -148,6 +148,29 @@ describe("queue retries", () => {
     expect(await repository.findById(order.id)).toMatchObject({ status: "delivered_to_provider" });
   });
 
+  it("keeps the photo analysis between tries, so a retry doesn't pay for it again", async () => {
+    const vision = await import("@/server/ai/vision-adapter");
+    const real = vision.visionProvider();
+    const observe = vi.fn((input: Parameters<typeof real.observe>[0]) => real.observe(input));
+    vi.spyOn(vision, "visionProvider").mockReturnValue({ simulated: real.simulated, observe });
+    const editor = await import("@/server/ai/image-edit-adapter");
+    const realEditor = editor.imageEditProvider();
+    let edits = 0;
+    vi.spyOn(editor, "imageEditProvider").mockReturnValue({
+      simulated: realEditor.simulated,
+      edit: async (input) => {
+        if (++edits <= 2) throw providerError(429, { headers: new Headers({ "retry-after": "0.01" }) });
+        return realEditor.edit(input);
+      },
+    });
+    const queue = new FulfillmentQueue({ concurrency: 1, maxQueued: 10, retryDelayMs: 10 });
+    const order = await queued(queue);
+    await queue.drained();
+    expect(edits).toBe(3);
+    expect(observe).toHaveBeenCalledTimes(1);
+    expect(await repository.findById(order.id)).toMatchObject({ status: "delivered_to_provider" });
+  });
+
   it("gives up at once on an empty AI balance: the buyer gets a link, the owner the cause", async () => {
     vi.spyOn(pipeline, "generateReport").mockRejectedValue(providerError(429, { code: "insufficient_quota" }));
     const queue = new FulfillmentQueue({ concurrency: 1, maxQueued: 10, retryDelayMs: 10 });

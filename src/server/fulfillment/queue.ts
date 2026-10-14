@@ -18,7 +18,7 @@ import { emailProvider } from "@/server/mail/email-adapter";
 import { buyerFailureNotice, ownerFailureAlert, type BuyerNoticeKind, type TimelineEntry } from "@/server/mail/notices";
 import type { ServerPhoto } from "@/server/photos/validate";
 import { resumeUrl } from "@/server/security/resume-token";
-import { NeedsHumanReview, generateReport, type FulfillmentPhase } from "./pipeline";
+import { NeedsHumanReview, generateReport, type FulfillmentPhase, type ReportCache } from "./pipeline";
 
 /**
  * The report queue. A paid buyer's request is accepted at once (the browser shows "it arrives by
@@ -51,9 +51,12 @@ type Job = QueueInput & {
   enqueuedAt: number;
   notBefore: number;
   generationTries: number;
-  /** Times the AI provider said "too many requests" for this report. */
+  /** Times the AI provider said "too many requests" for this report, and since when. */
   rateLimitWaits: number;
+  rateLimitedSince?: number;
   emailTries: number;
+  /** The photo analysis from an earlier try, so a retry doesn't pay for it again. */
+  cache: ReportCache;
   pdf?: Uint8Array;
   timeline: TimelineEntry[];
 };
@@ -75,8 +78,8 @@ export type Failure = {
 
 export const GENERATION_TRIES = 3;
 export const EMAIL_TRIES = 4;
-/** Waits for a busy AI provider before a report is given up (about 30 minutes at 90 s each). */
-export const RATE_LIMIT_WAITS = 20;
+/** How long a report waits for turns at a busy AI provider before its tries start counting again. */
+export const RATE_LIMIT_MAX_WAIT_MS = 30 * 60_000;
 const RATE_LIMIT_DEFAULT_WAIT_MS = 30_000;
 const MAX_RETRY_AFTER_MS = 5 * 60_000;
 const SWEEP_EVERY_MS = 60_000;
@@ -162,6 +165,7 @@ function wipe(job: Job): void {
   for (const profile of job.profiles) profile.jpeg.fill(0);
   job.pdf?.fill(0);
   job.pdf = undefined;
+  job.cache = {};
 }
 
 /** Fire-and-forget server analytics; never delays or fails the report. */
@@ -220,7 +224,7 @@ export class FulfillmentQueue {
   enqueue(input: QueueInput): QueueTicket {
     this.assertCapacity();
     const now = Date.now();
-    const job: Job = { ...input, enqueuedAt: now, notBefore: now, generationTries: 0, rateLimitWaits: 0, emailTries: 0, timeline: [] };
+    const job: Job = { ...input, enqueuedAt: now, notBefore: now, generationTries: 0, rateLimitWaits: 0, emailTries: 0, cache: {}, timeline: [] };
     this.waiting.push(job);
     this.pump();
     const ticket = this.ticket(job);
@@ -285,6 +289,7 @@ export class FulfillmentQueue {
           profiles: job.profiles,
           constraints: job.constraints,
           timeZone: job.timeZone,
+          cache: job.cache,
           onPhase: (current) => {
             phase = current;
           },
@@ -299,7 +304,8 @@ export class FulfillmentQueue {
       } catch (error) {
         const failure = classifyFailure(error);
         const seconds = (Date.now() - started) / 1000;
-        if (failure.rateLimited && job.rateLimitWaits < RATE_LIMIT_WAITS) {
+        job.rateLimitedSince ??= failure.rateLimited ? Date.now() : undefined;
+        if (failure.rateLimited && Date.now() - job.rateLimitedSince! < RATE_LIMIT_MAX_WAIT_MS) {
           // The provider is at capacity: not this report's fault. Wait for a turn without spending a try.
           job.generationTries--;
           job.rateLimitWaits++;

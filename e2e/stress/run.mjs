@@ -1,14 +1,19 @@
-// Load test: N buyers park on the checkout page and then all pay at the same moment, so N reports are
-// made at once on one server. A few buyers use a real Chrome through the interface; the rest make the
-// same HTTP calls the browser makes (recorded from a real browser run), so one laptop can carry the
-// load. OpenAI and Resend are replaced by e2e/stress/fake-providers.mjs (no credits, no real emails);
-// payments are the dev simulator. Every buyer gets a photo with a unique code, and the run checks that
-// each one's PDF, and the email sent to their address, carry their own photo and nobody else's.
+// Load test of the report queue: N buyers park on the checkout page and all pay at the same moment.
+// Each request must be accepted at once (the page says "it arrives by email in about X minutes");
+// the server's queue then makes the reports, at most --concurrency at a time, retries failures and
+// emails every buyer: their report, or a link to create it again (and an alert to the owner).
+// A few buyers use a real Chrome through the interface; the rest make the same HTTP calls the browser
+// makes (recorded from a real browser run), so one laptop can carry the load. OpenAI and Resend are
+// replaced by e2e/stress/fake-providers.mjs (no credits, no real emails); payments are the dev
+// simulator. Every buyer's photo carries a unique code, and the run checks that each emailed PDF
+// carries its own buyer's photo and nobody else's.
 //
-//   node e2e/stress/run.mjs --users 100 [--browser-buyers 10] [--image-ms 100000 --vision-ms 15000 --qc-ms 10000 --jitter 0.2]
-//        [--image-limit 20] [--database-url postgres://…] [--label name]
+//   node e2e/stress/run.mjs --users 100 [--browser-buyers 10] [--concurrency 4]
+//        [--vision-ms 15000 --image-ms 100000 --qc-ms 10000 --jitter 0.2]
+//        [--image-limit 20 --retry-after-s 20] [--fail-rate 0.1] [--retry-delay-ms 2000]
+//        [--database-url postgres://…] [--label name]
 //
-// Results: test-results/stress/<label>.json
+// Results: stress-results/<label>.json (kept out of test-results, which Playwright clears)
 import { spawn, execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import os from "node:os";
@@ -31,8 +36,13 @@ const { values: args } = parseArgs({
     "image-limit": { type: "string", default: "" },
     "database-url": { type: "string", default: "" },
     "browser-buyers": { type: "string", default: "10" },
+    concurrency: { type: "string", default: "4" },
+    "retry-delay-ms": { type: "string", default: "2000" },
+    "retry-after-s": { type: "string", default: "20" },
+    "fail-rate": { type: "string", default: "0" },
+    "complete-timeout-s": { type: "string", default: "3600" },
     "setup-concurrency": { type: "string", default: "10" },
-    "result-timeout-s": { type: "string", default: "900" },
+    "accept-timeout-s": { type: "string", default: "120" },
     port: { type: "string", default: "3200" },
     "fake-port": { type: "string", default: "4010" },
     label: { type: "string", default: "" },
@@ -42,11 +52,12 @@ const USERS = Number(args.users);
 const PORT = Number(args.port);
 const BASE = `http://localhost:${PORT}`;
 const LABEL = args.label || `users${USERS}-image${args["image-ms"]}ms`;
-const OUT = path.join(ROOT, "test-results", "stress");
+const OUT = path.join(ROOT, "stress-results");
 const PHOTOS = path.join(os.tmpdir(), "mxva-stress-photos");
 mkdirSync(OUT, { recursive: true });
 mkdirSync(PHOTOS, { recursive: true });
 
+const OWNER = "owner@example.com";
 const log = (line) => console.log(`[${new Date().toISOString().slice(11, 19)}] ${line}`);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -161,6 +172,10 @@ async function startApp() {
     RESEND_API_KEY: "re_load_test_not_a_key",
     EMAIL_FROM: "MXVA <reports@example.com>",
     DATABASE_URL: args["database-url"],
+    // The queue under test, and where its failure alerts go (the fake mail server).
+    FULFILLMENT_CONCURRENCY: args.concurrency,
+    FULFILLMENT_RETRY_DELAY_MS: args["retry-delay-ms"],
+    OWNER_ALERT_EMAIL: OWNER,
     // Nothing leaves this machine.
     STRIPE_SECRET_KEY: "",
     ABACATEPAY_API_KEY: "",
@@ -211,20 +226,25 @@ async function onboard(page, user) {
   await page.getByRole("button", { name: /Pay \$29 \(simulated\)/ }).waitFor({ timeout: 60_000 });
 }
 
-async function waitForResult(page, timeoutMs) {
+/** Waits for the page to confirm the request ("Request received … in about X minutes"). */
+async function waitForAccepted(page, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
+  const received = page.getByRole("heading", { name: /Request received/ });
   while (Date.now() < deadline) {
-    if (page.url().endsWith("/result")) {
-      await page.getByRole("heading", { name: "Your concept and plan" }).waitFor({ timeout: 60_000 });
-      return { ok: true };
+    if (await received.isVisible().catch(() => false)) {
+      const text = (await received.textContent()) ?? "";
+      const match = /about (a|\d+) minute/.exec(text);
+      const etaMinutes = match ? (match[1] === "a" ? 1 : Number(match[1])) : null;
+      const line = await page.getByText(/You're number \d+ in line/).textContent().catch(() => null);
+      const position = line ? Number(/number (\d+)/.exec(line)?.[1]) : 0;
+      return { ok: true, etaMinutes, position };
     }
-    const tryAgain = page.getByRole("button", { name: "Try again" });
-    if (await tryAgain.isVisible().catch(() => false)) {
-      const heading = await page.locator("h1").first().textContent().catch(() => "");
+    const failed = page.getByRole("heading", { name: /We couldn't send your photo|didn't finish|We need to help/ });
+    if (await failed.isVisible().catch(() => false)) {
       const alert = await page.locator('[role="alert"]').first().textContent().catch(() => "");
-      return { ok: false, error: `${heading?.trim()} | ${alert?.trim()}` };
+      return { ok: false, error: `${(await failed.textContent())?.trim()} | ${alert?.trim()}` };
     }
-    await sleep(500);
+    await sleep(250);
   }
   const heading = await page.locator("h1").first().textContent().catch(() => "");
   return { ok: false, error: `timeout on ${new URL(page.url()).pathname}: ${heading?.trim()}` };
@@ -272,7 +292,7 @@ async function protocolSetup(user, recorded) {
   return api;
 }
 
-async function protocolPayAndFulfill(api, user, recorded, timeoutMs) {
+async function protocolPayAndRequest(api, user, recorded, timeoutMs) {
   const pay = await api.post("/api/dev/mock-pay", { data: { outcome: "succeeded" } });
   if (!pay.ok()) return { ok: false, error: `pay ${pay.status()}` };
   const response = await api.post("/api/fulfill", {
@@ -283,19 +303,16 @@ async function protocolPayAndFulfill(api, user, recorded, timeoutMs) {
     },
     timeout: timeoutMs,
   });
-  if (!response.ok()) return { ok: false, error: `fulfill ${response.status()} ${(await response.text()).slice(0, 160)}` };
-  const lines = (await response.text()).trim().split("\n").map((line) => JSON.parse(line));
-  const last = lines.at(-1);
-  if (last?.type === "error") return { ok: false, error: `${last.error.code}: ${last.error.message}` };
-  if (last?.type !== "result") return { ok: false, error: "the stream ended without a result" };
-  return { ok: true, emailNotice: last.emailDelivered, pdf: Buffer.from(last.pdf.base64, "base64"), phases: lines.filter((l) => l.type === "phase").map((l) => l.phase) };
+  if (response.status() !== 202) return { ok: false, error: `request ${response.status()} ${(await response.text()).slice(0, 160)}` };
+  const { queue } = await response.json();
+  return { ok: true, etaMinutes: queue.etaMinutes, position: queue.position };
 }
 
 // ─── Run ───
 
 async function main() {
   const browserBuyers = Math.min(USERS, Number(args["browser-buyers"]));
-  log(`stress run "${LABEL}": ${USERS} buyers (${browserBuyers} in Chrome, ${USERS - browserBuyers} over HTTP), AI latency vision=${args["vision-ms"]}ms image=${args["image-ms"]}ms qc=${args["qc-ms"]}ms jitter=${args.jitter}${args["image-limit"] ? `, image concurrency limit ${args["image-limit"]}` : ""}, database=${args["database-url"] ? "postgres" : "in-memory"}`);
+  log(`stress run "${LABEL}": ${USERS} buyers (${browserBuyers} in Chrome, ${USERS - browserBuyers} over HTTP), queue concurrency ${args.concurrency}, fail rate ${args["fail-rate"]}, AI latency vision=${args["vision-ms"]}ms image=${args["image-ms"]}ms qc=${args["qc-ms"]}ms jitter=${args.jitter}${args["image-limit"] ? `, image concurrency limit ${args["image-limit"]}` : ""}, database=${args["database-url"] ? "postgres" : "in-memory"}`);
   const fake = await startFakeProviders({
     port: Number(args["fake-port"]),
     visionMs: Number(args["vision-ms"]),
@@ -303,6 +320,8 @@ async function main() {
     qcMs: Number(args["qc-ms"]),
     jitter: Number(args.jitter),
     imageConcurrencyLimit: args["image-limit"] ? Number(args["image-limit"]) : Infinity,
+    retryAfterSeconds: Number(args["retry-after-s"]),
+    failRate: Number(args["fail-rate"]),
     log,
   });
   const app = await startApp();
@@ -324,8 +343,10 @@ async function main() {
     const recorded = recordBrowserCalls(w.page);
     await onboard(w.page, warmup);
     await w.page.getByRole("button", { name: /Pay \$29 \(simulated\)/ }).click();
-    const warm = await waitForResult(w.page, 300_000);
+    const warm = await waitForAccepted(w.page, 120_000);
     if (!warm.ok) throw new Error(`warm-up buyer failed: ${warm.error}`);
+    for (let i = 0; i < 600 && !fake.stats.emails.some((m) => m.to === warmup.email); i++) await sleep(1000);
+    if (!fake.stats.emails.some((m) => m.to === warmup.email)) throw new Error("the warm-up buyer never got an email");
     await w.context.close();
     if (!recorded.order) throw new Error("could not record the browser's order call");
     // Chrome does not expose multipart bodies with files, so the report call's small JSON field is
@@ -353,7 +374,7 @@ async function main() {
     const ready = sessions.filter((s) => s.ready);
     log(`${ready.length}/${USERS} buyers on checkout after ${Math.round((Date.now() - setupStart) / 1000)} s`);
 
-    // Sample the server while the burst runs.
+    // Sample the server while the burst and the queue run.
     const samples = [];
     const sampler = setInterval(() => {
       try {
@@ -363,91 +384,121 @@ async function main() {
       }
     }, 1000);
 
-    const timeoutMs = Number(args["result-timeout-s"]) * 1000;
+    const acceptTimeout = Number(args["accept-timeout-s"]) * 1000;
     log(`all ${ready.length} buyers pay now`);
     const t0 = Date.now();
     const outcomes = await Promise.all(
       ready.map(async (s) => {
         const clickedAt = Date.now();
-        const outcome = { n: s.user.n, kind: s.kind, email: s.user.email, clickOffsetMs: clickedAt - t0 };
+        const outcome = { n: s.user.n, kind: s.kind, email: s.user.email, clickOffsetMs: clickedAt - t0, clickedAt };
+        let result;
         if (s.kind === "http") {
-          const result = await protocolPayAndFulfill(s.api, s.user, recorded, timeoutMs).catch((error) => ({ ok: false, error: String(error).split("\n")[0] }));
-          Object.assign(outcome, { seconds: (Date.now() - clickedAt) / 1000, ok: result.ok, error: result.error, emailNotice: result.emailNotice, phases: result.phases });
-          if (result.pdf) {
-            outcome.pdfKb = Math.round(result.pdf.length / 1024);
-            outcome.pdfCode = await codeInPdf(result.pdf).catch(() => null);
-          }
+          result = await protocolPayAndRequest(s.api, s.user, recorded, acceptTimeout).catch((error) => ({ ok: false, error: String(error).split("\n")[0] }));
           await s.api.dispose();
-          return outcome;
+        } else {
+          await s.page.getByRole("button", { name: /Pay \$29 \(simulated\)/ }).click();
+          result = await waitForAccepted(s.page, acceptTimeout);
+          if (!result.ok) await s.page.screenshot({ path: path.join(OUT, `${LABEL}-buyer-${s.user.n}.png`) }).catch(() => undefined);
         }
-        await s.page.getByRole("button", { name: /Pay \$29 \(simulated\)/ }).click();
-        const result = await waitForResult(s.page, timeoutMs);
-        Object.assign(outcome, { seconds: (Date.now() - clickedAt) / 1000, ...result });
-        if (!result.ok) {
-          await s.page.screenshot({ path: path.join(OUT, `${LABEL}-buyer-${s.user.n}.png`) }).catch(() => undefined);
-          return outcome;
-        }
-        outcome.emailNotice = await s.page.getByText("Also sent to your email").isVisible().catch(() => false);
-        const link = s.page.getByRole("link", { name: /Download PDF/ });
-        const [download] = await Promise.all([s.page.waitForEvent("download"), link.click()]);
-        const bytes = readFileSync(await download.path());
-        outcome.pdfKb = Math.round(bytes.length / 1024);
-        outcome.pdfCode = bytes.subarray(0, 5).toString() === "%PDF-" ? await codeInPdf(bytes) : null;
-        await s.context.close();
-        return outcome;
+        return Object.assign(outcome, { acceptSeconds: (Date.now() - clickedAt) / 1000, accepted: result.ok, acceptError: result.error, etaMinutes: result.etaMinutes, position: result.position });
       }),
     );
-    const burstSeconds = (Date.now() - t0) / 1000;
-    clearInterval(sampler);
-    log(`burst finished in ${burstSeconds.toFixed(1)} s`);
+    const accepted = outcomes.filter((o) => o.accepted);
+    log(`${accepted.length}/${outcomes.length} requests accepted; slowest answer ${Math.max(...outcomes.map((o) => o.acceptSeconds)).toFixed(1)} s`);
 
-    // Emails sent during the burst: exactly one per buyer, to their own address, with their own report.
-    const burstEmails = fake.stats.emails.slice(baseline.emails);
-    const byAddress = new Map();
-    for (const mail of burstEmails) byAddress.set(mail.to, [...(byAddress.get(mail.to) ?? []), mail]);
-    for (const outcome of outcomes) {
-      const mails = byAddress.get(outcome.email) ?? [];
-      outcome.emails = mails.length;
-      outcome.emailCode = mails[0] ? await codeInPdf(mails[0].pdf).catch(() => null) : null;
+    // The queue works through them: wait until every accepted buyer has their report or a "create it again" email.
+    const settled = (o) => fake.stats.emails.some((m) => m.to === o.email && m.at >= t0);
+    const completeDeadline = Date.now() + Number(args["complete-timeout-s"]) * 1000;
+    let lastLog = 0;
+    while (Date.now() < completeDeadline && !accepted.every(settled)) {
+      if (Date.now() - lastLog > 30_000) {
+        lastLog = Date.now();
+        log(`${accepted.filter(settled).length}/${accepted.length} buyers emailed; queue in flight: image ${fake.stats.inFlight.image}`);
+      }
+      await sleep(1000);
+    }
+    const queueSeconds = (Date.now() - t0) / 1000;
+    clearInterval(sampler);
+    log(`queue finished in ${queueSeconds.toFixed(1)} s`);
+
+    // Browser buyers who kept the page open see that the email went out (or that it didn't finish).
+    for (const s of ready.filter((r) => r.kind === "browser")) {
+      const outcome = outcomes.find((o) => o.n === s.user.n);
+      outcome.pageSaysEmailed = await s.page
+        .getByRole("heading", { name: /Your report is in your email|didn't finish/ })
+        .waitFor({ timeout: 20_000 })
+        .then(() => true, () => false);
+      await s.context.close();
     }
 
-    const ok = outcomes.filter((o) => o.ok);
-    const stats = (list) => {
-      const times = list.map((o) => o.seconds).sort((a, b) => a - b);
-      const pct = (p) => (times.length ? times[Math.min(times.length - 1, Math.floor((p / 100) * times.length))] : null);
-      return { count: times.length, min: times[0] ?? null, p50: pct(50), p90: pct(90), p99: pct(99), max: times.at(-1) ?? null };
+    // What each buyer received: exactly one email, with their own photo in the PDF, or a link to try again.
+    const burstEmails = fake.stats.emails.filter((m) => m.at >= t0);
+    for (const outcome of outcomes) {
+      const mails = burstEmails.filter((m) => m.to === outcome.email);
+      const reports = mails.filter((m) => m.pdf);
+      const notices = mails.filter((m) => !m.pdf);
+      outcome.reportEmails = reports.length;
+      outcome.noticeEmails = notices.length;
+      outcome.noticeHasLink = notices.some((m) => /\/resume\?t=/.test(m.text));
+      outcome.emailCode = reports[0] ? await codeInPdf(reports[0].pdf).catch(() => null) : null;
+      outcome.emailedAfterSeconds = mails[0] ? (mails[0].at - outcome.clickedAt) / 1000 : null;
+    }
+    const alerts = burstEmails.filter((m) => m.to === OWNER);
+    const alertFor = (email) => alerts.filter((m) => m.text.includes(email));
+
+    const reported = outcomes.filter((o) => o.reportEmails === 1 && o.noticeEmails === 0);
+    const failedOver = outcomes.filter((o) => o.reportEmails === 0 && o.noticeEmails === 1);
+    const stats = (values) => {
+      const sorted = values.filter((v) => typeof v === "number").sort((a, b) => a - b);
+      const pct = (p) => (sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor((p / 100) * sorted.length))] : null);
+      return { count: sorted.length, min: sorted[0] ?? null, p50: pct(50), p90: pct(90), max: sorted.at(-1) ?? null };
     };
+    const estimateError = reported
+      .filter((o) => o.etaMinutes)
+      .map((o) => ({ estimated: o.etaMinutes, actual: o.emailedAfterSeconds / 60 }));
     const summary = {
       label: LABEL,
       date: new Date().toISOString(),
       machine: `${os.cpus().length} CPU, ${Math.round(os.totalmem() / 2 ** 30)} GB RAM, ${os.platform()} ${os.release()}`,
       setup: "next dev (one Node process), fake OpenAI + Resend, simulated payment",
       database: args["database-url"] ? "PostgreSQL (local)" : "in-memory",
+      concurrency: Number(args.concurrency),
       latencyMs: { vision: Number(args["vision-ms"]), image: Number(args["image-ms"]), qc: Number(args["qc-ms"]), jitter: Number(args.jitter) },
       imageConcurrencyLimit: args["image-limit"] ? Number(args["image-limit"]) : null,
+      failRate: Number(args["fail-rate"]),
       buyers: USERS,
       browserBuyers,
       httpBuyers: USERS - browserBuyers,
       parked: ready.length,
       setupFailures: sessions.filter((s) => !s.ready).map((s) => ({ n: s.user.n, kind: s.kind, error: s.setupError })),
       clickSpreadMs: Math.max(...outcomes.map((o) => o.clickOffsetMs)),
-      reportsDelivered: ok.length,
-      reportsDeliveredInBrowser: ok.filter((o) => o.kind === "browser").length,
-      failures: outcomes.filter((o) => !o.ok).map((o) => ({ n: o.n, kind: o.kind, error: o.error, seconds: o.seconds })),
-      ownPhotoInPdf: ok.filter((o) => o.pdfCode === o.n).length,
-      wrongPhotoInPdf: ok.filter((o) => o.pdfCode !== null && o.pdfCode !== o.n).map((o) => ({ n: o.n, found: o.pdfCode })),
-      unreadablePdfCode: ok.filter((o) => o.pdfCode === null || o.pdfCode === undefined).map((o) => o.n),
-      emailNoticeShown: ok.filter((o) => o.emailNotice).length,
-      exactlyOneEmail: outcomes.filter((o) => o.emails === 1).length,
-      duplicateEmails: outcomes.filter((o) => o.emails > 1).map((o) => ({ n: o.n, emails: o.emails })),
-      ownPhotoInEmail: outcomes.filter((o) => o.emailCode === o.n).length,
-      wrongPhotoInEmail: outcomes.filter((o) => o.emailCode !== null && o.emailCode !== undefined && o.emailCode !== o.n).map((o) => ({ n: o.n, found: o.emailCode })),
-      strayEmails: burstEmails.filter((m) => !outcomes.some((o) => o.email === m.to)).length,
-      secondsToReport: stats(ok),
-      secondsToReportInBrowser: stats(ok.filter((o) => o.kind === "browser")),
-      burstSeconds,
+      accepted: accepted.length,
+      acceptFailures: outcomes.filter((o) => !o.accepted).map((o) => ({ n: o.n, kind: o.kind, error: o.acceptError })),
+      acceptSeconds: stats(outcomes.map((o) => o.acceptSeconds)),
+      positionsShown: stats(outcomes.map((o) => o.position)),
+      reportsEmailed: reported.length,
+      ownPhotoInEmail: reported.filter((o) => o.emailCode === o.n).length,
+      wrongPhotoInEmail: reported.filter((o) => o.emailCode !== null && o.emailCode !== o.n).map((o) => ({ n: o.n, found: o.emailCode })),
+      failedWithNotice: failedOver.length,
+      noticesWithLink: failedOver.filter((o) => o.noticeHasLink).length,
+      failedWithOwnerAlert: failedOver.filter((o) => alertFor(o.email).length === 1).length,
+      leftWithoutEmail: outcomes.filter((o) => o.accepted && o.reportEmails + o.noticeEmails === 0).map((o) => o.n),
+      duplicateEmails: outcomes.filter((o) => o.reportEmails + o.noticeEmails > 1).map((o) => ({ n: o.n, reports: o.reportEmails, notices: o.noticeEmails })),
+      strayEmails: burstEmails.filter((m) => m.to !== OWNER && !outcomes.some((o) => o.email === m.to)).length,
+      ownerAlerts: alerts.length,
+      alertsWithImageData: alerts.filter((m) => /data:image|base64,|\/9j\/|[A-Za-z0-9+/]{200,}/.test(m.text + m.html)).length,
+      alertSample: alerts[0] ? { subject: alerts[0].subject, text: alerts[0].text.slice(0, 1500) } : null,
+      browserPagesSawOutcome: outcomes.filter((o) => o.kind === "browser" && o.pageSaysEmailed).length,
+      minutesToEmail: stats(outcomes.map((o) => (o.emailedAfterSeconds === null ? null : o.emailedAfterSeconds / 60))),
+      estimateVsActual: {
+        underestimated: estimateError.filter((e) => e.actual > e.estimated + 1).length,
+        withinOrEarly: estimateError.filter((e) => e.actual <= e.estimated + 1).length,
+        samples: estimateError.filter((_, i) => i % Math.max(1, Math.floor(estimateError.length / 10)) === 0).map((e) => ({ estimated: e.estimated, actual: Number(e.actual.toFixed(1)) })),
+      },
+      queueSeconds,
       providerCalls: Object.fromEntries(Object.entries(fake.stats.calls).map(([k, v]) => [k, v - (baseline.calls[k] ?? 0)])),
       rateLimitedImageCalls: fake.stats.rateLimited,
+      failedImageCalls: fake.stats.failed,
       maxConcurrentAiCalls: fake.stats.maxInFlight,
       server: {
         peakRssMb: Math.max(...samples.map((s) => s.rssMb)),
@@ -455,7 +506,7 @@ async function main() {
         avgCpuPercent: Math.round(samples.reduce((a, s) => a + s.cpu, 0) / Math.max(1, samples.length)),
         peakLoadAvg: Math.max(...samples.map((s) => s.load)),
       },
-      serverErrors: app.serverLog.join("").split("\n").filter((line) => /error|unhandled|ECONN|timeout/i.test(line)).slice(0, 20),
+      serverErrors: app.serverLog.join("").split("\n").filter((line) => /error|unhandled|timeout/i.test(line) && !/aborted|ECONNRESET/.test(line)).slice(0, 20),
     };
     writeFileSync(path.join(OUT, `${LABEL}.json`), JSON.stringify({ summary, outcomes, samples }, null, 2));
     writeFileSync(path.join(OUT, `${LABEL}-server.log`), app.serverLog.join(""));
