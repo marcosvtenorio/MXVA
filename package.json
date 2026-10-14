@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:prod": "playwright test --config playwright.prod.config.ts",
+    "test:stress": "node e2e/stress/run.mjs",
     "check": "npm run lint && npm run typecheck && npm run test",
     "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs",
     "fixtures": "node scripts/generate-fixtures.mjs"

@@ -36,8 +36,11 @@ npm run dev                       # http://localhost:3000
 | `npm run fixtures` | Regenerates the synthetic (drawn, non-human) test photos |
 | `npm run db:migrate` | Applies `db/migrations/*.sql` to `DATABASE_URL` |
 | `TEST_DATABASE_URL=… npx vitest run src/__tests__/features/orders/postgres-repository.test.ts` | Repository contract test on a real Postgres, in a throwaway schema |
+| `npm run test:stress -- --users 100 [--database-url postgres://…]` | Load test: N buyers pay at the same moment (see below). Never calls OpenAI or Resend |
 
 The end-to-end suite starts its own dev server (port 3100, build dir `.next-e2e`, simulated payments and AI), so it never touches real providers or your dev server on :3000.
+
+**Load test** (`e2e/stress/`): starts a dev server on :3200 (build dir `.next-stress`) with the **real** OpenAI and Resend code paths pointed at `e2e/stress/fake-providers.mjs` through `OPENAI_BASE_URL` and `RESEND_BASE_URL` (fake keys, so nothing can reach the real services), and simulated payments. A warm-up buyer in Chrome compiles the routes and records the calls a browser makes; then N buyers park on the checkout and all pay within a few milliseconds. `--browser-buyers` of them use Chrome through the interface, the rest replay the browser's HTTP calls (one laptop cannot run 100 browsers). Each buyer's photo carries a unique code, and the run checks that every PDF, and every email sent to that buyer's address, carries their own photo. Options: `--vision-ms`, `--image-ms`, `--qc-ms`, `--jitter` (provider latency), `--image-limit` (images the fake OpenAI accepts at once; the rest get 429). Results go to `test-results/stress/<label>.json`.
 
 ### Try the whole flow locally
 
