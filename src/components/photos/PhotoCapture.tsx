@@ -102,7 +102,7 @@ function FrontSlot() {
             </span>
           </div>
         ) : null}
-        <span className="capsule frost mono absolute bottom-4 left-4">Front</span>
+        <span className="capsule frost mono absolute bottom-4 left-4 max-[359px]:hidden">Front</span>
         <div className="absolute bottom-4 right-4 flex gap-2">
           <label htmlFor={cameraId} className="capsule frost min-h-11 cursor-pointer gap-2 px-4 text-[15px] font-semibold">
             <Camera size={18} />
@@ -136,6 +136,7 @@ function ProfileTile({ slot }: { slot: "left" | "right" }) {
   const removePhoto = usePhotoStore((state) => state.removePhoto);
   const { status, handleFiles } = useSlotUpload(slot);
   const inputId = useId();
+  const cameraId = useId();
   const label = slot === "left" ? "Left profile" : "Right profile";
   return (
     <div>
@@ -152,12 +153,19 @@ function ProfileTile({ slot }: { slot: "left" | "right" }) {
             Remove
           </button>
         ) : (
-          <label htmlFor={inputId} className="frost absolute bottom-2.5 right-2.5 grid h-11 w-11 cursor-pointer place-items-center rounded-full">
-            <Plus size={18} />
-            <span className="sr-only">Add {label.toLowerCase()} photo</span>
-          </label>
+          <div className="absolute bottom-2.5 right-2.5 flex gap-2">
+            <label htmlFor={cameraId} className="frost grid h-11 w-11 cursor-pointer place-items-center rounded-full">
+              <Camera size={18} />
+              <span className="sr-only">Take {label.toLowerCase()} photo</span>
+            </label>
+            <label htmlFor={inputId} className="frost grid h-11 w-11 cursor-pointer place-items-center rounded-full">
+              <Plus size={18} />
+              <span className="sr-only">Add {label.toLowerCase()} photo</span>
+            </label>
+          </div>
         )}
         <input id={inputId} type="file" accept={INPUT_ACCEPT} className="sr-only" aria-label={`Add ${label.toLowerCase()} photo`} onChange={(event) => void handleFiles(event.currentTarget)} />
+        <input id={cameraId} type="file" accept="image/*" capture="user" className="sr-only" aria-label={`Take ${label.toLowerCase()} photo`} onChange={(event) => void handleFiles(event.currentTarget)} />
       </div>
       {status.state === "error" ? (
         <p role="alert" className="mt-2 text-[13px] leading-[1.35] text-negative">

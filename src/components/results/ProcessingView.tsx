@@ -400,6 +400,13 @@ export function ProcessingView() {
               <Link href="/help" className="btn btn-secondary mt-6">Contact support</Link>
             </>
           ) : null}
+
+          {/* The report goes on without this page: the buyer can leave it. */}
+          {mode.kind === "queued" || mode.kind === "elsewhere" || mode.kind === "delivered" ? (
+            <Link href="/" className="btn btn-secondary mt-6">
+              Back to home
+            </Link>
+          ) : null}
         </main>
       </Sheet>
     </div>

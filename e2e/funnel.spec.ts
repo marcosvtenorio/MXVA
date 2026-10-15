@@ -19,6 +19,7 @@ test.describe("paid funnel (development mocks)", () => {
     await page.waitForURL("**/processing");
     await expect(page.getByRole("heading", { name: /Request received\. Your report arrives by email in about/ })).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText(/You can close this page/)).toBeVisible();
+    await expect(page.getByRole("link", { name: "Back to home" })).toHaveAttribute("href", "/");
     // Nothing of the report or the photo is shown in the page.
     await expect(page.getByRole("link", { name: /Download PDF/ })).toHaveCount(0);
     await expect(page.locator('img[src^="blob:"]:visible')).toHaveCount(0);

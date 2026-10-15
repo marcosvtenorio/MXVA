@@ -37,6 +37,10 @@ test.describe("photo step", () => {
 
   test("optional profile photos can be added and removed", async ({ page }) => {
     await runOnboarding(page, "photos");
+    // Every photo, front and profiles, can be taken with the camera as well as chosen.
+    for (const name of ["Take your front photo", "Take left profile photo", "Take right profile photo"]) {
+      await expect(page.getByLabel(name, { exact: true })).toHaveAttribute("capture", "user");
+    }
     await page.locator('input[type="file"]').nth(2).setInputFiles(fixture("synthetic-left.jpg"));
     await expect(page.getByAltText("Your left profile photo")).toBeVisible();
     await page.getByRole("button", { name: "Remove" }).click();
