@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { runOnboarding } from "./support/flow";
+import { runOnboarding, showPixQr } from "./support/flow";
 
 async function axe(page: Page) {
   // Client navigations apply the new <title> a moment after the content.
@@ -48,8 +48,8 @@ test.describe("accessibility of Pix checkout (Brazil)", () => {
   test("no serious violations with an open Pix code, and no horizontal scroll at 320px", async ({ page }) => {
     await runOnboarding(page);
     await axe(page);
-    await page.getByRole("button", { name: "Generate Pix code" }).click();
-    await expect(page.getByRole("img", { name: "Pix QR code" })).toBeVisible();
+    await page.getByRole("button", { name: "Pay R$ 47,99 with Pix" }).click();
+    await showPixQr(page);
     await axe(page);
     await page.setViewportSize({ width: 320, height: 800 });
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);

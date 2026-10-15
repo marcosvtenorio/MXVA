@@ -3,7 +3,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { api, type CheckoutOffer } from "@/lib/api-client";
 import { DISPLAY_PRICE_BRL_CENTS, DISPLAY_PRICE_USD_CENTS, formatPrice } from "@/lib/config";
-import { defaultMethod, visitorInBrazil } from "./method";
+import { defaultMethod, visitorInBrazil, visitorRegion } from "./method";
 import { useCheckoutStore } from "./store";
 
 let request: Promise<CheckoutOffer[]> | undefined;
@@ -13,7 +13,7 @@ export function useCheckoutOffers(): CheckoutOffer[] | undefined {
   const offers = useCheckoutStore((s) => s.offers);
   useEffect(() => {
     if (offers) return;
-    request ??= api.checkoutOptions().then((response) => response.offers);
+    request ??= api.checkoutOptions(visitorRegion()).then((response) => response.offers);
     request.then(
       (loaded) => useCheckoutStore.getState().setOffers(loaded),
       () => {
@@ -27,7 +27,7 @@ export function useCheckoutOffers(): CheckoutOffer[] | undefined {
 const noSubscription = () => () => undefined;
 
 /**
- * The price this visitor will see at checkout: Pix in reais for visitors in Brazil, card in
+ * The price this visitor will see at checkout: reais for visitors in Brazil (Pix or card),
  * dollars otherwise. Server-rendered HTML shows dollars; the browser corrects it after load.
  */
 export function useDisplayPrice(): string {

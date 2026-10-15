@@ -1,7 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
-import { runOnboarding } from "./support/flow";
+import { chooseMethod, runOnboarding, showPixQr } from "./support/flow";
 
 const pixCode = (page: Page) => page.getByLabel("Pix Copia e Cola");
+const payWithPix = (page: Page) => page.getByRole("button", { name: "Pay R$ 47,99 with Pix" });
 
 test.describe("Pix for visitors in Brazil (simulated)", () => {
   test.use({ timezoneId: "America/Sao_Paulo", locale: "pt-BR" });
@@ -11,12 +12,13 @@ test.describe("Pix for visitors in Brazil (simulated)", () => {
     await expect(page.getByText("R$ 47,99").first()).toBeVisible();
 
     await runOnboarding(page);
-    await expect(page.getByRole("heading", { name: "Pay with Pix" })).toBeVisible();
+    await expect(page.getByRole("radio", { name: /^Pix/ })).toBeChecked();
     await expect(page.getByText("R$ 47,99").first()).toBeVisible();
-    await page.getByRole("button", { name: "Generate Pix code" }).click();
+    await payWithPix(page).click();
 
-    await expect(page.getByRole("img", { name: "Pix QR code" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Copy Pix code" })).toBeVisible();
     await expect(pixCode(page)).toContainText("br.gov.bcb.pix");
+    await showPixQr(page);
     await expect(page.getByText(/^Valid until/)).toBeVisible();
     await expect(page.getByRole("status")).toContainText("Waiting for your payment");
 
@@ -27,7 +29,7 @@ test.describe("Pix for visitors in Brazil (simulated)", () => {
 
   test("a reload while paying in the bank app shows the same code, and the page notices the payment by itself", async ({ page }) => {
     await runOnboarding(page);
-    await page.getByRole("button", { name: "Generate Pix code" }).click();
+    await payWithPix(page).click();
     const code = await pixCode(page).textContent();
 
     await page.reload();
@@ -42,7 +44,7 @@ test.describe("Pix for visitors in Brazil (simulated)", () => {
 
   test("an expired code says nothing was charged and offers a new one", async ({ page }) => {
     await runOnboarding(page);
-    await page.getByRole("button", { name: "Generate Pix code" }).click();
+    await payWithPix(page).click();
     const first = await pixCode(page).textContent();
 
     await page.evaluate(() => fetch("/api/dev/mock-pay", { method: "POST", headers: { "content-type": "application/json", "x-mxva-request": "1" }, body: JSON.stringify({ outcome: "expired" }) }));
@@ -53,12 +55,13 @@ test.describe("Pix for visitors in Brazil (simulated)", () => {
     await expect(pixCode(page)).not.toHaveText(first!);
   });
 
-  test("card is one tap away", async ({ page }) => {
+  test("card is one tap away, at the same price in reais", async ({ page }) => {
     await runOnboarding(page);
-    await page.getByRole("button", { name: "Pay by card instead" }).click();
-    await expect(page.getByRole("button", { name: /Pay \$29 \(simulated\)/ })).toBeVisible();
-    await page.getByRole("button", { name: "In Brazil? Pay with Pix" }).click();
-    await expect(page.getByRole("button", { name: "Generate Pix code" })).toBeVisible();
+    await chooseMethod(page, "Card");
+    await expect(page.getByRole("button", { name: "Pay R$ 47,99 (simulated)" })).toBeVisible();
+    await expect(page.getByText("$29")).toHaveCount(0);
+    await chooseMethod(page, "Pix");
+    await expect(payWithPix(page)).toBeVisible();
   });
 });
 
@@ -67,9 +70,10 @@ test.describe("Pix outside Brazil", () => {
     await page.goto("/");
     await expect(page.getByText("$29").first()).toBeVisible();
     await runOnboarding(page);
+    await expect(page.getByRole("radio", { name: /^Card/ })).toBeChecked();
     await expect(page.getByRole("button", { name: /Pay \$29 \(simulated\)/ })).toBeVisible();
-    await page.getByRole("button", { name: "In Brazil? Pay with Pix" }).click();
-    await page.getByRole("button", { name: "Generate Pix code" }).click();
-    await expect(page.getByRole("img", { name: "Pix QR code" })).toBeVisible();
+    await chooseMethod(page, "Pix");
+    await payWithPix(page).click();
+    await showPixQr(page);
   });
 });

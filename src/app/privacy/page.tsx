@@ -23,8 +23,7 @@ export default function PrivacyPage() {
       <h2>Your report</h2>
       <ul>
         <li>Your report is emailed to you as a PDF attachment. It shows your front photo next to your AI concept image (before and after), and your roadmap. Our email provider handles that message and its attachment to deliver it.</li>
-        <li>Once delivered, the email and PDF stay in your mailbox until you delete them. That is outside our control.</li>
-        <li>The results page shows your report only while the tab is open. We don&apos;t keep a copy or a link to it.</li>
+        <li>Once delivered, the email and PDF stay in your mailbox until you delete them. That is outside our control. We don&apos;t keep a copy of your report or a link to it.</li>
       </ul>
       <h2>What we keep</h2>
       <ul>

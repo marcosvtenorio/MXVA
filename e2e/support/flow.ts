@@ -33,7 +33,21 @@ export async function runOnboarding(page: Page, until: "photos" | "constraints" 
   await page.getByRole("button", { name: "Continue to checkout" }).click();
   await page.waitForURL("**/checkout");
   // The order is opened by the checkout page itself: wait until a way to pay is on screen.
-  await expect(page.getByRole("button", { name: /Pay \$29 \(simulated\)|Generate Pix code/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Pay \$29 \(simulated\)|Pay R\$ 47,99 with Pix/ })).toBeVisible();
+}
+
+/** Picks a way to pay in the checkout's method cards (the radio itself is visually hidden). */
+export async function chooseMethod(page: Page, method: "Pix" | "Card") {
+  await page.locator("label").filter({ has: page.getByRole("radio", { name: new RegExp(`^${method}\\b`) }) }).click();
+  await expect(page.getByRole("radio", { name: new RegExp(`^${method}\\b`) })).toBeChecked();
+}
+
+/** The Pix QR code: shown at once on a computer, one tap away on a phone (which pays by copy and paste). */
+export async function showPixQr(page: Page) {
+  const qr = page.getByRole("img", { name: "Pix QR code" });
+  await expect(page.getByRole("button", { name: /Copy Pix code|Copied/ })).toBeVisible();
+  if (!(await qr.isVisible())) await page.getByText("Show the QR code instead").click();
+  await expect(qr).toBeVisible();
 }
 
 export async function addFrontPhoto(page: Page, name = "synthetic-front.jpg") {

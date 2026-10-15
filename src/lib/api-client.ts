@@ -101,7 +101,9 @@ export const api = {
 
   currentOrder: () => request<CurrentOrderResponse>("/api/orders/current"),
 
-  checkoutOptions: () => request<{ offers: CheckoutOffer[] }>("/api/checkout/options"),
+  /** `region` (from the device's time zone and languages) prices the card in reais for Brazil. */
+  checkoutOptions: (region?: string) =>
+    request<{ offers: CheckoutOffer[] }>(region === "BR" ? "/api/checkout/options?region=BR" : "/api/checkout/options"),
 
   /** Development + AbacatePay sandbox only: asks the sandbox to pay this order's PIX charge. */
   pixSimulate: () => request<{ order: PublicOrderStatus }>("/api/dev/pix-simulate", { method: "POST" }),

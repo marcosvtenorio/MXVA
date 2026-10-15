@@ -53,3 +53,24 @@ export const Camera = (p: IconProps) => (
     <circle cx="12" cy="13" r="3.5" />
   </Icon>
 );
+export const CreditCard = (p: IconProps) => (
+  <Icon strokeWidth={1.8} {...p}>
+    <rect x="3" y="5.5" width="18" height="13" rx="2.5" />
+    <path d="M3 10h18M7 15h4" />
+  </Icon>
+);
+export const QrCode = (p: IconProps) => (
+  <Icon strokeWidth={1.8} {...p}>
+    <rect x="4" y="4" width="6" height="6" rx="1" />
+    <rect x="14" y="4" width="6" height="6" rx="1" />
+    <rect x="4" y="14" width="6" height="6" rx="1" />
+    <path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18v2M18 14h2" />
+  </Icon>
+);
+export const Copy = (p: IconProps) => (
+  <Icon strokeWidth={1.8} {...p}>
+    <rect x="8" y="8" width="12" height="12" rx="2.5" />
+    <path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8" />
+  </Icon>
+);
+export const ChevronDown = (p: IconProps) => <Icon {...p}><path d="M6 9l6 6 6-6" /></Icon>;

@@ -45,8 +45,9 @@ export class StripePaymentProvider implements PaymentProvider {
         ],
         metadata: { order_id: input.orderId, price_variant: input.priceVariant },
         payment_intent_data: { metadata: { order_id: input.orderId } },
-        // Shows the buyer's local currency where Stripe supports it; the order amount stays authoritative.
-        adaptive_pricing: { enabled: true },
+        // The page shows one price in one currency (reais in Brazil, dollars elsewhere), and the
+        // session charges exactly that: no conversion at payment.
+        adaptive_pricing: { enabled: false },
         return_url: input.returnUrl,
         expires_at: Math.floor(Date.now() / 1000) + 60 * 60,
       },

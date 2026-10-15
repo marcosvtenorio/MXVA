@@ -108,7 +108,7 @@ const post = (path: string, body?: unknown, cookie?: string) =>
 let routes: {
   createOrder: (r: Request) => Promise<Response>;
   current: (r: Request) => Promise<Response>;
-  options: () => Promise<Response>;
+  options: (r?: Request) => Promise<Response>;
 };
 let repo: { list(): { id: string; stripeCheckoutSessionId: string | null; currency: string; amountMinor: number; status: string; paymentMode: string }[] };
 let clearThrottle: () => void;
@@ -166,6 +166,24 @@ describe("card checkout (Stripe test mode, faked SDK)", () => {
       { method: "pix", price: { amountMinor: 4799, currency: "brl" }, sandbox: true, simulated: true },
       { method: "card", price: { amountMinor: 2900, currency: "usd" }, sandbox: true, simulated: false },
     ]);
+  });
+
+  it("prices the card in reais for visitors in Brazil, like Pix", async () => {
+    const { offers } = await (await routes.options(new Request(`${ORIGIN}/api/checkout/options?region=BR`))).json();
+    expect(offers).toContainEqual({ method: "card", price: { amountMinor: 4799, currency: "brl" }, sandbox: true, simulated: false });
+    const junk = await (await routes.options(new Request(`${ORIGIN}/api/checkout/options?region=brazil`))).json();
+    expect(junk.offers).toContainEqual({ method: "card", price: { amountMinor: 2900, currency: "usd" }, sandbox: true, simulated: false });
+  });
+
+  it("charges a card from Brazil in reais, with no currency conversion at payment", async () => {
+    const response = await routes.createOrder(post("/api/orders", { ...orderBody, countryHint: "BR" }));
+    expect((await response.json()).price).toEqual({ amountMinor: 4799, currency: "brl" });
+    const { params } = stripeFake.creates.at(-1)!;
+    expect(params).toMatchObject({
+      line_items: [{ quantity: 1, price_data: { currency: "brl", unit_amount: 4799 } }],
+      adaptive_pricing: { enabled: false },
+    });
+    expect(repo.list().at(-1)).toMatchObject({ currency: "brl", amountMinor: 4799 });
   });
 
   it("opens an embedded Checkout Session priced by the server", async () => {

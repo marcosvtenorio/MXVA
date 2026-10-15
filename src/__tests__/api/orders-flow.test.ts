@@ -70,7 +70,8 @@ describe("order API (mock payments, development build)", () => {
     const text = await response.clone().text();
     expect(text).not.toMatch(/buyer@example\.com/i);
     const body = await response.json();
-    expect(body).toMatchObject({ alreadyPaid: false, checkout: { mode: "mock" }, price: { amountMinor: 2900, currency: "usd" } });
+    // A card order from Brazil is priced in reais, like Pix.
+    expect(body).toMatchObject({ alreadyPaid: false, checkout: { mode: "mock" }, price: { amountMinor: 4799, currency: "brl" } });
     expect(cookieFrom(response)).toMatch(/^mxva_order=.+\..+$/);
   });
 

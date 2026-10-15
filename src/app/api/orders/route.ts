@@ -6,7 +6,6 @@ import {
   SKU,
   abandonPendingCheckout,
   createOrder,
-  currentPrice,
   hasPayablePixCharge,
   paidPreviousOrder,
   refreshPaymentStatus,
@@ -66,7 +65,7 @@ export async function POST(request: Request) {
       if (isUnfinishedPaidStatus(fresh.status)) return json({ alreadyPaid: true, order: publicStatus(fresh) });
       // One open checkout per browser: another tab gets the one already open, so every tab pays
       // the same order (no stale card form, no second PIX code).
-      const reused = await reusableCheckout(fresh, body.method, body.email).catch(() => undefined);
+      const reused = await reusableCheckout(fresh, body.method, body.email, body.countryHint).catch(() => undefined);
       if (reused) {
         return json({
           alreadyPaid: false,
@@ -90,13 +89,12 @@ export async function POST(request: Request) {
       returnUrl: `${publicConfig.appUrl}/processing`,
     });
 
-    const price = currentPrice(body.method);
     return json(
       {
         alreadyPaid: false,
         order: publicStatus(order),
         checkout: toPublicCheckout(checkout),
-        price: { amountMinor: price.amountMinor, currency: price.currency },
+        price: { amountMinor: order.amountMinor, currency: order.currency },
       },
       { status: 201, headers: { "Set-Cookie": orderCookieHeader(createOrderSessionToken(order.id, undefined, undefined, previous)) } },
     );

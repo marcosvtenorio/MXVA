@@ -5,17 +5,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import { InlineError } from "@/components/common/InlineError";
-import { Back, Lock, Tick } from "@/components/common/icons";
-import { regionHint } from "@/features/analytics/attribution";
+import { Back, CreditCard, Lock, QrCode, Tick } from "@/components/common/icons";
 import { track } from "@/features/analytics/client";
-import { defaultMethod, visitorInBrazil } from "@/features/checkout/method";
+import { defaultMethod, visitorInBrazil, visitorRegion } from "@/features/checkout/method";
 import { clearPixSession, loadPixSession, savePixSession } from "@/features/checkout/pix-session";
 import { useCheckoutStore } from "@/features/checkout/store";
 import { FACE_PROCESSING_CONSENT_VERSION, TERMS_VERSION } from "@/features/onboarding/schema";
 import { useOnboardingStore } from "@/features/onboarding/store";
 import { usePhotoStore } from "@/features/photos/memory-store";
-import { ApiClientError, api, type CreateOrderResponse, type PaymentMethod } from "@/lib/api-client";
+import { ApiClientError, api, type CheckoutOffer, type CreateOrderResponse, type PaymentMethod } from "@/lib/api-client";
 import { DISPLAY_PRICE_BRL_CENTS, DISPLAY_PRICE_USD_CENTS, devPreviewEnabled, formatPrice } from "@/lib/config";
+import { CheckoutFaq } from "./CheckoutFaq";
 import { ExampleCompare } from "./ExampleCompare";
 import { GlowUpTeaser } from "./GlowUpTeaser";
 import { PixPayment } from "./PixPayment";
@@ -23,8 +23,71 @@ import { StickyPayBar } from "./StickyPayBar";
 
 const StripePaymentForm = dynamic(() => import("./StripePaymentForm").then((m) => m.StripePaymentForm), {
   ssr: false,
-  loading: () => <p className="text-[15px] text-ink-2">Loading secure payment…</p>,
+  loading: () => <PaymentPlaceholder label="Loading secure card payment…" />,
 });
+
+/** Holds the card form's space while Stripe loads, so the page doesn't jump. */
+function PaymentPlaceholder({ label }: { label: string }) {
+  return (
+    <div className="grid gap-3" aria-busy="true">
+      <div className="h-[118px] rounded-[12px] bg-ground shadow-[inset_0_0_0_1px_var(--color-rule)]" />
+      <p className="text-[14px] text-ink-2">{label}</p>
+    </div>
+  );
+}
+
+function scrollToPayment() {
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  requestAnimationFrame(() => document.getElementById("payment")?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }));
+}
+
+/** The two ways to pay, as big radio cards. The one usual where the buyer is comes first. */
+function MethodPicker({
+  offers,
+  method,
+  inBrazil,
+  onChange,
+}: {
+  offers: readonly CheckoutOffer[];
+  method: PaymentMethod | undefined;
+  inBrazil: boolean;
+  onChange: (method: PaymentMethod) => void;
+}) {
+  const first: PaymentMethod = inBrazil ? "pix" : "card";
+  const ordered = [...offers].sort((a, b) => Number(b.method === first) - Number(a.method === first));
+  return (
+    <fieldset className="mt-4">
+      <legend className="mono text-ink-2">Pay with</legend>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        {ordered.map((offer) => {
+          const pix = offer.method === "pix";
+          const note = pix ? (
+            inBrazil ? (
+              "Instant approval"
+            ) : (
+              <>
+                Brazil only · <span className="whitespace-nowrap">{formatPrice(offer.price.amountMinor, offer.price.currency)}</span>
+              </>
+            )
+          ) : (
+            "Credit or debit"
+          );
+          return (
+            <label key={offer.method} className="option relative min-h-[68px] flex-col items-start justify-center gap-0.5 px-3.5 py-3">
+              <input type="radio" name="payment-method" value={offer.method} className="sr-only" checked={method === offer.method} onChange={() => onChange(offer.method)} />
+              <span className="flex items-center gap-2 text-[16px] font-semibold">
+                {pix ? <QrCode size={18} /> : <CreditCard size={18} />}
+                {pix ? "Pix" : "Card"}
+              </span>
+              <span className="text-[12px] leading-[1.3] text-ink-2">{note}</span>
+              <span className="dot absolute right-3 top-3 scale-[0.82]" aria-hidden="true" />
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
 
 function maskEmail(email: string): string {
   const [name = "", domain = ""] = email.split("@");
@@ -65,7 +128,6 @@ export function CheckoutView() {
   const inflight = useRef<Partial<Record<PaymentMethod, Promise<CreateOrderResponse>>>>({});
 
   const offer = offers?.find((candidate) => candidate.method === method);
-  const otherMethod = offers?.find((candidate) => candidate.method !== method)?.method;
 
   // Which methods exist, whether this browser already paid, and an open Pix code to resume
   // (phones often reload the tab while the buyer is in the bank app).
@@ -86,7 +148,7 @@ export function CheckoutView() {
           setCard(undefined);
           setPix(undefined);
         }
-        const { offers: available } = await api.checkoutOptions();
+        const { offers: available } = await api.checkoutOptions(visitorRegion());
         // An open Pix code survives a reload (the order already exists; the email isn't kept in the browser).
         const saved = current?.pending?.method === "pix" ? loadPixSession() : undefined;
         if (saved && saved.checkout.expiresAt === current?.pending?.expiresAt && available.some((o) => o.method === "pix")) {
@@ -169,7 +231,7 @@ export function CheckoutView() {
         faceProcessingConsentVersion: FACE_PROCESSING_CONSENT_VERSION,
         termsVersion: TERMS_VERSION,
         marketingOptIn: onboarding.marketingOptIn,
-        countryHint: regionHint(Intl.DateTimeFormat().resolvedOptions().timeZone, navigator.languages ?? []),
+        countryHint: visitorRegion(),
       })
       .finally(() => {
         delete inflight.current[forMethod];
@@ -234,6 +296,7 @@ export function CheckoutView() {
       setPix(session);
       savePixSession(session);
       track("checkout_started", { method: "pix" });
+      scrollToPayment();
     } catch (caught) {
       failed(caught instanceof ApiClientError ? caught.code : "SERVICE_UNAVAILABLE", caught instanceof ApiClientError ? caught.message : "Pix isn't available right now.");
     } finally {
@@ -242,12 +305,16 @@ export function CheckoutView() {
   }
 
   function switchTo(next: PaymentMethod) {
+    if (next === method) return;
+    track("payment_method_selected", { method: next });
     setError(undefined);
     // A new attempt replaces the old one (the server closes an unpaid card session).
     setPix(undefined);
     clearPixSession();
     setCard(undefined);
     setMethod(next);
+    // The new form (card fields and their pay button, or the Pix button) in view.
+    scrollToPayment();
   }
 
   const amount = offer
@@ -287,6 +354,14 @@ export function CheckoutView() {
     }
   }
 
+  const inBrazil = visitorInBrazil();
+  const sandboxNote =
+    offer?.sandbox && !offer.simulated
+      ? method === "card"
+        ? "Test mode · no real money · card 4242 4242 4242 4242 · any date · any CVC"
+        : "Test mode · no real money"
+      : undefined;
+
   return (
     <div className="washed min-h-dvh">
       <div className="mx-auto w-full max-w-[480px] px-5 pb-10 pt-[max(12px,env(safe-area-inset-top))]">
@@ -309,7 +384,127 @@ export function CheckoutView() {
 
           <GlowUpTeaser />
 
-          <section aria-labelledby="value-heading" className="mt-6">
+          <section
+            id="payment"
+            aria-labelledby="payment-heading"
+            className="mt-4 scroll-mt-3 rounded-[26px] bg-raised p-4 shadow-[0_10px_30px_rgba(40,55,62,.08),inset_0_0_0_1px_var(--color-rule)]"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h2 id="payment-heading" className="text-[17px] font-semibold leading-tight tracking-[-0.01em]">
+                  Your glow-up report
+                </h2>
+                <p className="mt-1 text-[13px] leading-[1.35] text-ink-2">AI concept + step-by-step plan, PDF to your email</p>
+              </div>
+              <div className="flex-none text-right">
+                <p className="whitespace-nowrap text-[28px] leading-none tracking-[-0.025em] tabular-nums">{amount}</p>
+                <p className="mono mt-1.5 text-ink-2">One-time</p>
+              </div>
+            </div>
+
+            {view.state === "ready" && offers && offers.length > 1 ? <MethodPicker offers={offers} method={method} inBrazil={inBrazil} onChange={switchTo} /> : null}
+
+            <div className="mt-4">
+              {view.state === "loading" ? <PaymentPlaceholder label="Preparing checkout…" /> : null}
+              {view.state === "unavailable" ? (
+                <>
+                  <p role="alert" className="text-[15px] leading-[1.4] text-negative">
+                    {view.message}
+                  </p>
+                  <button type="button" className="btn btn-secondary mt-4" onClick={retry}>
+                    Try again
+                  </button>
+                </>
+              ) : null}
+
+              {view.state === "ready" && method === "pix" && offer ? (
+                <PixPayment
+                  offer={offer}
+                  session={pix}
+                  busy={busy}
+                  onGenerate={() => void generatePix()}
+                  onPaid={paid}
+                  onError={(message) => failed("ORDER_NOT_PAID", message)}
+                />
+              ) : null}
+
+              {view.state === "ready" && method === "card" ? (
+                <>
+                  {!card && !error ? <PaymentPlaceholder label="Preparing card payment…" /> : null}
+                  {card?.checkout.mode === "stripe" ? (
+                    <StripePaymentForm
+                      key={card.checkout.clientSecret}
+                      amountLabel={amount}
+                      clientSecret={card.checkout.clientSecret}
+                      onPaid={paid}
+                      onError={(message) => failed("ORDER_NOT_PAID", message)}
+                      onStale={() => {
+                        // Checkout was opened again in another tab: load this browser's current one.
+                        setError("Your checkout was refreshed. Please enter your card again.");
+                        setCard(undefined);
+                      }}
+                    />
+                  ) : null}
+                  {card?.checkout.mode === "mock" && devPreviewEnabled ? (
+                    <div className="grid gap-3">
+                      <p className="rounded-[14px] bg-ground p-3.5 text-[13px] leading-[1.4] text-ink-2 shadow-[inset_0_0_0_1px_var(--color-rule)]">
+                        <span className="mono block text-ink">Development preview</span>
+                        No real payment is taken. Choose what the payment provider would report.
+                      </p>
+                      <button type="button" className="btn" disabled={busy} onClick={() => void simulate("succeeded")}>
+                        <Lock size={15} />
+                        Pay {amount} (simulated)
+                      </button>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button type="button" className="btn btn-secondary px-3 text-[15px]" disabled={busy} onClick={() => void simulate("declined")}>
+                          Simulate decline
+                        </button>
+                        <button type="button" className="btn btn-secondary px-3 text-[15px]" disabled={busy} onClick={() => void simulate("redirect")}>
+                          Simulate bank page
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
+
+              <InlineError id="checkout-error">{error}</InlineError>
+              {view.state === "ready" && method === "card" && error && !card ? (
+                <button type="button" className="btn btn-secondary mt-4" onClick={retry}>
+                  Try again
+                </button>
+              ) : null}
+            </div>
+            {sandboxNote ? <p className="mono mt-3 rounded-[10px] bg-chip-fill px-3 py-2 text-ink">{sandboxNote}</p> : null}
+
+            <ul className="mt-4 grid gap-2 border-t border-rule pt-3.5 text-[13px] leading-[1.4] text-ink-2">
+              <li className="flex gap-2.5">
+                <Lock size={15} className="mt-px flex-none" />
+                <span>
+                  <strong className="font-semibold text-ink">Secure payment.</strong>{" "}
+                  {method === "pix"
+                    ? "You pay in your own bank app."
+                    : method === "card"
+                      ? "Card details go straight to Stripe; we never see them."
+                      : "Cards are handled by Stripe; Pix in your own bank app."}
+                </span>
+              </li>
+              <li className="flex gap-2.5">
+                <Tick size={15} className="mt-px flex-none text-positive" />
+                <span>
+                  <strong className="font-semibold text-ink">One payment.</strong> No subscription, nothing renews.
+                </span>
+              </li>
+              <li className="flex gap-2.5">
+                <Tick size={15} className="mt-px flex-none text-positive" />
+                <span>
+                  <strong className="font-semibold text-ink">Money-back promise.</strong> If we can&apos;t make your report, you get a full refund.
+                </span>
+              </li>
+            </ul>
+          </section>
+
+          <section aria-labelledby="value-heading" className="mt-8">
             <h2 id="value-heading" className="mono text-ink-2">What you get</h2>
             <ul className="mt-3 grid gap-2.5 text-[15px] leading-[1.35]">
               {VALUE.map(([lead, rest]) => (
@@ -329,113 +524,21 @@ export function CheckoutView() {
             </ul>
           </section>
 
-          <section aria-labelledby="example-heading" className="mt-7">
+          <section aria-labelledby="example-heading" className="mt-8">
             <h2 id="example-heading" className="mono text-ink-2">See a real example</h2>
             <ExampleCompare />
           </section>
 
-          <section aria-label="Price" className="mt-7 rounded-[22px] bg-raised p-5 shadow-[inset_0_0_0_1px_var(--color-rule)]">
-            <p className="whitespace-nowrap text-[clamp(38px,12vw,52px)] leading-none tracking-[-0.03em] tabular-nums">{amount}</p>
-            <p className="mono mt-2 text-ink-2">One-time payment · no weekly subscription</p>
-            <p className="mt-4 flex gap-2.5 border-t border-rule pt-3.5 text-[14px] leading-[1.4]">
-              <Lock size={15} className="mt-0.5 flex-none text-ink-2" />
-              <span>
-                <strong className="font-semibold">Money-back promise.</strong> If we can&apos;t make your report, you get a full refund.
-              </span>
-            </p>
-          </section>
-          {method === "card" ? <p className="mono mt-4 text-ink-2">Local currency is shown at payment where available</p> : null}
-          {offer?.sandbox && !offer.simulated ? (
-            <p className="mono mt-3 rounded-[10px] bg-raised px-3 py-2 text-ink shadow-[inset_0_0_0_1px_var(--color-rule)]">
-              Test mode · no real money{method === "card" ? " · card 4242 4242 4242 4242, any future date, any CVC" : ""}
-            </p>
-          ) : null}
+          <CheckoutFaq />
 
-          <section id="payment" className="mt-6 scroll-mt-4" aria-label="Payment">
-            {view.state === "loading" ? <p className="text-[15px] text-ink-2">Preparing checkout…</p> : null}
-            {view.state === "unavailable" ? (
-              <>
-                <p role="alert" className="text-[15px] leading-[1.4] text-negative">
-                  {view.message}
-                </p>
-                <button type="button" className="btn btn-secondary mt-4" onClick={retry}>
-                  Try again
-                </button>
-              </>
-            ) : null}
-
-            {view.state === "ready" && method === "pix" && offer ? (
-              <PixPayment
-                offer={offer}
-                session={pix}
-                busy={busy}
-                onGenerate={() => void generatePix()}
-                onPaid={paid}
-                onError={(message) => failed("ORDER_NOT_PAID", message)}
-              />
-            ) : null}
-
-            {view.state === "ready" && method === "card" ? (
-              <>
-                {!card && !error ? <p className="text-[15px] text-ink-2">Preparing card payment…</p> : null}
-                {card?.checkout.mode === "stripe" ? (
-                  <StripePaymentForm
-                    key={card.checkout.clientSecret}
-                    clientSecret={card.checkout.clientSecret}
-                    onPaid={paid}
-                    onError={(message) => failed("ORDER_NOT_PAID", message)}
-                    onStale={() => {
-                      // Checkout was opened again in another tab: load this browser's current one.
-                      setError("Your checkout was refreshed. Please enter your card again.");
-                      setCard(undefined);
-                    }}
-                  />
-                ) : null}
-                {card?.checkout.mode === "mock" && devPreviewEnabled ? (
-                  <div className="grid gap-3">
-                    <p className="rounded-[14px] bg-raised p-3.5 text-[13px] leading-[1.4] text-ink-2 shadow-[inset_0_0_0_1px_var(--color-rule)]">
-                      <span className="mono block text-ink">Development preview</span>
-                      No real payment is taken. Choose what the payment provider would report.
-                    </p>
-                    <button type="button" className="btn" disabled={busy} onClick={() => void simulate("succeeded")}>
-                      <Lock size={15} />
-                      Pay {amount} (simulated)
-                    </button>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button type="button" className="btn btn-secondary px-3 text-[15px]" disabled={busy} onClick={() => void simulate("declined")}>
-                        Simulate decline
-                      </button>
-                      <button type="button" className="btn btn-secondary px-3 text-[15px]" disabled={busy} onClick={() => void simulate("redirect")}>
-                        Simulate bank page
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-              </>
-            ) : null}
-
-            <InlineError id="checkout-error">{error}</InlineError>
-            {view.state === "ready" && method === "card" && error && !card ? (
-              <button type="button" className="btn btn-secondary mt-4" onClick={retry}>
-                Try again
-              </button>
-            ) : null}
-
-            {view.state === "ready" && otherMethod ? (
-              <button type="button" className="pill-link mt-5 text-[15px] font-semibold" onClick={() => switchTo(otherMethod)}>
-                {otherMethod === "pix" ? "In Brazil? Pay with Pix" : "Pay by card instead"}
-              </button>
-            ) : null}
-          </section>
-
-          <p className="mono mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-ink-2">
+          <p className="mono mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-ink-2">
             <span className="inline-flex items-center gap-1.5">
               <Lock size={12} /> Secure payment
             </span>
             <span>Photos never stored</span>
             <span>No second charges</span>
           </p>
-          <nav className="mono mt-4 flex justify-center gap-6 pb-20 text-ink-2" aria-label="Policies">
+          <nav className="mono mt-4 flex justify-center gap-6 pb-24 text-ink-2" aria-label="Policies">
             <Link href="/refunds" target="_blank">Refunds</Link>
             <Link href="/help" target="_blank">Help</Link>
             <Link href="/privacy" target="_blank">Privacy</Link>

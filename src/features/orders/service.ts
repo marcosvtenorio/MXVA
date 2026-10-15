@@ -41,9 +41,13 @@ export type CreateOrderInput = {
  * Server-authoritative price. The browser never sends or chooses an amount.
  * PIX is charged in reais (only payable from a Brazilian bank account); card in dollars.
  */
-export function currentPrice(method: PaymentMethod): { amountMinor: number; currency: "usd" | "brl"; priceVariant: string } {
+/**
+ * Visitors in Brazil pay in reais whichever way they pay (a Brazilian card is charged in BRL);
+ * everyone else pays by card in dollars. Pix is always in reais.
+ */
+export function currentPrice(method: PaymentMethod, countryHint?: string | null): { amountMinor: number; currency: "usd" | "brl"; priceVariant: string } {
   const env = serverEnv();
-  if (method === "pix") return { amountMinor: env.PRICE_BRL_CENTS, currency: "brl", priceVariant: `brl_${env.PRICE_BRL_CENTS}` };
+  if (method === "pix" || countryHint === "BR") return { amountMinor: env.PRICE_BRL_CENTS, currency: "brl", priceVariant: `brl_${env.PRICE_BRL_CENTS}` };
   return { amountMinor: env.PRICE_USD_CENTS, currency: "usd", priceVariant: env.PRICE_VARIANT };
 }
 
@@ -65,8 +69,9 @@ export function hasPayablePixCharge(order: Order, now = Date.now()): boolean {
  * method and email gets the checkout that is already open, so every tab pays the same order:
  * no card form goes stale and no second PIX code is issued. Undefined when it can't be reused.
  */
-export async function reusableCheckout(order: Order, method: PaymentMethod, email: string): Promise<CheckoutInit | undefined> {
+export async function reusableCheckout(order: Order, method: PaymentMethod, email: string, countryHint?: string | null): Promise<CheckoutInit | undefined> {
   if (order.status !== "pending_payment" || orderMethod(order) !== method || order.email !== email) return undefined;
+  if (order.currency !== currentPrice(method, countryHint).currency) return undefined;
   if (method === "pix") {
     if (!order.providerChargeId || !order.providerBrCode || !order.chargeExpiresAt) return undefined;
     if (Date.parse(order.chargeExpiresAt) - Date.now() < PIX_REUSE_MIN_MS) return undefined;
@@ -109,7 +114,7 @@ export async function createOrder(input: CreateOrderInput): Promise<{ order: Ord
   if (!offer) throw new ApiError("SERVICE_UNAVAILABLE", "This payment method isn't available right now. Try the other one, or check back soon.");
   const provider = await paymentProvider(offer);
   const repository = await orderRepository();
-  const price = currentPrice(input.method);
+  const price = currentPrice(input.method, input.countryHint);
   const now = new Date();
   const id = randomUUID();
 
