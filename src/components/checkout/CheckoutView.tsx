@@ -394,7 +394,8 @@ export function CheckoutView() {
                 <h2 id="payment-heading" className="text-[17px] font-semibold leading-tight tracking-[-0.01em]">
                   Your glow-up report
                 </h2>
-                <p className="mt-1 text-[13px] leading-[1.35] text-ink-2">AI concept + step-by-step plan, PDF to your email</p>
+                {/* Left out on the smallest phones, so the pay button stays on the first screen. */}
+                <p className="mt-1 text-[13px] leading-[1.35] text-ink-2 max-[359px]:hidden">AI concept + step-by-step plan, PDF to your email</p>
               </div>
               <div className="flex-none text-right">
                 <p className="whitespace-nowrap text-[28px] leading-none tracking-[-0.025em] tabular-nums">{amount}</p>
