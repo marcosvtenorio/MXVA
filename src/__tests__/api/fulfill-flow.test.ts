@@ -100,7 +100,9 @@ describe("paid fulfilment through the queue (mock providers)", () => {
     await fulfillmentQueue().drained();
     expect((await status(cookie)).status).toBe("delivered_to_provider");
     expect(sent("buyer@example.com")).toEqual([expect.objectContaining({ kind: "report" })]);
-    expect(sent(OWNER)).toHaveLength(0);
+    // The owner gets a receipt with the AI cost, never an alert.
+    expect(sent(OWNER)).toEqual([expect.objectContaining({ kind: "notice", subject: expect.stringMatching(/^\[MXVA\] Relatório entregue/) })]);
+    expect(sent(OWNER)[0]!.text).not.toMatch(/data:image|base64|\/9j\//);
 
     // A second submission never produces a second delivery.
     const again = await fulfillRoute(fulfillRequest(cookie));

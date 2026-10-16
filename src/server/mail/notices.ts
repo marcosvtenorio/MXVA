@@ -2,13 +2,14 @@ import "server-only";
 import { publicConfig } from "@/lib/config";
 import type { ApiErrorCode } from "@/lib/api-errors";
 import type { OrderStatus } from "@/features/orders/states";
+import { PRICES_CHECKED_ON, formatUsd, type CostLine } from "../ai/cost";
 import { supportEmail } from "../config";
 
 /**
  * When a report can't be made after the queue's retries: a notice to the buyer (in English, like
- * the site) and an alert to the owner (in Portuguese, the owner's language). The owner's alert
- * carries order metadata and error details only: never the photo, the concept, the face
- * analysis or the report.
+ * the site) and an alert to the owner (in Portuguese, the owner's language). When it is delivered,
+ * a receipt to the owner with what the AI cost. The owner's emails carry order metadata, error
+ * details and token counts only: never the photo, the concept, the face analysis or the report.
  */
 
 export type BuyerNoticeKind =
@@ -108,7 +109,58 @@ export type FailureAlert = {
   payment: { mode: string; amountMinor: number; currency: string; paidAt: string | null };
   timeline: TimelineEntry[];
   server: { appUrl: string; commit: string | null; mode: string; queueWaiting: number; queueRunning: number; concurrency: number; uptimeSeconds: number };
+  /** What the OpenAI calls made before the failure cost. */
+  cost?: CostSummary;
 };
+
+/** Every OpenAI call of one report, priced. */
+export type CostSummary = {
+  lines: CostLine[];
+  totalUsd: number;
+  /** A model missing from the price table: the total is too low. */
+  incomplete: boolean;
+  /** False when the AI is simulated (development and tests): nothing was spent. */
+  real: boolean;
+  models: { text: string; image: string; imageQuality: string };
+};
+
+type Payment = FailureAlert["payment"];
+
+function formatMoney(payment: Payment): string {
+  return payment.currency === "brl" ? `R$ ${(payment.amountMinor / 100).toFixed(2).replace(".", ",")}` : `US$ ${(payment.amountMinor / 100).toFixed(2)}`;
+}
+
+const count = (n: number) => n.toLocaleString("pt-BR");
+
+const COST_HOW = `Como é calculado: os tokens que a OpenAI informou em cada resposta × o preço oficial por 1 milhão de tokens (tabela conferida em ${PRICES_CHECKED_ON}). Não inclui o email (Resend) nem o servidor (Railway).`;
+
+function costText(cost: CostSummary): string[] {
+  if (!cost.real) return ["Custo da IA: nenhum (IA simulada)."];
+  return [
+    `Custo da IA (OpenAI): ${formatUsd(cost.totalUsd)}${cost.incomplete ? " — INCOMPLETO: um modelo não está na tabela de preços" : ""}`,
+    `Modelos: texto ${cost.models.text}; imagem ${cost.models.image} (qualidade ${cost.models.imageQuality})`,
+    ...cost.lines.map(
+      (line) => `- ${line.step} · ${line.model} · ${count(line.inputTokens)} tokens de entrada, ${count(line.outputTokens)} de saída · ${line.usd === null ? "preço desconhecido" : formatUsd(line.usd)}`,
+    ),
+    COST_HOW,
+  ];
+}
+
+function costHtml(cost: CostSummary): string {
+  if (!cost.real) return `<p>Custo da IA: nenhum (IA simulada).</p>`;
+  const cell = "padding:6px 8px;border-bottom:1px solid #eee;vertical-align:top";
+  const rows = cost.lines
+    .map(
+      (line) =>
+        `<tr><td style="${cell}">${escapeHtml(line.step)}<br><span style="color:#555;font-family:ui-monospace,Menlo,monospace;font-size:12px">${escapeHtml(line.model)}</span></td><td style="${cell};text-align:right;white-space:nowrap">${count(line.inputTokens)}</td><td style="${cell};text-align:right;white-space:nowrap">${count(line.outputTokens)}</td><td style="${cell};text-align:right;white-space:nowrap">${line.usd === null ? "?" : escapeHtml(formatUsd(line.usd))}</td></tr>`,
+    )
+    .join("");
+  return `<p style="font-size:28px;font-weight:700;margin:4px 0 2px">${escapeHtml(formatUsd(cost.totalUsd))}</p>
+<p style="color:#555;margin:0 0 12px">Texto: ${escapeHtml(cost.models.text)} · imagem: ${escapeHtml(cost.models.image)} (qualidade ${escapeHtml(cost.models.imageQuality)})</p>
+${cost.incomplete ? `<p style="background:#fff6e5;border-radius:8px;padding:10px 12px">Total incompleto: um modelo não está na tabela de preços.</p>` : ""}
+<table style="border-collapse:collapse;width:100%;margin:0 0 8px;font-size:13px"><tr><th style="${cell};text-align:left">Etapa</th><th style="${cell};text-align:right">Tokens de entrada</th><th style="${cell};text-align:right">Tokens de saída</th><th style="${cell};text-align:right">Custo</th></tr>${rows}</table>
+<p style="color:#555;font-size:13px">${escapeHtml(COST_HOW)}</p>`;
+}
 
 const NOTICE_PT: Record<BuyerNoticeKind, string> = {
   regenerate: "pedimos que gere de novo pelo link do email (sem nova cobrança)",
@@ -127,7 +179,7 @@ const ACTION_PT: Record<BuyerNoticeKind, string> = {
 export function ownerFailureAlert(alert: FailureAlert): Content {
   const short = alert.orderId.slice(0, 8);
   const subject = `[MXVA] Pedido ${short}: ${alert.what} (${alert.code})`;
-  const money = alert.payment.currency === "brl" ? `R$ ${(alert.payment.amountMinor / 100).toFixed(2).replace(".", ",")}` : `US$ ${(alert.payment.amountMinor / 100).toFixed(2)}`;
+  const money = formatMoney(alert.payment);
   const rows: [string, string][] = [
     ["Pedido", alert.orderId],
     ["Email do comprador", alert.buyerEmail],
@@ -156,6 +208,7 @@ export function ownerFailureAlert(alert: FailureAlert): Content {
     "Linha do tempo:",
     ...timelineText,
     "",
+    ...(alert.cost ? [...costText(alert.cost), ""] : []),
     ...server.map(([k, v]) => `${k}: ${v}`),
     "",
     "Privacidade: este alerta não contém a foto, a imagem gerada, a análise do rosto nem o relatório.",
@@ -176,9 +229,58 @@ export function ownerFailureAlert(alert: FailureAlert): Content {
 ${table(rows)}
 <h2 style="font-size:16px;margin:20px 0 6px">Linha do tempo</h2>
 ${timelineHtml}
+${alert.cost ? `<h2 style="font-size:16px;margin:20px 0 6px">Gasto com a IA até a falha</h2>\n${costHtml(alert.cost)}` : ""}
 <h2 style="font-size:16px;margin:20px 0 6px">Servidor</h2>
 ${table(server)}
 <p style="color:#555;font-size:13px">Privacidade: este alerta não contém a foto, a imagem gerada, a análise do rosto nem o relatório.</p>
+</body></html>`;
+  return { subject, text, html };
+}
+
+export type DeliveryReceipt = {
+  orderId: string;
+  payment: Payment;
+  /** From the first try to the finished PDF, waits for retries included. */
+  generationSeconds: number;
+  generationTries: number;
+  cost: CostSummary;
+  server: { appUrl: string; commit: string | null };
+};
+
+/** To the owner when a report reaches the buyer: what it cost to make. */
+export function ownerDeliveryReceipt(receipt: DeliveryReceipt): Content {
+  const short = receipt.orderId.slice(0, 8);
+  const total = receipt.cost.real ? formatUsd(receipt.cost.totalUsd, 2) : "zero (IA simulada)";
+  const subject = `[MXVA] Relatório entregue · pedido ${short} · custo da IA ${total}`;
+  const minutes = receipt.generationSeconds / 60;
+  const rows: [string, string][] = [
+    ["Pedido", receipt.orderId],
+    ["Pagamento", `${formatMoney(receipt.payment)} · ${receipt.payment.mode}${receipt.payment.paidAt ? ` · pago em ${receipt.payment.paidAt}` : ""}`],
+    ["Tempo de geração", minutes >= 1 ? `${minutes.toFixed(1).replace(".", ",")} min` : `${Math.round(receipt.generationSeconds)} s`],
+    ["Tentativas", String(receipt.generationTries)],
+    ["Site", receipt.server.appUrl],
+    ["Versão (commit)", receipt.server.commit ?? "desconhecida"],
+  ];
+  const privacy = "Privacidade: este email não contém a foto, a imagem gerada, a análise do rosto nem o relatório.";
+  const text = [
+    "Relatório gerado e enviado ao comprador.",
+    "",
+    ...costText(receipt.cost),
+    "",
+    ...rows.map(([k, v]) => `${k}: ${v}`),
+    "",
+    privacy,
+  ].join("\n");
+  const table = `<table style="border-collapse:collapse;width:100%;margin:0 0 16px">${rows
+    .map(([k, v]) => `<tr><td style="padding:6px 8px;border-bottom:1px solid #eee;color:#555;white-space:nowrap;vertical-align:top">${escapeHtml(k)}</td><td style="padding:6px 8px;border-bottom:1px solid #eee;word-break:break-word">${escapeHtml(v)}</td></tr>`)
+    .join("")}</table>`;
+  const html = `<!doctype html><html><body style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111;line-height:1.5;max-width:680px;margin:0 auto;padding:24px">
+<p style="font-size:13px;color:#555;margin:0 0 6px">MXVA · relatório entregue</p>
+<h1 style="font-size:20px;margin:0 0 10px">Custo da geração</h1>
+${costHtml(receipt.cost)}
+<h2 style="font-size:16px;margin:20px 0 6px">Pedido</h2>
+${table}
+<p style="color:#555;font-size:13px">${escapeHtml(privacy)}</p>
 </body></html>`;
   return { subject, text, html };
 }

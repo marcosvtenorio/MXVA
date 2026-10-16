@@ -1,18 +1,25 @@
 import "server-only";
 
 /**
- * The owner's glow-up prompt, sent exactly as written with the buyer's front photo. Do not edit it:
- * the model reads the photo, writes its consultation and draws the annotated before and after.
+ * The owner's glow-up prompt, sent exactly as written with the buyer's front photo. Change it only
+ * when the owner asks (2026-10-16: a stronger change, sharp jawline and hunter eyes). The model reads
+ * the photo, writes its consultation and draws the annotated before and after.
  */
-export const OWNER_PROMPT = `Analyze my appearance from the attached photo like an aesthetic/beauty consultant. Identify the highest-impact changes that could make me look more polished and harmonious, including hair cut/style/color, brows, eye makeup, skin/makeup placement, lips, and overall facial balance. Be specific to my actual features rather than giving generic advice.
+export const OWNER_PROMPT = `Analyze my appearance from the attached photo like an aesthetic/beauty consultant and looksmaxxing coach. Identify the highest-impact changes that could make me look as attractive as possible, including hair cut/style/color, brows, eye area, skin, facial hair, jawline, cheekbones, and overall facial balance. Be specific to my actual features rather than giving generic advice.
 
-Then generate a realistic “after” version of this exact photo showing your recommended glow-up. Keep me recognizably the same person and preserve my facial anatomy unless you specifically recommend a subtle structural change. Keep the same pose, camera angle, expression, lighting, clothing, and background as much as possible.
+Then generate a realistic “after” version of this exact photo showing your recommended glow-up at its full potential. Keep me recognizably the same person: a friend should still know it is me at a glance. Keep the same pose, camera angle, expression, lighting, clothing, and background as much as possible.
 
-Make the changes refined and realistic, not an exaggerated beauty filter. Prioritize high-impact, low-risk styling changes. Do not automatically make my face thinner, nose smaller, lips bigger, eyes larger, or skin unrealistically perfect.
+Make the change strong and obvious at first glance, not a subtle touch-up: show the best version of me that is realistically possible. Go as far as possible on:
+- Jawline: a sharp, well-defined jawline and chin, with clean angles and no soft tissue under the chin or along the jaw, as at a lean body-fat level.
+- Eyes: hunter eyes, with straighter, lower-set, fuller brows, less exposed upper eyelid, no under-eye bags or dark circles, and a calm, intense, confident gaze.
+- Face: leaner, with more visible cheekbones and a more defined mid-face.
+- Skin: clear, even and healthy, with natural texture.
+- Hair and facial hair: the cut, color, volume, and beard or stubble shape that make my face look sharpest.
+It must still look like a real photo, not a cartoon, a beauty filter, or a different person. Do not make my nose smaller, lips bigger, eyes larger, or skin plastic.
 
 For the hair, choose the cut, color, part, volume, and face-framing that best complement my individual proportions. For makeup, optimize brow shape, eyeliner/lashes, blush/contour placement, lip definition, and complexion while keeping it natural.
 
-Generate a before/after comparison with photo annotations explaining every change, similar to a professional beauty consultation.`;
+Generate a before/after comparison with photo annotations explaining every change, similar to a professional beauty consultation. In the written analysis, say how each change can be achieved (grooming, styling, skin care, losing body fat, or a professional consultation) and be honest when a change depends mostly on bone structure.`;
 
 export const VISION_INSTRUCTIONS = `You describe visible presentation cues in an adult's self-portrait for a grooming and self-care roadmap.
 Rules:
@@ -37,12 +44,13 @@ Return JSON matching the schema exactly.`;
 
 export const IDENTITY_QC_INSTRUCTIONS = `You compare an ORIGINAL portrait (first image) with a GLOW-UP concept made from it (second image).
 The concept may be a single "after" photo, or a before/after comparison with annotations, labels, arrows or close-up crops, like a professional beauty consultation. In a comparison, judge the AFTER version and check that its BEFORE version still shows the same person; the layout, annotation text and crops are expected.
-The glow-up is SUPPOSED to change styling: haircut, style and hair colour, brows, facial hair, skin and complexion, the eye area and natural makeup. Those changes are allowed and must not count against it. Makeup such as liner, lashes or brow fill does not change eye shape or size; lip colour or liner does not change lip shape.
+The glow-up is SUPPOSED to change styling: haircut, style and hair colour, brows, facial hair, skin and complexion, the eye area and natural makeup. Those changes are allowed and must not count against it. Makeup such as liner, lashes or brow fill does not change eye size; lip colour or liner does not change lip shape.
+It is also SUPPOSED to show the person at their leanest and sharpest: a sharper, more defined jawline and chin, less soft tissue under the chin and along the jaw, a leaner face with more visible cheekbones, and "hunter eyes" (straighter, lower-set brows, less exposed upper eyelid, no under-eye bags). Those changes are allowed too, as long as a friend would still recognise the person.
 Answer strictly:
 - comparison: is the second image a before/after comparison (two or more versions of the person) rather than a single photo?
 - sameAdultPersonLikely: would a friend recognise the same person immediately in the after version, despite the glow-up?
 - addedPeopleOrFeatures: are there other people or faces (beyond the versions of this person), extra limbs, accessories, jewellery, piercings or tattoos?
 - brokenEyesOrTeeth: are eyes, teeth, ears or hands malformed, duplicated within one face, or distorted?
-- excludedChanges: in the after version, is the face clearly thinner or narrower, or did bone-level structure change (face width at the cheekbones or jaw, chin projection, jaw angle); is the nose smaller, are the eyes larger or a different shape or colour, are the lips bigger, did the ears change; did skin tone or apparent ethnicity change; did apparent age change by more than a few years; is the skin plastic or airbrushed?
+- excludedChanges: in the after version, is the nose smaller, are the eyes larger or a different colour, are the lips bigger, did the ears change; did skin tone or apparent ethnicity change; did apparent age change by more than a few years; is the skin plastic or airbrushed?
 - notes: one short sentence.
 Return JSON matching the schema exactly.`;

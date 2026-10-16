@@ -39,6 +39,8 @@ const serverEnvSchema = z.object({
   VISION_MODEL: optionalSecret,
   IMAGE_API_KEY: optionalSecret,
   IMAGE_EDIT_MODEL: optionalSecret,
+  /** The image tool's quality. "xhigh" and "max" exist on gpt-image-2.5 models only. */
+  IMAGE_QUALITY: z.enum(["low", "medium", "high", "xhigh", "max", "auto"]).default("high"),
   RESEND_API_KEY: optionalSecret,
   EMAIL_FROM: optionalSecret,
   SUPPORT_EMAIL: optionalSecret,
@@ -64,6 +66,11 @@ const serverEnvSchema = z.object({
   FULFILLMENT_RETRY_DELAY_MS: z.coerce.number().int().min(10).max(10 * 60_000).default(30_000),
   /** Where failure alerts go (order metadata and error logs only, never images). */
   OWNER_ALERT_EMAIL: z.email().optional().or(z.literal("").transform(() => undefined)),
+  /** Also email the owner a receipt (models, tokens, OpenAI cost) for every delivered report. */
+  OWNER_DELIVERY_EMAILS: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((value) => value === "true"),
   POSTHOG_PROJECT_API_KEY: optionalSecret,
   POSTHOG_HOST: z.url().optional().or(z.literal("").transform(() => undefined)),
   /** Development/test only: force a mock pipeline failure to exercise error paths. */

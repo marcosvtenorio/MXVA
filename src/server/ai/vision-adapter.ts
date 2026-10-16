@@ -3,9 +3,10 @@ import type { FocusArea } from "@/features/onboarding/schema";
 import { visualObservationsSchema, type VisualObservations } from "@/features/report/schema";
 import { ConfigError, fulfillmentMode, serverEnv } from "../config";
 import { ApiError } from "../http";
+import type { CostMeter } from "./cost";
 import { VISION_INSTRUCTIONS } from "./prompts";
 
-export type VisionInput = { front: Buffer; profiles: Buffer[]; focusAreas: readonly FocusArea[] };
+export type VisionInput = { front: Buffer; profiles: Buffer[]; focusAreas: readonly FocusArea[]; meter?: CostMeter };
 
 export interface VisionProvider {
   readonly simulated: boolean;
@@ -73,6 +74,7 @@ class OpenAIVisionProvider implements VisionProvider {
       text: { format: zodTextFormat(visualObservationsSchema, "visual_observations") },
       store: false,
     });
+    input.meter?.addText("análise da foto", env.VISION_MODEL, response.usage);
     const parsed = visualObservationsSchema.safeParse(response.output_parsed);
     if (!parsed.success) throw new ApiError("AI_PROVIDER_FAILED");
     return parsed.data;

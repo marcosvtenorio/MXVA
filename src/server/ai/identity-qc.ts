@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { ConfigError, fulfillmentMode, serverEnv } from "../config";
 import { ApiError } from "../http";
+import type { CostMeter } from "./cost";
 import { IDENTITY_QC_INSTRUCTIONS } from "./prompts";
 
 /**
@@ -33,8 +34,10 @@ export function evaluateVerdict(verdict: QcVerdict): QcResult {
   return { pass: reasons.length === 0, reasons, comparison: verdict.comparison };
 }
 
+export type QcInput = { original: Buffer; edited: Buffer; meter?: CostMeter; attempt?: number };
+
 export interface IdentityQualityGate {
-  check(input: { original: Buffer; edited: Buffer }): Promise<QcResult>;
+  check(input: QcInput): Promise<QcResult>;
 }
 
 class MockIdentityQualityGate implements IdentityQualityGate {
@@ -46,7 +49,7 @@ class MockIdentityQualityGate implements IdentityQualityGate {
 }
 
 class OpenAIIdentityQualityGate implements IdentityQualityGate {
-  async check(input: { original: Buffer; edited: Buffer }): Promise<QcResult> {
+  async check(input: QcInput): Promise<QcResult> {
     const env = serverEnv();
     if (!env.VISION_API_KEY || !env.VISION_MODEL) throw new ConfigError("VISION_API_KEY and VISION_MODEL are required.");
     const { default: OpenAI } = await import("openai");
@@ -64,6 +67,7 @@ class OpenAIIdentityQualityGate implements IdentityQualityGate {
       text: { format: zodTextFormat(qcVerdictSchema, "identity_qc") },
       store: false,
     });
+    input.meter?.addText(`conferência da semelhança${input.attempt && input.attempt > 1 ? ` (tentativa ${input.attempt})` : ""}`, env.VISION_MODEL, response.usage);
     const parsed = qcVerdictSchema.safeParse(response.output_parsed);
     if (!parsed.success) throw new ApiError("AI_PROVIDER_FAILED");
     return evaluateVerdict(parsed.data);

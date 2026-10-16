@@ -14,8 +14,16 @@ import { publicConfig } from "@/lib/config";
 import { trackServer } from "@/server/analytics";
 import { ConfigError, fulfillmentMode, serverEnv } from "@/server/config";
 import { ApiError } from "@/server/http";
+import { CostMeter, formatUsd } from "@/server/ai/cost";
 import { emailProvider } from "@/server/mail/email-adapter";
-import { buyerFailureNotice, ownerFailureAlert, type BuyerNoticeKind, type TimelineEntry } from "@/server/mail/notices";
+import {
+  buyerFailureNotice,
+  ownerDeliveryReceipt,
+  ownerFailureAlert,
+  type BuyerNoticeKind,
+  type CostSummary,
+  type TimelineEntry,
+} from "@/server/mail/notices";
 import type { ServerPhoto } from "@/server/photos/validate";
 import { resumeUrl } from "@/server/security/resume-token";
 import { NeedsHumanReview, generateReport, type FulfillmentPhase, type ReportCache } from "./pipeline";
@@ -57,6 +65,9 @@ type Job = QueueInput & {
   emailTries: number;
   /** The photo analysis from an earlier try, so a retry doesn't pay for it again. */
   cache: ReportCache;
+  /** Every OpenAI call this report made, over all its tries. */
+  cost: CostMeter;
+  firstTryAt?: number;
   pdf?: Uint8Array;
   timeline: TimelineEntry[];
 };
@@ -224,7 +235,7 @@ export class FulfillmentQueue {
   enqueue(input: QueueInput): QueueTicket {
     this.assertCapacity();
     const now = Date.now();
-    const job: Job = { ...input, enqueuedAt: now, notBefore: now, generationTries: 0, rateLimitWaits: 0, emailTries: 0, cache: {}, timeline: [] };
+    const job: Job = { ...input, enqueuedAt: now, notBefore: now, generationTries: 0, rateLimitWaits: 0, emailTries: 0, cache: {}, cost: new CostMeter(), timeline: [] };
     this.waiting.push(job);
     this.pump();
     const ticket = this.ticket(job);
@@ -282,6 +293,7 @@ export class FulfillmentQueue {
       job.generationTries++;
       if (job.generationTries === 1) emit(job.order, { name: "fulfillment_started" });
       const started = Date.now();
+      job.firstTryAt ??= started;
       let phase: FulfillmentPhase | undefined;
       try {
         const { pdf } = await generateReport({
@@ -290,6 +302,7 @@ export class FulfillmentQueue {
           constraints: job.constraints,
           timeZone: job.timeZone,
           cache: job.cache,
+          meter: job.cost,
           onPhase: (current) => {
             phase = current;
           },
@@ -348,12 +361,46 @@ export class FulfillmentQueue {
       await markDelivered(id, messageId);
       emit(job.order, { name: "email_provider_accepted" });
       wipe(job);
+      console.info(`[queue] order ${id.slice(0, 8)} delivered; AI cost ${formatUsd(job.cost.totalUsd, 4)}${job.cost.incomplete ? " (incomplete)" : ""}`);
+      await this.sendReceipt(job);
     } catch (error) {
       const detail = describeError(error);
       job.timeline.push({ at: iso(), step: `enviar email, tentativa ${job.emailTries} de ${EMAIL_TRIES}`, outcome: "error", code: "EMAIL_FAILED", detail });
       console.warn(`[queue] order ${id.slice(0, 8)} email try ${job.emailTries} failed`);
       if (job.emailTries < EMAIL_TRIES) return this.requeue(job, this.retryDelay(job.emailTries, this.options.retryDelayMs / 3));
       return this.fail(job, { code: "EMAIL_FAILED", retry: false, notice: "regenerate", detail }, "O relatório foi gerado, mas o email com o PDF não saiu", "email");
+    }
+  }
+
+  /** What this report's OpenAI calls cost, with the models that made it. */
+  private costSummary(job: Job): CostSummary {
+    const env = serverEnv();
+    return {
+      lines: job.cost.lines,
+      totalUsd: job.cost.totalUsd,
+      incomplete: job.cost.incomplete,
+      real: fulfillmentMode() === "real",
+      models: { text: env.VISION_MODEL ?? "?", image: env.IMAGE_EDIT_MODEL ?? "?", imageQuality: env.IMAGE_QUALITY },
+    };
+  }
+
+  /** The owner's receipt for a delivered report. Never holds up or fails the delivery. */
+  private async sendReceipt(job: Job): Promise<void> {
+    const env = serverEnv();
+    if (!env.OWNER_ALERT_EMAIL || !env.OWNER_DELIVERY_EMAILS) return;
+    const receipt = ownerDeliveryReceipt({
+      orderId: job.order.id,
+      payment: { mode: job.order.paymentMode, amountMinor: job.order.amountMinor, currency: job.order.currency, paidAt: job.order.paidAt },
+      generationSeconds: ((job.firstTryAt ? Date.now() - job.firstTryAt : 0) / 1000),
+      generationTries: job.generationTries,
+      cost: this.costSummary(job),
+      server: { appUrl: publicConfig.appUrl, commit: process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 7) ?? null },
+    });
+    const to = env.OWNER_ALERT_EMAIL;
+    try {
+      await attempt(3, () => emailProvider().sendNotice({ to, ...receipt, idempotencyKey: `receipt-${job.order.id}-a${job.order.fulfillmentAttempts}` }));
+    } catch (error) {
+      console.error(`[queue] order ${job.order.id.slice(0, 8)} delivered, but the owner's receipt could not be sent: ${describeError(error)}`);
     }
   }
 
@@ -369,11 +416,11 @@ export class FulfillmentQueue {
       console.error(`[queue] order ${job.order.id.slice(0, 8)} could not record the failure: ${describeError(error)}`);
     }
     emit(order, { name: "fulfillment_failed", code: failure.code });
-    await this.notify(order, failure, what, job.timeline);
+    await this.notify(order, failure, what, job.timeline, this.costSummary(job));
   }
 
   /** The buyer's "create it again" (or "we'll contact you") email, then the owner's alert. */
-  async notify(order: Order, failure: Failure, what: string, timeline: TimelineEntry[]): Promise<void> {
+  async notify(order: Order, failure: Failure, what: string, timeline: TimelineEntry[], cost?: CostSummary): Promise<void> {
     const finalStatus: OrderStatus = order.status;
     const notice: BuyerNoticeKind = finalStatus === "needs_support" && failure.notice !== "review" ? "support" : failure.notice;
     const link = notice === "regenerate" || notice === "photo" ? resumeUrl(order.id) : undefined;
@@ -414,6 +461,7 @@ export class FulfillmentQueue {
         concurrency: this.options.concurrency,
         uptimeSeconds: (Date.now() - this.startedAt) / 1000,
       },
+      cost,
     });
     try {
       await attempt(3, () => emailProvider().sendNotice({ to: owner, ...alert, idempotencyKey: `alert-${order.id}-a${order.fulfillmentAttempts}` }));

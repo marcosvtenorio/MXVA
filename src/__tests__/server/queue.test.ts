@@ -131,7 +131,10 @@ describe("queue retries", () => {
     await queue.drained();
     expect(calls).toBe(2);
     expect(await repository.findById(order.id)).toMatchObject({ status: "delivered_to_provider" });
-    expect(mockSentEmails()).toEqual([expect.objectContaining({ kind: "report", to: "buyer@example.com" })]);
+    expect(mockSentEmails()).toEqual([
+      expect.objectContaining({ kind: "report", to: "buyer@example.com" }),
+      expect.objectContaining({ kind: "notice", to: "owner@example.com", subject: expect.stringContaining("Relatório entregue") }),
+    ]);
   });
 
   it("waits out a busy AI provider without spending the report's tries", async () => {

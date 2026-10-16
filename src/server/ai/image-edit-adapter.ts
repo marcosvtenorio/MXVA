@@ -2,9 +2,10 @@ import "server-only";
 import sharp from "sharp";
 import { ConfigError, fulfillmentMode, serverEnv } from "../config";
 import { ApiError } from "../http";
+import type { CostMeter, ImageToolUsage } from "./cost";
 import { OWNER_PROMPT } from "./prompts";
 
-export type ImageEditInput = { front: Buffer; width: number; height: number };
+export type ImageEditInput = { front: Buffer; width: number; height: number; meter?: CostMeter; attempt?: number };
 
 /** What the owner's prompt returns: the annotated before and after, and the consultant's written analysis. */
 export type ConceptResult = { image: Buffer; consultation: string };
@@ -55,7 +56,8 @@ class OpenAIImageEditProvider implements ImageEditProvider {
       throw new ConfigError("IMAGE_API_KEY, IMAGE_EDIT_MODEL and VISION_MODEL are required.");
     }
     const { default: OpenAI } = await import("openai");
-    const client = new OpenAI({ apiKey: env.IMAGE_API_KEY, timeout: 240_000, maxRetries: 0 });
+    // The strongest models think and draw for several minutes.
+    const client = new OpenAI({ apiKey: env.IMAGE_API_KEY, timeout: 600_000, maxRetries: 0 });
     const response = await client.responses.create({
       model: env.VISION_MODEL,
       input: [
@@ -67,9 +69,14 @@ class OpenAIImageEditProvider implements ImageEditProvider {
           ],
         },
       ],
-      tools: [{ type: "image_generation", model: env.IMAGE_EDIT_MODEL, quality: "high", output_format: "jpeg" }],
+      tools: [{ type: "image_generation", model: env.IMAGE_EDIT_MODEL, quality: env.IMAGE_QUALITY, output_format: "jpeg" }],
       store: false,
     });
+    const tries = input.attempt && input.attempt > 1 ? ` (tentativa ${input.attempt})` : "";
+    input.meter?.addText(`consultoria escrita e pedido da imagem${tries}`, env.VISION_MODEL, response.usage);
+    // The image tool's own tokens: not in the SDK's types yet, but in every response.
+    const toolUsage = (response as { tool_usage?: { image_gen?: ImageToolUsage } }).tool_usage;
+    input.meter?.addImage(`imagem antes/depois${tries}`, env.IMAGE_EDIT_MODEL, toolUsage?.image_gen);
     // If the model draws more than one image, the last is the finished comparison.
     const images = response.output.flatMap((item) => (item.type === "image_generation_call" && item.result ? [item.result] : []));
     const last = images.at(-1);

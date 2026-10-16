@@ -6,6 +6,7 @@ import { auditReportPdf, composeReportPdf } from "@/features/report/pdf";
 import { planReport } from "@/features/report/planner";
 import type { PaidReport, VisualObservations } from "@/features/report/schema";
 import { publicConfig } from "@/lib/config";
+import type { CostMeter } from "../ai/cost";
 import { identityQualityGate } from "../ai/identity-qc";
 import { imageEditProvider } from "../ai/image-edit-adapter";
 import { visionProvider } from "../ai/vision-adapter";
@@ -43,14 +44,16 @@ export async function generateReport(args: {
   timeZone?: string;
   onPhase: (phase: FulfillmentPhase) => void;
   cache?: ReportCache;
+  /** Records every OpenAI call's tokens and price, for the owner's receipt. */
+  meter?: CostMeter;
 }): Promise<GeneratedReport> {
-  const { front, profiles, constraints, timeZone, onPhase, cache = {} } = args;
+  const { front, profiles, constraints, timeZone, onPhase, cache = {}, meter } = args;
   const vision = visionProvider();
   const editor = imageEditProvider();
   const gate = identityQualityGate();
 
   onPhase("analysing_photo");
-  const observations = (cache.observations ??= await vision.observe({ front: front.jpeg, profiles: profiles.map((p) => p.jpeg), focusAreas: FOCUS_AREAS }));
+  const observations = (cache.observations ??= await vision.observe({ front: front.jpeg, profiles: profiles.map((p) => p.jpeg), focusAreas: FOCUS_AREAS, meter }));
   if (observations.possibleMinor) {
     console.warn("[fulfillment] held for human review: the photo may show a minor");
     throw new NeedsHumanReview("AGE_RESTRICTED");
@@ -68,7 +71,7 @@ export async function generateReport(args: {
   let consultation = "";
   let comparison = false;
   for (let attempt = 1; attempt <= 2; attempt++) {
-    const result = await editor.edit({ front: front.jpeg, width: front.width, height: front.height });
+    const result = await editor.edit({ front: front.jpeg, width: front.width, height: front.height, meter, attempt });
     const raw = result.image;
     const candidate = await sharp(raw)
       .rotate()
@@ -77,7 +80,7 @@ export async function generateReport(args: {
       .toBuffer();
     raw.fill(0);
     onPhase("checking_image");
-    const verdict = await gate.check({ original: front.jpeg, edited: candidate });
+    const verdict = await gate.check({ original: front.jpeg, edited: candidate, meter, attempt });
     if (verdict.pass) {
       edited = candidate;
       consultation = result.consultation;
