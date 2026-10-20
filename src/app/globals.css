@@ -243,6 +243,62 @@
     box-shadow: inset 0 0 0 1px var(--color-rule);
   }
 
+  /* Landing: one framed column, sections divided by empty hairline bands. */
+  .frame {
+    width: 100%;
+    max-width: 1240px;
+    margin-inline: auto;
+  }
+  @media (min-width: 760px) {
+    .frame { border-inline: 1px solid var(--color-rule); }
+  }
+  .band {
+    height: 40px;
+    border-block: 1px solid var(--color-rule);
+  }
+  @media (min-width: 960px) {
+    .band { height: 96px; }
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    padding: 0 11px;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px var(--color-rule);
+    color: var(--color-ink-2);
+  }
+  .title-48 {
+    font-weight: 400;
+    font-size: 32px;
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+  }
+  @media (min-width: 960px) {
+    .title-48 { font-size: 48px; }
+  }
+  /* The lit seamless as a full-bleed field (the stage without its rounded frame). */
+  .field-lit {
+    background:
+      radial-gradient(90% 80% at 18% 12%, var(--bd-hi) 0%, transparent 60%),
+      linear-gradient(180deg, var(--bd) 0%, var(--bd-lo) 100%);
+    color: var(--on-image);
+  }
+  .field-lit .two-tone > span,
+  .two-tone.on-field > span {
+    color: color-mix(in srgb, var(--on-image) 62%, transparent);
+  }
+  .faq-plus {
+    transition: transform 220ms var(--ease-spring);
+  }
+  details[open] .faq-plus {
+    transform: rotate(45deg);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .faq-plus { transition: none; }
+  }
+
   /* Paywall: a light sweeping over the buyer's own photo, and areas ticking in once. */
   .scan-line {
     position: absolute;
