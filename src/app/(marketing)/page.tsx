@@ -4,14 +4,77 @@ import { ArrowRight, CreditCard, Lock, Plus, Tick } from "@/components/common/ic
 import { CropMarks, PlasterHead } from "@/components/common/StudioArt";
 import { ExampleCompare } from "@/components/checkout/ExampleCompare";
 import { PriceTag } from "@/components/checkout/PriceTag";
+import { AreaTabs, type AreaTab } from "@/components/marketing/AreaTabs";
 import { LandingFooter } from "@/components/marketing/LandingFooter";
 import { TrackedLink } from "@/components/marketing/TrackedLink";
+import { FOCUS_OPTIONS, PHOTO_REQUIREMENTS } from "@/features/onboarding/steps";
+import { LIBRARY } from "@/features/report/library";
+import { EVIDENCE_REGISTRY, getSource } from "@/features/report/references";
 import { publicConfig } from "@/lib/config";
 
 /*
  * Layout: one framed column, sections divided by hairline bands, an eyebrow capsule over
- * each light two-tone heading. Copy, palette, type and imagery are MXVA's own.
+ * each light two-tone heading. Breakpoints at 768px and 1100px (see .frame, .band, .sec and
+ * the .t-* type scale in globals.css). Every figure below is read from the report library.
  */
+
+const EVIDENCE_LABELS = { established: "Established guidance", limited: "Limited evidence", styling_opinion: "Styling opinion" } as const;
+const COST_LABELS = { free: "Free", low: "Low cost", medium: "Medium cost", professional: "Professional" } as const;
+const HORIZON_LABELS = { now: "Start now", "30d": "Within 30 days", "90d": "Within 90 days", professional: "Optional consult" } as const;
+const EFFORT_LABELS = { low: "Low", medium: "Medium", high: "High" } as const;
+
+const AREAS: AreaTab[] = FOCUS_OPTIONS.map((option) => ({
+  id: option.id,
+  label: option.label,
+  // Everyday steps first; referrals only appear in reports when the buyer asks.
+  cards: LIBRARY.filter((template) => template.area === option.id)
+    .toSorted((a, b) => Number(Boolean(a.onlyIfAsked)) - Number(Boolean(b.onlyIfAsked)))
+    .slice(0, 4)
+    .map((template) => {
+      // Styling opinions can stand without a study; the card says so instead of inventing one.
+      const sourceId = template.sourceIds[0];
+      const source = sourceId ? getSource(sourceId) : null;
+      return {
+        id: template.id,
+        title: template.title,
+        evidence: EVIDENCE_LABELS[template.evidenceLevel],
+        effort: EFFORT_LABELS[template.effort],
+        cost: COST_LABELS[template.costBand],
+        when: HORIZON_LABELS[template.horizon],
+        source: source ? `${source.publisher} · ${source.dateLabel}` : "No study cited: stylist practice",
+      };
+    }),
+}));
+
+const EVIDENCE_LEVELS = [
+  { level: "established", detail: "Backed by trials or by professional bodies, like daily SPF." },
+  { level: "limited", detail: "Some support, not settled. The report says so next to the step." },
+  { level: "styling_opinion", detail: "Barber and stylist practice, labelled as opinion, never as science." },
+] as const;
+
+const STATS = [
+  { value: String(LIBRARY.length), label: "recommendations a report can choose from" },
+  { value: String(EVIDENCE_REGISTRY.sources.length), label: "sources, each with its date" },
+  { value: String(FOCUS_OPTIONS.length), label: "areas of your face and grooming" },
+  { value: String(EVIDENCE_LEVELS.length), label: "evidence labels, on every step" },
+];
+
+/** Example schedule lines, taken from real templates (a report picks the ones that fit you). */
+function planLine(id: string, day: "day7" | "day30" | "day90") {
+  const line = LIBRARY.find((template) => template.id === id)?.plan[day];
+  if (!line) throw new Error(`Missing ${day} line for ${id}`);
+  return line;
+}
+
+const SCHEDULE = [
+  { day: "Day 7", title: "Start small", lines: [planLine("skin-daily-spf", "day7"), planLine("brows-clean-strays", "day7"), planLine("eyes-regular-sleep", "day7")] },
+  {
+    day: "Day 30",
+    title: "Make it a habit",
+    lines: [planLine("hair-cut-for-your-face", "day30"), planLine("eyes-regular-sleep", "day30"), planLine("skin-gentle-cleanse", "day30")],
+  },
+  { day: "Day 90", title: "Look back", lines: [planLine("skin-daily-spf", "day90"), planLine("eyes-regular-sleep", "day90"), planLine("beard-grow-out", "day90")] },
+];
 
 const CONCEPT_CHANGES = [
   "A haircut and colour picked for your face shape",
@@ -59,6 +122,13 @@ const TRUST = [
   { icon: Tick, text: "Free retry if delivery fails" },
 ];
 
+const AFTER_PAYING = [
+  { title: "Request received", detail: "Confirmed on screen right away. You can close the page." },
+  { title: "Report by email", detail: "Your PDF arrives in about 3 minutes." },
+  { title: "Automatic retries", detail: "If a step fails, we try again without asking you." },
+  { title: "Never charged twice", detail: "If it still fails, you get a link to try again, free." },
+];
+
 const WONT = ["Rate or score your face", "Diagnose skin, teeth or hair", "Suggest surgery or medication", "Promise bone or eye-shape changes"];
 
 const FAQ = [
@@ -69,6 +139,14 @@ const FAQ = [
   {
     q: "Will the AI change my face?",
     a: "It shows your glow-up, not someone else: same features, skin tone, pose and light, with the changes a beauty consultant would make for your face: the haircut, colour and styling that suit you, brows, skin and natural makeup. It doesn't slim your face, shrink your nose or enlarge your eyes, and every change is annotated on your before and after.",
+  },
+  {
+    q: "How long does it take?",
+    a: "A few minutes to add your photo and answer the questions. After you pay, your PDF arrives by email in about 3 minutes.",
+  },
+  {
+    q: "Do I need an account?",
+    a: "No. You only give an email address, so we can send your report.",
   },
   {
     q: "What happens to my photos?",
@@ -82,6 +160,34 @@ const FAQ = [
 
 function Band() {
   return <div aria-hidden="true" className="band" />;
+}
+
+function SectionHead({
+  eyebrow,
+  id,
+  title,
+  rest,
+  lead,
+  center = false,
+  onField = false,
+}: {
+  eyebrow: string;
+  id: string;
+  title: string;
+  rest: string;
+  lead?: string;
+  center?: boolean;
+  onField?: boolean;
+}) {
+  return (
+    <div className={center ? "text-center" : ""}>
+      <span className={`eyebrow mono ${onField ? "frost shadow-none!" : ""}`}>{eyebrow}</span>
+      <h2 id={id} className="t-section two-tone mt-5">
+        {title} <span>{rest}</span>
+      </h2>
+      {lead && <p className={`t-lead mt-4 max-w-[520px] ${center ? "mx-auto" : ""} ${onField ? "opacity-80" : "text-ink-2"}`}>{lead}</p>}
+    </div>
+  );
 }
 
 function StartButton({ cta, className = "" }: { cta: "hero_start" | "footer_start"; className?: string }) {
@@ -113,16 +219,30 @@ function PaperMock({ className = "" }: { className?: string }) {
   );
 }
 
+function NumberedList({ items, onField = false }: { items: readonly string[]; onField?: boolean }) {
+  return (
+    <ol className="grid">
+      {items.map((line, index) => (
+        <li key={line} className={`flex gap-5 border-t py-3 text-[15px] ${onField ? "border-current/20" : "border-rule"}`}>
+          <span className={`mono w-6 shrink-0 pt-0.5 ${onField ? "opacity-70" : "text-ink-2"}`}>[{index + 1}]</span>
+          {line}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 export default function LandingPage() {
   const price = <PriceTag />;
   return (
     <>
       <div className="frost sticky top-0 z-30 border-b border-rule">
-        <header className="mx-auto flex min-h-16 w-full max-w-[1240px] items-center justify-between gap-4 px-5 pb-2.5 pt-[max(10px,env(safe-area-inset-top))] min-[760px]:px-8">
+        <header className="mx-auto flex min-h-16 w-full max-w-[1360px] items-center justify-between gap-4 px-4 pb-2.5 pt-[max(10px,env(safe-area-inset-top))] min-[768px]:px-8">
           <Link href="/" className="text-[17px] font-semibold tracking-[0.14em]" aria-label={`${publicConfig.brandName} home`}>
             {publicConfig.brandName}
           </Link>
-          <nav aria-label="Sections" className="mono hidden items-center gap-7 text-ink-2 min-[960px]:flex">
+          <nav aria-label="Sections" className="mono hidden items-center gap-7 text-ink-2 min-[1100px]:flex">
+            <a href="#areas">Areas</a>
             <a href="#how">How it works</a>
             <a href="#report">The report</a>
             <a href="#pricing">Pricing</a>
@@ -132,7 +252,7 @@ export default function LandingPage() {
             <TrackedLink cta="sample_report" href="/sample-report" className="pill-link mono">
               Sample report
             </TrackedLink>
-            <TrackedLink cta="hero_start" href="/start" className="pill-link mono hidden bg-btn! text-on-btn shadow-none! min-[760px]:inline-flex">
+            <TrackedLink cta="hero_start" href="/start" className="pill-link mono hidden bg-btn! text-on-btn shadow-none! min-[768px]:inline-flex">
               Start
             </TrackedLink>
           </div>
@@ -140,23 +260,23 @@ export default function LandingPage() {
       </div>
 
       <main id="main" className="frame">
-        {/* Hero: headline and action left, the lit stage right. */}
-        <section className="grid min-[960px]:grid-cols-[1fr_1.1fr] min-[960px]:items-stretch">
-          <div className="order-2 flex flex-col justify-center px-5 pb-10 pt-8 min-[960px]:order-1 min-[960px]:px-8 min-[960px]:py-16">
+        {/* Hero: headline and action, beside the lit stage. */}
+        <section className="grid min-[1100px]:grid-cols-[1fr_1.1fr]">
+          <div className="order-2 flex flex-col justify-center px-4 pb-14 pt-8 min-[768px]:px-8 min-[1100px]:order-1 min-[1100px]:py-20">
             <span className="eyebrow mono self-start">Looksmaxxing report</span>
-            <h1 className="display two-tone mt-5 min-[960px]:text-[60px]">
+            <h1 className="t-hero two-tone mt-5">
               Your face. <span>Your full glow&#8209;up.</span>
             </h1>
-            <p className="mt-4 max-w-[440px] text-[17px] leading-[1.4] text-ink-2">
+            <p className="t-lead mt-4 max-w-[460px] text-ink-2 min-[768px]:text-[17px]">
               Explore a personalized looksmaxxing roadmap and an AI concept portrait based on your own photos.
             </p>
             <div className="mt-7 max-w-[420px]">
               <StartButton cta="hero_start" />
-              <p className="mono mt-3 text-center text-ink-2 min-[960px]:text-left">{price} once · PDF by email · photos not kept</p>
+              <p className="mono mt-3 text-center text-ink-2 min-[1100px]:text-left">{price} once · PDF by email · photos not kept</p>
             </div>
           </div>
-          <div className="order-1 p-3 min-[960px]:order-2 min-[960px]:border-l min-[960px]:border-rule min-[960px]:p-4">
-            <div className="stage h-[min(48dvh,540px)] min-h-[300px] min-[960px]:h-[640px]">
+          <div className="order-1 p-3 min-[768px]:p-4 min-[1100px]:order-2 min-[1100px]:border-l min-[1100px]:border-rule">
+            <div className="stage h-[min(48dvh,540px)] min-h-[300px] min-[768px]:h-[520px] min-[1100px]:h-[680px]">
               <PlasterHead className="absolute inset-x-0 bottom-0 h-[88%] w-full" />
               <CropMarks />
               <div className="readouts mono" aria-hidden="true">
@@ -172,25 +292,20 @@ export default function LandingPage() {
         <Band />
 
         {/* The concept: what changes, beside a real example on a fictional person. */}
-        <section className="grid min-[860px]:grid-cols-[1fr_1fr]" aria-labelledby="concept">
-          <div className="flex flex-col px-5 py-8 min-[960px]:px-8 min-[960px]:py-12">
-            <span className="eyebrow mono self-start">The concept</span>
-            <h2 id="concept" className="title-48 two-tone mt-5">
-              Same face. <span>Upgraded.</span>
-            </h2>
-            <p className="mt-4 max-w-[420px] text-[15px] leading-[1.45] text-ink-2">
-              Your report opens with a portrait of you after the changes that suit your face, so you can see the plan before you start it.
-            </p>
-            <ol className="mt-8 grid gap-0 min-[860px]:mt-auto min-[860px]:pt-10">
-              {CONCEPT_CHANGES.map((line, index) => (
-                <li key={line} className="flex gap-5 border-t border-rule py-3 text-[15px]">
-                  <span className="mono w-6 shrink-0 pt-0.5 text-ink-2">[{index + 1}]</span>
-                  {line}
-                </li>
-              ))}
-            </ol>
+        <section className="grid min-[1100px]:grid-cols-2" aria-labelledby="concept">
+          <div className="sec flex flex-col">
+            <SectionHead
+              eyebrow="The concept"
+              id="concept"
+              title="Same face."
+              rest="Upgraded."
+              lead="Your report opens with a portrait of you after the changes that suit your face, so you can see the plan before you start it."
+            />
+            <div className="mt-8 min-[1100px]:mt-auto min-[1100px]:pt-10">
+              <NumberedList items={CONCEPT_CHANGES} />
+            </div>
           </div>
-          <div className="px-5 pb-8 min-[860px]:border-l min-[860px]:border-rule min-[860px]:p-8">
+          <div className="px-4 pb-14 min-[768px]:px-8 min-[1100px]:border-l min-[1100px]:border-rule min-[1100px]:py-20">
             <div className="mx-auto max-w-[420px]">
               <ExampleCompare />
             </div>
@@ -199,30 +314,47 @@ export default function LandingPage() {
 
         <Band />
 
+        {/* Seven areas, each with real steps from the report library. */}
+        <section id="areas" className="scroll-mt-20 pb-1" aria-labelledby="areas-title">
+          <div className="sec pb-8! min-[768px]:pb-10!">
+            <SectionHead
+              eyebrow="What it covers"
+              id="areas-title"
+              title="Seven areas."
+              rest="One plan."
+              lead="A report picks 5 to 10 steps for your face from a library like this. Every step carries its evidence label, its effort, its cost and a dated source."
+            />
+          </div>
+          <AreaTabs areas={AREAS} />
+        </section>
+
+        <Band />
+
         {/* Guesswork against the MXVA way, as two rows of steps. */}
         <section aria-labelledby="approach">
-          <div className="px-5 py-10 text-center min-[960px]:py-14">
-            <span className="eyebrow mono">The difference</span>
-            <h2 id="approach" className="title-48 two-tone mt-5">
-              Stop guessing. <span>Start with your face.</span>
-            </h2>
-            <p className="mx-auto mt-4 max-w-[520px] text-[15px] leading-[1.45] text-ink-2">
-              Most glow-up advice is written for everyone. Yours starts from your photo and what you want to keep.
-            </p>
+          <div className="sec">
+            <SectionHead
+              center
+              eyebrow="The difference"
+              id="approach"
+              title="Stop guessing."
+              rest="Start with your face."
+              lead="Most glow-up advice is written for everyone. Yours starts from your photo and what you want to keep."
+            />
           </div>
-          <div className="grid gap-3 border-t border-rule p-3 min-[960px]:p-4">
+          <div className="grid gap-3 border-t border-rule p-3 min-[768px]:p-4">
             {[
               { label: "Guesswork", steps: GUESSWORK, lit: false },
               { label: "With MXVA", steps: WITH_MXVA, lit: true },
             ].map((row) => (
               <div
                 key={row.label}
-                className={`grid gap-5 rounded-[20px] p-5 min-[960px]:grid-cols-[180px_1fr] min-[960px]:items-end min-[960px]:p-7 ${
+                className={`grid gap-5 rounded-[20px] p-5 min-[1100px]:grid-cols-[200px_1fr] min-[1100px]:items-end min-[1100px]:p-7 ${
                   row.lit ? "field-lit" : "bg-raised shadow-[inset_0_0_0_1px_var(--color-rule)]"
                 }`}
               >
-                <p className="text-[20px] tracking-[-0.01em]">{row.label}</p>
-                <ol className="grid gap-4 min-[640px]:grid-cols-2 min-[960px]:grid-cols-4">
+                <p className="t-card">{row.label}</p>
+                <ol className="grid gap-4 min-[768px]:grid-cols-2 min-[1100px]:grid-cols-4">
                   {row.steps.map((step, index) => (
                     <li key={step}>
                       <div className="flex items-center gap-2" aria-hidden="true">
@@ -243,13 +375,10 @@ export default function LandingPage() {
 
         {/* What the plan is built around: a narrow centred list. */}
         <section aria-labelledby="built">
-          <div className="px-5 py-10 text-center min-[960px]:py-14">
-            <span className="eyebrow mono">Personal</span>
-            <h2 id="built" className="title-48 two-tone mt-5">
-              Built around <span>you.</span>
-            </h2>
+          <div className="sec">
+            <SectionHead center eyebrow="Personal" id="built" title="Built around" rest="you." />
           </div>
-          <ul className="mx-auto grid max-w-[620px] gap-3 border-t border-rule p-3 min-[620px]:border-x min-[960px]:p-4">
+          <ul className="mx-auto grid max-w-[640px] gap-3 border-t border-rule p-3 min-[768px]:border-x min-[768px]:p-4">
             {BUILT_AROUND.map((item, index) => (
               <li key={item.title} className="flex items-center gap-4 rounded-[16px] bg-raised p-3 shadow-[inset_0_0_0_1px_var(--color-rule)]">
                 <span className="stage mono grid h-16 w-20 shrink-0 place-items-center rounded-[10px]! text-[13px] text-[var(--on-image)]" aria-hidden="true">
@@ -266,31 +395,62 @@ export default function LandingPage() {
 
         <Band />
 
+        {/* The library in numbers, and what each evidence label means. */}
+        <section aria-labelledby="evidence">
+          <div className="sec">
+            <SectionHead
+              eyebrow="Evidence"
+              id="evidence"
+              title="Every step,"
+              rest="labelled."
+              lead="You always know whether a step is settled science, early evidence or a stylist's judgement."
+            />
+          </div>
+          <dl className="grid grid-cols-2 gap-px border-y border-rule bg-rule min-[1100px]:grid-cols-4">
+            {STATS.map((stat) => (
+              <div key={stat.label} className="flex flex-col bg-ground px-4 py-6 min-[768px]:px-8 min-[768px]:py-10">
+                <dt className="order-2 mt-2 text-[14px] leading-[1.4] text-ink-2">{stat.label}</dt>
+                <dd className="order-1 text-[40px] leading-none tracking-[-0.03em] tabular-nums min-[1100px]:text-[56px]">{stat.value}</dd>
+              </div>
+            ))}
+          </dl>
+          <ul className="grid min-[768px]:grid-cols-3">
+            {EVIDENCE_LEVELS.map((item) => (
+              <li
+                key={item.level}
+                className="border-rule px-4 py-6 not-first:border-t min-[768px]:px-8 min-[768px]:py-8 min-[768px]:not-first:border-l min-[768px]:not-first:border-t-0"
+              >
+                <span className="ev mono">{EVIDENCE_LABELS[item.level]}</span>
+                <p className="mt-3 text-[15px] leading-[1.45]">{item.detail}</p>
+                <p className="mono mt-3 text-ink-2">{LIBRARY.filter((template) => template.evidenceLevel === item.level).length} steps in the library</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <Band />
+
         {/* The report, on the lit field. */}
-        <section id="report" className="field-lit grid scroll-mt-20 min-[960px]:grid-cols-[1fr_1fr]" aria-labelledby="report-title">
-          <div className="flex flex-col px-5 py-10 min-[960px]:px-8 min-[960px]:py-14">
-            <span className="eyebrow mono frost self-start shadow-none!">Your report</span>
-            <h2 id="report-title" className="title-48 two-tone mt-5">
-              One PDF. <span>Everything in order.</span>
-            </h2>
-            <p className="mt-4 max-w-[420px] text-[15px] leading-[1.45] opacity-80">
-              Your concept portrait first, then the plan, then the reasons behind it. It arrives by email and stays yours.
-            </p>
-            <ol className="mt-8 grid min-[960px]:mt-auto min-[960px]:pt-10">
-              {REPORT_PARTS.map((line, index) => (
-                <li key={line} className="flex gap-5 border-t border-current/20 py-3 text-[15px]">
-                  <span className="mono w-6 shrink-0 pt-0.5 opacity-70">[{index + 1}]</span>
-                  {line}
-                </li>
-              ))}
-            </ol>
+        <section id="report" className="field-lit grid scroll-mt-20 min-[1100px]:grid-cols-2" aria-labelledby="report-title">
+          <div className="sec flex flex-col">
+            <SectionHead
+              onField
+              eyebrow="Your report"
+              id="report-title"
+              title="One PDF."
+              rest="Everything in order."
+              lead="Your concept portrait first, then the plan, then the reasons behind it. It arrives by email and stays yours."
+            />
+            <div className="mt-8 min-[1100px]:mt-auto min-[1100px]:pt-10">
+              <NumberedList items={REPORT_PARTS} onField />
+            </div>
             <TrackedLink cta="sample_report" href="/sample-report" className="btn btn-secondary mt-6 w-auto self-start px-6">
               See a sample report
             </TrackedLink>
           </div>
-          <div className="relative min-h-[380px] overflow-hidden min-[960px]:min-h-0">
+          <div className="relative min-h-[380px] overflow-hidden min-[1100px]:min-h-0">
             <div className="absolute inset-0 grid place-items-center">
-              <div className="relative h-[300px] w-[78%] max-w-[420px] min-[960px]:h-[420px]">
+              <div className="relative h-[300px] w-[78%] max-w-[440px] min-[1100px]:h-[440px]">
                 <PaperMock className="absolute left-0 top-6 w-[62%] -rotate-3" />
                 <PaperMock className="absolute right-0 top-0 w-[62%] rotate-2" />
               </div>
@@ -301,19 +461,86 @@ export default function LandingPage() {
 
         <Band />
 
+        {/* The 7, 30 and 90-day plan, as three columns. */}
+        <section aria-labelledby="schedule">
+          <div className="sec">
+            <SectionHead
+              center
+              eyebrow="Your 90 days"
+              id="schedule"
+              title="This week, this month,"
+              rest="this season."
+              lead="Example lines from real report templates. Yours are chosen for your photo and your answers."
+            />
+          </div>
+          <ol className="grid border-t border-rule min-[768px]:grid-cols-3">
+            {SCHEDULE.map((column) => (
+              <li
+                key={column.day}
+                className="border-rule px-4 py-8 not-first:border-t min-[768px]:px-8 min-[768px]:not-first:border-l min-[768px]:not-first:border-t-0 min-[1100px]:py-10"
+              >
+                <p className="mono text-ink-2">{column.day}</p>
+                <h3 className="t-card mt-2">{column.title}</h3>
+                <ul className="mt-5 grid gap-3">
+                  {column.lines.map((line) => (
+                    <li key={line} className="flex gap-3 text-[15px] leading-[1.45]">
+                      <Tick size={16} className="mt-1 shrink-0 text-ink-2" />
+                      {line}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <Band />
+
+        {/* A good photo: the lit stage beside the four requirements. */}
+        <section className="grid min-[1100px]:grid-cols-2" aria-labelledby="photo">
+          <div className="p-3 min-[768px]:p-4">
+            <div className="stage h-[360px] min-[768px]:h-[440px] min-[1100px]:h-full min-[1100px]:min-h-[520px]">
+              <PlasterHead className="absolute inset-x-0 bottom-0 h-[86%] w-full" />
+              <CropMarks />
+              <div className="readouts mono" aria-hidden="true">
+                <span>Window light</span>
+                <span>Arm&apos;s length</span>
+              </div>
+            </div>
+          </div>
+          <div className="sec flex flex-col min-[1100px]:border-l min-[1100px]:border-rule">
+            <SectionHead
+              eyebrow="Your photo"
+              id="photo"
+              title="A good photo."
+              rest="Four simple things."
+              lead="The report reads your face from this photo, so a clear one makes a better plan. It stays in your browser until you pay."
+            />
+            <ol className="mt-8 grid min-[1100px]:mt-auto min-[1100px]:pt-10">
+              {PHOTO_REQUIREMENTS.map((item, index) => (
+                <li key={item.title} className="flex gap-5 border-t border-rule py-4">
+                  <span className="mono w-6 shrink-0 pt-1 text-ink-2">[{index + 1}]</span>
+                  <span>
+                    <span className="block text-[17px]">{item.title}</span>
+                    <span className="mt-0.5 block text-[14px] leading-[1.4] text-ink-2">{item.detail}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        <Band />
+
         {/* How it works: three cards with a picture on top. */}
         <section id="how" className="scroll-mt-20" aria-labelledby="how-title">
-          <div className="px-5 py-10 text-center min-[960px]:py-14">
-            <span className="eyebrow mono">How it works</span>
-            <h2 id="how-title" className="title-48 two-tone mt-5">
-              Three steps. <span>No account.</span>
-            </h2>
-            <p className="mx-auto mt-4 max-w-[480px] text-[15px] leading-[1.45] text-ink-2">From your phone, in a few minutes.</p>
+          <div className="sec">
+            <SectionHead center eyebrow="How it works" id="how-title" title="Three steps." rest="No account." lead="From your phone, in a few minutes." />
           </div>
-          <ol className="grid border-t border-rule min-[760px]:grid-cols-3">
+          <ol className="grid border-t border-rule min-[768px]:grid-cols-3">
             {STEPS.map((step, index) => (
-              <li key={step.title} className="border-rule p-3 not-first:border-t min-[760px]:not-first:border-l min-[760px]:not-first:border-t-0 min-[960px]:p-4">
-                <div className="stage relative h-48 rounded-[18px]!" aria-hidden="true">
+              <li key={step.title} className="border-rule p-3 not-first:border-t min-[768px]:p-4 min-[768px]:not-first:border-l min-[768px]:not-first:border-t-0">
+                <div className="stage relative h-48 rounded-[18px]! min-[1100px]:h-56" aria-hidden="true">
                   {index === 0 && (
                     <>
                       <PlasterHead className="absolute inset-x-0 bottom-0 h-[86%] w-full" />
@@ -337,7 +564,7 @@ export default function LandingPage() {
                   )}
                 </div>
                 <p className="mono mt-5 px-2 text-ink-2">{String(index + 1).padStart(2, "0")}</p>
-                <h3 className="mt-2 px-2 text-[20px] tracking-[-0.01em]">{step.title}</h3>
+                <h3 className="t-card mt-2 px-2">{step.title}</h3>
                 <p className="mt-1.5 px-2 pb-4 text-[15px] leading-[1.45] text-ink-2">{step.detail}</p>
               </li>
             ))}
@@ -346,17 +573,17 @@ export default function LandingPage() {
 
         <Band />
 
-        {/* Pricing: what's included left, the price card right, a trust strip below. */}
+        {/* Pricing: what's included, the price card, a trust strip below. */}
         <section id="pricing" className="scroll-mt-20" aria-labelledby="pricing-title">
-          <div className="px-5 py-10 text-center min-[960px]:py-14">
+          <div className="sec text-center">
             <span className="eyebrow mono">Pricing</span>
-            <h2 id="pricing-title" className="title-48 two-tone mt-5">
+            <h2 id="pricing-title" className="t-section two-tone mt-5">
               One report. <span>{price}, once.</span>
             </h2>
-            <p className="mx-auto mt-4 text-[15px] text-ink-2">No subscription. No account.</p>
+            <p className="t-lead mx-auto mt-4 text-ink-2">No subscription. No account.</p>
           </div>
-          <div className="grid grid-cols-[minmax(0,1fr)] border-t border-rule min-[860px]:grid-cols-2">
-            <ul className="grid gap-5 px-5 py-8 min-[960px]:px-8 min-[960px]:py-10">
+          <div className="grid grid-cols-[minmax(0,1fr)] border-t border-rule min-[1100px]:grid-cols-2">
+            <ul className="grid gap-5 px-4 py-8 min-[768px]:px-8 min-[768px]:py-10">
               {INCLUDED.map((item) => (
                 <li key={item.title} className="flex gap-4">
                   <Tick size={18} className="mt-0.5 shrink-0 text-ink-2" />
@@ -367,7 +594,7 @@ export default function LandingPage() {
                 </li>
               ))}
             </ul>
-            <div className="grid grid-cols-[minmax(0,1fr)] content-center gap-6 border-rule px-5 pb-10 min-[860px]:border-l min-[860px]:px-10 min-[860px]:py-10">
+            <div className="grid grid-cols-[minmax(0,1fr)] content-center gap-6 border-rule px-4 pb-10 min-[768px]:px-8 min-[1100px]:border-l min-[1100px]:px-10 min-[1100px]:py-10">
               <div className="field-lit relative mx-auto flex aspect-[1.6] w-full max-w-[400px] flex-col justify-between rounded-[18px] p-6 shadow-[0_24px_50px_rgba(40,55,62,.28)]">
                 <p className="text-[22px] leading-[1.1] tracking-[-0.01em]">
                   {publicConfig.brandName}
@@ -384,9 +611,12 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-          <ul className="grid border-t border-rule min-[760px]:grid-cols-3">
+          <ul className="grid border-t border-rule min-[768px]:grid-cols-3">
             {TRUST.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-center gap-3 border-rule px-5 py-4 text-[14px] text-ink-2 not-first:border-t min-[760px]:not-first:border-l min-[760px]:not-first:border-t-0 min-[960px]:px-8">
+              <li
+                key={text}
+                className="flex items-center gap-3 border-rule px-4 py-4 text-[14px] text-ink-2 not-first:border-t min-[768px]:px-8 min-[768px]:not-first:border-l min-[768px]:not-first:border-t-0"
+              >
                 <Icon size={18} className="shrink-0" />
                 {text}
               </li>
@@ -396,22 +626,50 @@ export default function LandingPage() {
 
         <Band />
 
+        {/* After you pay: four steps joined by a line. */}
+        <section aria-labelledby="delivery">
+          <div className="sec">
+            <SectionHead
+              eyebrow="After you pay"
+              id="delivery"
+              title="Nobody waits on a screen."
+              rest="It comes to you."
+              lead="Your report is made in the background and sent by email. If anything goes wrong, it's on us, not you."
+            />
+          </div>
+          <ol className="grid border-t border-rule min-[768px]:grid-cols-2 min-[1100px]:grid-cols-4">
+            {AFTER_PAYING.map((step, index) => (
+              <li
+                key={step.title}
+                className="border-rule px-4 py-6 not-first:border-t min-[768px]:px-8 min-[768px]:py-8 min-[768px]:[&:nth-child(2)]:border-t-0 min-[768px]:[&:nth-child(even)]:border-l min-[1100px]:not-first:border-l min-[1100px]:not-first:border-t-0"
+              >
+                <div className="flex items-center gap-2" aria-hidden="true">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-ink" />
+                  <span className="h-px flex-1 bg-rule" />
+                </div>
+                <p className="mono mt-4 text-ink-2">{String(index + 1).padStart(2, "0")}</p>
+                <h3 className="t-card mt-2">{step.title}</h3>
+                <p className="mt-1.5 text-[15px] leading-[1.45] text-ink-2">{step.detail}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <Band />
+
         {/* Privacy and limits, side by side. */}
-        <section className="grid min-[760px]:grid-cols-2" aria-labelledby="privacy">
-          <div className="px-5 py-10 min-[960px]:px-8 min-[960px]:py-12">
-            <span className="eyebrow mono">Privacy</span>
-            <h2 id="privacy" className="title-48 two-tone mt-5">
-              Plainly. <span>Your photos aren&apos;t kept.</span>
-            </h2>
-            <p className="mt-4 max-w-[480px] text-[15px] leading-[1.45] text-ink-2">
+        <section className="grid min-[768px]:grid-cols-2" aria-labelledby="privacy">
+          <div className="sec">
+            <SectionHead eyebrow="Privacy" id="privacy" title="Plainly." rest="Your photos aren't kept." />
+            <p className="t-lead mt-4 max-w-[480px] text-ink-2">
               Photos stay in your browser until you pay. Then they go to our server and AI providers only to create your report, and they are
               not saved in our photo database. AI and email providers handle data under their own terms, which our Privacy Policy explains. We
               keep your email and payment record for support and accounting.
             </p>
           </div>
-          <div className="border-rule px-5 pb-10 min-[760px]:border-l min-[760px]:py-10 min-[960px]:px-8 min-[960px]:py-12">
+          <div className="sec border-rule pt-0! min-[768px]:border-l min-[768px]:pt-20!">
             <span className="eyebrow mono">Limits</span>
-            <h2 className="title-48 two-tone mt-5">
+            <h2 className="t-section two-tone mt-5">
               What we won&apos;t do. <span>Ever.</span>
             </h2>
             <ul className="mt-6 grid text-[15px]">
@@ -427,14 +685,11 @@ export default function LandingPage() {
 
         <Band />
 
-        {/* Questions: heading column left, accordion right. */}
-        <section id="faq" className="grid scroll-mt-20 min-[860px]:grid-cols-[1fr_1.6fr]" aria-labelledby="faq-title">
-          <div className="px-5 py-10 min-[960px]:px-8 min-[960px]:py-12">
-            <span className="eyebrow mono">Questions</span>
-            <h2 id="faq-title" className="title-48 two-tone mt-5">
-              Asked <span>often.</span>
-            </h2>
-            <p className="mt-4 text-[15px] leading-[1.45] text-ink-2">
+        {/* Questions: heading column, accordion beside it. */}
+        <section id="faq" className="grid scroll-mt-20 min-[1100px]:grid-cols-[1fr_1.6fr]" aria-labelledby="faq-title">
+          <div className="sec">
+            <SectionHead eyebrow="Questions" id="faq-title" title="Asked" rest="often." />
+            <p className="t-lead mt-4 text-ink-2">
               More in{" "}
               <Link href="/help" className="text-ink underline underline-offset-2">
                 Help
@@ -442,9 +697,9 @@ export default function LandingPage() {
               .
             </p>
           </div>
-          <div className="border-rule px-5 pb-8 min-[860px]:border-l min-[860px]:py-8 min-[960px]:px-8">
+          <div className="border-rule px-4 pb-10 min-[768px]:px-8 min-[1100px]:border-l min-[1100px]:py-14">
             {FAQ.map((item) => (
-              <details key={item.q} className="border-b border-rule py-4 first:border-t min-[860px]:first:border-t-0">
+              <details key={item.q} className="border-b border-rule py-4 first:border-t min-[1100px]:first:border-t-0">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-1 text-[17px] [&::-webkit-details-marker]:hidden">
                   {item.q}
                   <Plus size={18} className="faq-plus shrink-0 text-ink-2" />
@@ -458,8 +713,8 @@ export default function LandingPage() {
         <Band />
 
         {/* Closing call to action on the lit field. */}
-        <section className="field-lit px-5 py-14 text-center min-[960px]:py-20" aria-labelledby="closing">
-          <h2 id="closing" className="title-48 two-tone">
+        <section className="field-lit px-4 py-16 text-center min-[768px]:px-8 min-[1100px]:py-24" aria-labelledby="closing">
+          <h2 id="closing" className="t-section two-tone">
             See your glow-up. <span>Then make it real.</span>
           </h2>
           <div className="mx-auto mt-7 max-w-[380px]">

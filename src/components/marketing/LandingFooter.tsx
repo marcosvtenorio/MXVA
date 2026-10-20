@@ -11,7 +11,7 @@ const COLUMNS = [
 export function LandingFooter() {
   return (
     <footer className="frame overflow-hidden border-t border-rule">
-      <div className="grid gap-8 px-5 pb-6 pt-10 min-[760px]:grid-cols-4 min-[960px]:px-8">
+      <div className="grid gap-8 px-4 pb-6 pt-10 min-[768px]:grid-cols-4 min-[768px]:px-8">
         {COLUMNS.map((column) => (
           <nav key={column.title} aria-label={column.title}>
             <p className="mono text-ink-2">{column.title}</p>
