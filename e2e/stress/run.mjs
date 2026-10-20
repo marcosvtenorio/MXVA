@@ -204,11 +204,7 @@ async function startApp() {
 
 async function onboard(page, user) {
   const cont = () => page.getByRole("button", { name: "Continue", exact: true }).click();
-  await page.goto(`${BASE}/start`);
-  await page.getByRole("button", { name: "Start" }).click();
-  await page.waitForURL("**/onboarding/photo-guide");
-  await page.getByRole("button", { name: "Got it" }).click();
-  await page.waitForURL("**/onboarding/photos");
+  await page.goto(`${BASE}/onboarding/photos`);
   await page.locator('input[type="file"]').nth(1).setInputFiles(user.photo);
   await page.getByAltText("Your front photo").waitFor();
   await page.getByText("These are photos of me").click();
@@ -217,7 +213,7 @@ async function onboard(page, user) {
   await cont();
   await page.waitForURL("**/onboarding/delivery");
   await page.locator("#email").fill(user.email);
-  await page.getByRole("checkbox", { name: /photos are sent/ }).check();
+  await page.getByRole("checkbox", { name: /my photos go to/ }).check();
   await page.getByRole("checkbox", { name: /accept the Terms/ }).check();
   await cont();
   await page.waitForURL("**/onboarding/review");

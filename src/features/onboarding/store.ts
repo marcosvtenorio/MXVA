@@ -34,6 +34,7 @@ export type OnboardingState = {
   preferences: Preferences;
   constraints: { dailyMinutes?: DailyMinutes; avoid: AvoidOption[]; note?: string };
   skipped: StepId[];
+  /** Set once the buyer gets past the photo step (which holds the photo guide). */
   photoGuideAcknowledged: boolean;
   // ── Memory only: never written to any browser storage ──
   email: string;

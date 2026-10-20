@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { ConsentBanner } from "@/components/common/ConsentBanner";
 import { ArrowRight } from "@/components/common/icons";
-import { CropMarks, PlasterHead } from "@/components/common/StudioArt";
+import { CompareFrame } from "@/components/checkout/ExampleCompare";
+import { CropMarks } from "@/components/common/StudioArt";
 import { SiteHeader } from "@/components/common/SiteHeader";
 import { SiteFooter } from "@/components/marketing/SiteFooter";
 import { TrackedLink } from "@/components/marketing/TrackedLink";
@@ -30,12 +31,14 @@ export default function SampleReportPage() {
         <h1 className="display two-tone mt-3">
           A sample report. <span>Yours is made from your photo.</span>
         </h1>
-        <div className="stage mt-6 h-[360px]">
-          <PlasterHead className="absolute inset-x-0 bottom-0 h-[86%] w-full" />
-          <CropMarks />
-          <span className="capsule frost mono absolute left-4 top-4">{CONCEPT_LABEL}</span>
-          <span className="capsule frost mono absolute bottom-12 left-4">Light test · a real report shows your own face</span>
-        </div>
+        <figure className="mt-6">
+          <div className="stage h-[440px] min-[768px]:h-[560px]">
+            <CompareFrame labels="top" className="absolute! inset-0" imageClassName="object-[50%_18%]" />
+            <CropMarks />
+            <span className="capsule frost mono absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap">{CONCEPT_LABEL}</span>
+          </div>
+          <figcaption className="mono mt-2 px-1 text-ink-2">A real MXVA concept · fictional AI-generated person · yours shows your own face</figcaption>
+        </figure>
         <p className="mt-4 text-[15px] leading-[1.45] text-ink-2">
           Every report opens with your AI glow-up concept: your own front photo, upgraded where it shows room to grow, such as the haircut,
           skin, brows, beard and lighting. Then come 5 to 10 priorities like these, ranked by how well they fit your face, the strength of the
@@ -58,7 +61,7 @@ export default function SampleReportPage() {
           <ol className="mt-3 grid gap-3 text-[13px] leading-[1.4]">
             {sources.map((source) => (
               <li key={source.id}>
-                <a href={source.url} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-2">
+                <a href={source.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center font-semibold underline underline-offset-2">
                   {source.title}
                 </a>
                 <span className="block text-ink-2">
@@ -69,7 +72,7 @@ export default function SampleReportPage() {
           </ol>
         </div>
         <div className="mt-10 max-w-[420px]">
-          <TrackedLink cta="hero_start" href="/start" className="btn btn-arrow">
+          <TrackedLink cta="hero_start" href="/onboarding/photos" starts className="btn btn-arrow">
             Start my report
             <span className="btn-arrow-dot">
               <ArrowRight size={18} />

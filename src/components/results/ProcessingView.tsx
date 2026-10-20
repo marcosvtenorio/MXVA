@@ -32,7 +32,7 @@ type Mode =
   | { kind: "support"; message: string };
 
 const RESELECT_COPY =
-  "Your payment is safe. Please reselect your photos so we can complete your report — there is no second charge.";
+  "Your payment is safe. Please reselect your photos so we can complete your report. There is no second charge.";
 
 /** How long an open page keeps checking for the email to go out. The report arrives either way. */
 const FOLLOW_FOR_MS = 90 * 60_000;
@@ -83,7 +83,7 @@ export function ProcessingView() {
   const start = useCallback(async () => {
     if (started.current) return;
     if (!reportInput.success) {
-      setMode({ kind: "support", message: "We lost your answers when this page reloaded. Contact support and we'll finish your report — you won't pay again." });
+      setMode({ kind: "support", message: "We lost your answers when this page reloaded. Contact support and we'll finish your report. You won't pay again." });
       return;
     }
     const photos = usePhotoStore.getState().photos;
@@ -152,7 +152,7 @@ export function ProcessingView() {
         case "refunded":
           return setMode({ kind: "support", message: "This order was refunded." });
         case "needs_support":
-          return setMode({ kind: "support", message: "Our team needs to take a look at this order. We'll email you — you won't pay again." });
+          return setMode({ kind: "support", message: "Our team needs to take a look at this order. We'll email you. You won't pay again." });
       }
     },
     [consentGiven, paidHere, photosReady, start],
@@ -177,7 +177,7 @@ export function ProcessingView() {
         if (cancelled) return;
         const message =
           caught instanceof ApiClientError && caught.code === "ORDER_SESSION_INVALID"
-            ? "We couldn't find a paid order in this browser. If you paid, check your email or contact support — you won't pay again."
+            ? "We couldn't find a paid order in this browser. If you paid, check your email or contact support. You won't pay again."
             : "We couldn't check your order. Refresh in a moment.";
         setMode({ kind: "support", message });
       }
@@ -236,7 +236,8 @@ export function ProcessingView() {
         {mode.kind === "reselect" && front ? null : <PlasterHead className="absolute inset-x-0 bottom-[30px] h-[78%] w-full" dimmed={lightOff} />}
         <span className="crop crop-tl" style={{ top: "calc(env(safe-area-inset-top) + 16px)" }} aria-hidden="true" />
         <span className="crop crop-tr" style={{ top: "calc(env(safe-area-inset-top) + 16px)" }} aria-hidden="true" />
-        <div className="readouts mono text-[#EEF2F3]" style={{ top: "calc(env(safe-area-inset-top) + 30px)" }}>
+        {/* On frost glass, clear of the crop marks: legible on the dim and the lit stage alike. */}
+        <div className="readouts mono frost right-10 rounded-[14px] px-3 py-2.5" style={{ top: "calc(env(safe-area-inset-top) + 40px)" }}>
           <span>{lightOff ? "Light · off" : "Sent"}</span>
         </div>
       </div>
@@ -281,7 +282,7 @@ export function ProcessingView() {
                   <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">You&apos;re number {mode.ticket.position} in line.</p>
                 ) : null}
                 <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">
-                  You can close this page. If anything goes wrong, we&apos;ll email you a link to try again — you won&apos;t pay again.
+                  You can close this page. If anything goes wrong, we&apos;ll email you a link to try again. You won&apos;t pay again.
                 </p>
               </>
             ) : (
@@ -302,12 +303,11 @@ export function ProcessingView() {
                 <PhotoCapture frontOnly />
               </div>
               {!onboarding.faceProcessingConsent ? (
-                <label className="mt-4 flex cursor-pointer items-start gap-3 text-[15px] leading-[1.4]">
+                <label className="mt-2 flex min-h-11 cursor-pointer items-start gap-3 py-2.5 text-[15px] leading-[1.4]">
                   <input type="checkbox" className="checkbox" checked={consent} onChange={(event) => setConsent(event.currentTarget.checked)} />
                   <span>
-                    I agree that my photo is sent to MXVA&apos;s server and its AI providers, only to create my report, which is emailed to me
-                    with my photo next to my concept (
-                    <Link href="/privacy" target="_blank" className="underline underline-offset-2">Privacy Policy</Link>).
+                    I agree my photo goes to MXVA&apos;s server and its AI providers only to make my report, emailed to me with my photo next to
+                    the concept (<Link href="/privacy" target="_blank" className="underline underline-offset-2">Privacy Policy</Link>).
                   </span>
                 </label>
               ) : null}

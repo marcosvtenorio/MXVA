@@ -364,7 +364,7 @@ export function CheckoutView() {
 
   return (
     <div className="washed min-h-dvh">
-      <div className="mx-auto w-full max-w-[480px] px-5 pb-10 pt-[max(12px,env(safe-area-inset-top))]">
+      <div className="mx-auto w-full max-w-[480px] px-5 pb-10 pt-[max(12px,env(safe-area-inset-top))] min-[1100px]:max-w-[1080px]">
         <div className="flex items-center justify-between">
           <Link href="/onboarding/review" className="icon-btn" aria-label="Back to review">
             <Back size={20} />
@@ -375,178 +375,185 @@ export function CheckoutView() {
           </span>
         </div>
 
-        <main id="main">
-          <h1 className="title-28 two-tone mt-4">
-            Your glow-up is
-            <br />
-            <span>one step away.</span>
-          </h1>
+        {/* From 1100px: the decision (heading, photo, payment) on the left, the details beside it. */}
+        <main id="main" className="min-[1100px]:grid min-[1100px]:grid-cols-[480px_440px] min-[1100px]:items-start min-[1100px]:justify-between">
+          <div>
+            <h1 className="title-28 two-tone mt-4">
+              Your glow-up is
+              <br />
+              <span>one step away.</span>
+            </h1>
 
-          <GlowUpTeaser />
+            <GlowUpTeaser />
 
-          <section
-            id="payment"
-            aria-labelledby="payment-heading"
-            className="mt-4 scroll-mt-3 rounded-[26px] bg-raised p-4 shadow-[0_10px_30px_rgba(40,55,62,.08),inset_0_0_0_1px_var(--color-rule)]"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <h2 id="payment-heading" className="text-[17px] font-semibold leading-tight tracking-[-0.01em]">
-                  Your glow-up report
-                </h2>
-                {/* Left out on the smallest phones, so the pay button stays on the first screen. */}
-                <p className="mt-1 text-[13px] leading-[1.35] text-ink-2 max-[359px]:hidden">AI concept + step-by-step plan, PDF to your email</p>
+            <section
+              id="payment"
+              aria-labelledby="payment-heading"
+              className="mt-4 scroll-mt-3 rounded-[26px] bg-raised p-4 shadow-[0_10px_30px_rgba(40,55,62,.08),inset_0_0_0_1px_var(--color-rule)]"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <h2 id="payment-heading" className="text-[17px] font-semibold leading-tight tracking-[-0.01em]">
+                    Your glow-up report
+                  </h2>
+                  {/* Left out on the smallest phones, so the pay button stays on the first screen. */}
+                  <p className="mt-1 text-[13px] leading-[1.35] text-ink-2 max-[359px]:hidden">AI concept + step-by-step plan, PDF to your email</p>
+                </div>
+                <div className="flex-none text-right">
+                  <p className="whitespace-nowrap text-[28px] leading-none tracking-[-0.025em] tabular-nums">{amount}</p>
+                  <p className="mono mt-1.5 text-ink-2">One-time</p>
+                </div>
               </div>
-              <div className="flex-none text-right">
-                <p className="whitespace-nowrap text-[28px] leading-none tracking-[-0.025em] tabular-nums">{amount}</p>
-                <p className="mono mt-1.5 text-ink-2">One-time</p>
-              </div>
-            </div>
 
-            {view.state === "ready" && offers && offers.length > 1 ? <MethodPicker offers={offers} method={method} inBrazil={inBrazil} onChange={switchTo} /> : null}
+              {view.state === "ready" && offers && offers.length > 1 ? <MethodPicker offers={offers} method={method} inBrazil={inBrazil} onChange={switchTo} /> : null}
 
-            <div className="mt-4">
-              {view.state === "loading" ? <PaymentPlaceholder label="Preparing checkout…" /> : null}
-              {view.state === "unavailable" ? (
-                <>
-                  <p role="alert" className="text-[15px] leading-[1.4] text-negative">
-                    {view.message}
-                  </p>
+              <div className="mt-4">
+                {view.state === "loading" ? <PaymentPlaceholder label="Preparing checkout…" /> : null}
+                {view.state === "unavailable" ? (
+                  <>
+                    <p role="alert" className="text-[15px] leading-[1.4] text-negative">
+                      {view.message}
+                    </p>
+                    <button type="button" className="btn btn-secondary mt-4" onClick={retry}>
+                      Try again
+                    </button>
+                  </>
+                ) : null}
+
+                {view.state === "ready" && method === "pix" && offer ? (
+                  <PixPayment
+                    offer={offer}
+                    session={pix}
+                    busy={busy}
+                    onGenerate={() => void generatePix()}
+                    onPaid={paid}
+                    onError={(message) => failed("ORDER_NOT_PAID", message)}
+                  />
+                ) : null}
+
+                {view.state === "ready" && method === "card" ? (
+                  <>
+                    {!card && !error ? <PaymentPlaceholder label="Preparing card payment…" /> : null}
+                    {card?.checkout.mode === "stripe" ? (
+                      <StripePaymentForm
+                        key={card.checkout.clientSecret}
+                        amountLabel={amount}
+                        clientSecret={card.checkout.clientSecret}
+                        onPaid={paid}
+                        onError={(message) => failed("ORDER_NOT_PAID", message)}
+                        onStale={() => {
+                          // Checkout was opened again in another tab: load this browser's current one.
+                          setError("Your checkout was refreshed. Please enter your card again.");
+                          setCard(undefined);
+                        }}
+                      />
+                    ) : null}
+                    {card?.checkout.mode === "mock" && devPreviewEnabled ? (
+                      <div className="grid gap-3">
+                        <p className="rounded-[14px] bg-ground p-3.5 text-[13px] leading-[1.4] text-ink-2 shadow-[inset_0_0_0_1px_var(--color-rule)]">
+                          <span className="mono block text-ink">Development preview</span>
+                          No real payment is taken. Choose what the payment provider would report.
+                        </p>
+                        <button type="button" className="btn" disabled={busy} onClick={() => void simulate("succeeded")}>
+                          <Lock size={15} />
+                          Pay {amount} (simulated)
+                        </button>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button type="button" className="btn btn-secondary px-3 text-[15px]" disabled={busy} onClick={() => void simulate("declined")}>
+                            Simulate decline
+                          </button>
+                          <button type="button" className="btn btn-secondary px-3 text-[15px]" disabled={busy} onClick={() => void simulate("redirect")}>
+                            Simulate bank page
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </>
+                ) : null}
+
+                <InlineError id="checkout-error">{error}</InlineError>
+                {view.state === "ready" && method === "card" && error && !card ? (
                   <button type="button" className="btn btn-secondary mt-4" onClick={retry}>
                     Try again
                   </button>
-                </>
-              ) : null}
+                ) : null}
+              </div>
+              {sandboxNote ? <p className="mono mt-3 rounded-[10px] bg-chip-fill px-3 py-2 text-ink">{sandboxNote}</p> : null}
 
-              {view.state === "ready" && method === "pix" && offer ? (
-                <PixPayment
-                  offer={offer}
-                  session={pix}
-                  busy={busy}
-                  onGenerate={() => void generatePix()}
-                  onPaid={paid}
-                  onError={(message) => failed("ORDER_NOT_PAID", message)}
-                />
-              ) : null}
-
-              {view.state === "ready" && method === "card" ? (
-                <>
-                  {!card && !error ? <PaymentPlaceholder label="Preparing card payment…" /> : null}
-                  {card?.checkout.mode === "stripe" ? (
-                    <StripePaymentForm
-                      key={card.checkout.clientSecret}
-                      amountLabel={amount}
-                      clientSecret={card.checkout.clientSecret}
-                      onPaid={paid}
-                      onError={(message) => failed("ORDER_NOT_PAID", message)}
-                      onStale={() => {
-                        // Checkout was opened again in another tab: load this browser's current one.
-                        setError("Your checkout was refreshed. Please enter your card again.");
-                        setCard(undefined);
-                      }}
-                    />
-                  ) : null}
-                  {card?.checkout.mode === "mock" && devPreviewEnabled ? (
-                    <div className="grid gap-3">
-                      <p className="rounded-[14px] bg-ground p-3.5 text-[13px] leading-[1.4] text-ink-2 shadow-[inset_0_0_0_1px_var(--color-rule)]">
-                        <span className="mono block text-ink">Development preview</span>
-                        No real payment is taken. Choose what the payment provider would report.
-                      </p>
-                      <button type="button" className="btn" disabled={busy} onClick={() => void simulate("succeeded")}>
-                        <Lock size={15} />
-                        Pay {amount} (simulated)
-                      </button>
-                      <div className="grid grid-cols-2 gap-3">
-                        <button type="button" className="btn btn-secondary px-3 text-[15px]" disabled={busy} onClick={() => void simulate("declined")}>
-                          Simulate decline
-                        </button>
-                        <button type="button" className="btn btn-secondary px-3 text-[15px]" disabled={busy} onClick={() => void simulate("redirect")}>
-                          Simulate bank page
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
-                </>
-              ) : null}
-
-              <InlineError id="checkout-error">{error}</InlineError>
-              {view.state === "ready" && method === "card" && error && !card ? (
-                <button type="button" className="btn btn-secondary mt-4" onClick={retry}>
-                  Try again
-                </button>
-              ) : null}
-            </div>
-            {sandboxNote ? <p className="mono mt-3 rounded-[10px] bg-chip-fill px-3 py-2 text-ink">{sandboxNote}</p> : null}
-
-            <ul className="mt-4 grid gap-2 border-t border-rule pt-3.5 text-[13px] leading-[1.4] text-ink-2">
-              <li className="flex gap-2.5">
-                <Lock size={15} className="mt-px flex-none" />
-                <span>
-                  <strong className="font-semibold text-ink">Secure payment.</strong>{" "}
-                  {method === "pix"
-                    ? "You pay in your own bank app."
-                    : method === "card"
-                      ? "Card details go straight to Stripe; we never see them."
-                      : "Cards are handled by Stripe; Pix in your own bank app."}
-                </span>
-              </li>
-              <li className="flex gap-2.5">
-                <Tick size={15} className="mt-px flex-none text-positive" />
-                <span>
-                  <strong className="font-semibold text-ink">One payment.</strong> No subscription, nothing renews.
-                </span>
-              </li>
-              <li className="flex gap-2.5">
-                <Tick size={15} className="mt-px flex-none text-positive" />
-                <span>
-                  <strong className="font-semibold text-ink">Money-back promise.</strong> If we can&apos;t make your report, you get a full refund.
-                </span>
-              </li>
-            </ul>
-          </section>
-
-          <section aria-labelledby="value-heading" className="mt-8">
-            <h2 id="value-heading" className="mono text-ink-2">What you get</h2>
-            <ul className="mt-3 grid gap-2.5 text-[15px] leading-[1.35]">
-              {VALUE.map(([lead, rest]) => (
-                <li key={lead} className="flex gap-2.5">
-                  <Tick size={16} className="mt-0.5 flex-none text-positive" />
+              <ul className="mt-4 grid gap-2 border-t border-rule pt-3.5 text-[13px] leading-[1.4] text-ink-2">
+                <li className="flex gap-2.5">
+                  <Lock size={15} className="mt-px flex-none" />
                   <span>
-                    <strong className="font-semibold">{lead}</strong> {rest}
+                    <strong className="font-semibold text-ink">Secure payment.</strong>{" "}
+                    {method === "pix"
+                      ? "You pay in your own bank app."
+                      : method === "card"
+                        ? "Card details go straight to Stripe; we never see them."
+                        : "Cards are handled by Stripe; Pix in your own bank app."}
                   </span>
                 </li>
-              ))}
-              <li className="flex gap-2.5">
-                <Tick size={16} className="mt-0.5 flex-none text-positive" />
-                <span>
-                  <strong className="font-semibold">Sent to {maskEmail(onboarding.email)}</strong> as a PDF, yours to keep
-                </span>
-              </li>
-            </ul>
-          </section>
+                <li className="flex gap-2.5">
+                  <Tick size={15} className="mt-px flex-none text-positive" />
+                  <span>
+                    <strong className="font-semibold text-ink">One payment.</strong> No subscription, nothing renews.
+                  </span>
+                </li>
+                <li className="flex gap-2.5">
+                  <Tick size={15} className="mt-px flex-none text-positive" />
+                  <span>
+                    <strong className="font-semibold text-ink">Money-back promise.</strong> If we can&apos;t make your report, you get a full refund.
+                  </span>
+                </li>
+              </ul>
+            </section>
+          </div>
 
-          <section aria-labelledby="example-heading" className="mt-8">
-            <h2 id="example-heading" className="mono text-ink-2">See a real example</h2>
-            <ExampleCompare />
-          </section>
+          <div>
+            <section aria-labelledby="value-heading" className="mt-8 min-[1100px]:mt-4">
+              <h2 id="value-heading" className="mono text-ink-2">What you get</h2>
+              <ul className="mt-3 grid gap-2.5 text-[15px] leading-[1.35]">
+                {VALUE.map(([lead, rest]) => (
+                  <li key={lead} className="flex gap-2.5">
+                    <Tick size={16} className="mt-0.5 flex-none text-positive" />
+                    <span>
+                      <strong className="font-semibold">{lead}</strong> {rest}
+                    </span>
+                  </li>
+                ))}
+                <li className="flex gap-2.5">
+                  <Tick size={16} className="mt-0.5 flex-none text-positive" />
+                  <span>
+                    <strong className="font-semibold">Sent to {maskEmail(onboarding.email)}</strong> as a PDF, yours to keep
+                  </span>
+                </li>
+              </ul>
+            </section>
 
-          <CheckoutFaq />
+            <section aria-labelledby="example-heading" className="mt-8">
+              <h2 id="example-heading" className="mono text-ink-2">See a real example</h2>
+              <ExampleCompare />
+            </section>
 
-          <p className="mono mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-ink-2">
-            <span className="inline-flex items-center gap-1.5">
-              <Lock size={12} /> Secure payment
-            </span>
-            <span>Photos never stored</span>
-            <span>No second charges</span>
-          </p>
-          <nav className="mono mt-4 flex justify-center gap-6 pb-24 text-ink-2" aria-label="Policies">
-            <Link href="/refunds" target="_blank">Refunds</Link>
-            <Link href="/help" target="_blank">Help</Link>
-            <Link href="/privacy" target="_blank">Privacy</Link>
-          </nav>
+            <CheckoutFaq />
+
+            <p className="mono mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-ink-2">
+              <span className="inline-flex items-center gap-1.5">
+                <Lock size={12} /> Secure payment
+              </span>
+              <span>Photos never stored</span>
+              <span>No second charges</span>
+            </p>
+            {/* The bottom padding keeps the last rows clear of the sticky pay bar. */}
+            <nav className="mono mt-2 flex justify-center gap-6 pb-24 text-ink-2 min-[1100px]:pb-0 [&>a]:inline-flex [&>a]:min-h-11 [&>a]:items-center" aria-label="Policies">
+              <Link href="/refunds" target="_blank">Refunds</Link>
+              <Link href="/help" target="_blank">Help</Link>
+              <Link href="/privacy" target="_blank">Privacy</Link>
+            </nav>
+          </div>
         </main>
       </div>
-      {view.state === "ready" ? <StickyPayBar price={amount} targetId="payment" /> : null}
+      {/* Once a Pix code is out, the code is the next step: the bar would only cover the page. */}
+      {view.state === "ready" && !pix ? <StickyPayBar price={amount} targetId="payment" /> : null}
     </div>
   );
 }

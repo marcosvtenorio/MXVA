@@ -8,7 +8,7 @@ import { CONSTRAINT_NOTE_MAX, noteSchema } from "@/features/onboarding/schema";
 import { AVOID_OPTIONS_COPY, CONSTRAINT_NOTE_HINT } from "@/features/onboarding/steps";
 import { useOnboardingStore } from "@/features/onboarding/store";
 import { useStepNav } from "@/features/onboarding/use-flow";
-import { OnboardingFrame } from "../OnboardingFrame";
+import { OnboardingFrame, StepStage } from "../OnboardingFrame";
 import { ChoiceChips } from "../controls";
 import { StepActions, StepBody } from "./StepBody";
 
@@ -32,7 +32,12 @@ export function ConstraintsStep() {
   });
 
   return (
-    <OnboardingFrame step="constraints" onBack={nav.goBack} action={<StepActions busy={nav.pending} onContinue={() => void submit()} />}>
+    <OnboardingFrame
+      step="constraints"
+      onBack={nav.goBack}
+      action={<StepActions busy={nav.pending} onContinue={() => void submit()} />}
+      stage={<StepStage readouts={["Front photo · ready", "Avoid · optional"]} caption="The rest is read from your photo" />}
+    >
       <StepBody definition={nav.definition} error={nav.error}>
         <h2 className="text-[17px] font-semibold">Things to avoid</h2>
         <div className="mt-3">

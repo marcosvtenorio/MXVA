@@ -47,38 +47,32 @@ const completeFlow: FlowSnapshot = {
 
 describe("onboarding navigation", () => {
   it("defines a short intake: no aesthetic questions, the photo decides", () => {
-    expect(STEPS.map((s) => s.path)).toEqual([
-      "/start",
-      "/onboarding/photo-guide",
-      "/onboarding/photos",
-      "/onboarding/constraints",
-      "/onboarding/delivery",
-      "/onboarding/review",
-    ]);
-    expect(STEPS.map((s) => s.number)).toEqual([1, 2, 3, 4, 5, 6]);
-    expect(ONBOARDING_SLUGS).toHaveLength(5);
+    // The landing's Start opens the photo step, which also holds the photo guide.
+    expect(STEPS.map((s) => s.path)).toEqual(["/onboarding/photos", "/onboarding/constraints", "/onboarding/delivery", "/onboarding/review"]);
+    expect(STEPS.map((s) => s.number)).toEqual([1, 2, 3, 4]);
+    expect(ONBOARDING_SLUGS).toHaveLength(4);
     expect(STEPS.filter((s) => s.skippable)).toEqual([]);
   });
 
   it("moves forward and back in order", () => {
-    expect(nextStep("start")?.id).toBe("photo-guide");
+    expect(nextStep("photos")?.id).toBe("constraints");
     expect(nextStep("review")).toBeUndefined();
-    expect(previousStep("photo-guide")?.id).toBe("start");
-    expect(previousStep("start")).toBeUndefined();
-    expect(progressFor("photos")).toEqual({ current: 3, total: 6, ratio: 3 / 6 });
+    expect(previousStep("constraints")?.id).toBe("photos");
+    expect(previousStep("photos")).toBeUndefined();
+    expect(progressFor("delivery")).toEqual({ current: 3, total: 4, ratio: 3 / 4 });
   });
 
   it("resolves paths and slugs", () => {
     expect(stepFromPath("/onboarding/photos/")?.id).toBe("photos");
-    expect(stepFromSlug("photo-guide")?.id).toBe("photo-guide");
+    expect(stepFromSlug("photo-guide")).toBeUndefined();
     expect(stepFromSlug("start")).toBeUndefined();
     expect(stepFromSlug("../api")).toBeUndefined();
   });
 
   it("sends deep links back to the first incomplete step", () => {
-    expect(resolveAccessibleStep("review", emptyFlow).id).toBe("start");
-    const started: FlowSnapshot = { ...emptyFlow, adultConfirmed: true };
-    expect(resolveAccessibleStep("delivery", started).id).toBe("photo-guide");
+    expect(resolveAccessibleStep("review", emptyFlow).id).toBe("photos");
+    const photoIn: FlowSnapshot = { ...emptyFlow, frontPhotoReady: true, photoOwnershipConfirmed: true, constraints: { avoid: [] } };
+    expect(resolveAccessibleStep("review", photoIn).id).toBe("delivery");
     expect(resolveAccessibleStep("review", completeFlow).id).toBe("review");
   });
 

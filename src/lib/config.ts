@@ -25,6 +25,12 @@ export const devPreviewEnabled = !isProductionBuild && flag(process.env.NEXT_PUB
 export const DISPLAY_PRICE_USD_CENTS = 2900;
 export const DISPLAY_PRICE_BRL_CENTS = 4799;
 
+/**
+ * The delivery time quoted before paying: a report takes about 150 s plus the email (see the
+ * queue's estimate in src/server/fulfillment/queue.ts). After paying, the page shows the live estimate.
+ */
+export const TYPICAL_DELIVERY = "about 3 minutes";
+
 export type Currency = "usd" | "brl";
 
 /** "$29" for card, "R$ 47,99" for PIX (Brazilian notation). */

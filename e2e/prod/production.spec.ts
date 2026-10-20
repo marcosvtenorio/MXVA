@@ -5,7 +5,7 @@ const ORDER = {
   method: "card",
   email: "prod.check@example.com",
   adultConfirmed: true,
-  faceProcessingConsentVersion: "2026-10-13.v1",
+  faceProcessingConsentVersion: "2026-10-20.v2",
   termsVersion: "2026-10-11.v1",
   marketingOptIn: false,
 };
@@ -39,7 +39,7 @@ test.describe("production build with default flags", () => {
     const home = await request.get("/");
     expect(home.headers()["content-security-policy"]).toContain("frame-ancestors 'none'");
     expect(home.headers()["strict-transport-security"]).toBeTruthy();
-    const start = await request.get("/start");
+    const start = await request.get("/onboarding/photos");
     expect(start.headers()["x-robots-tag"]).toContain("noindex");
   });
 

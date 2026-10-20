@@ -1,7 +1,8 @@
 import { ChevronDown } from "@/components/common/icons";
+import { TYPICAL_DELIVERY } from "@/lib/config";
 
 const QUESTIONS: readonly (readonly [string, string])[] = [
-  ["When do I get my report?", "By email, a few minutes after you pay. You don't need to keep this page open."],
+  ["When do I get my report?", `By email, ${TYPICAL_DELIVERY} after you pay. You don't need to keep this page open.`],
   ["Is this a subscription?", "No. You pay once for one report. Nothing renews and there's nothing to cancel."],
   [
     "What if something goes wrong?",

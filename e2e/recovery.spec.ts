@@ -9,12 +9,12 @@ test.describe("payment and recovery", () => {
     await page.getByRole("button", { name: "Simulate bank page" }).click();
     await page.waitForURL("**/processing");
     await expect(page.getByRole("heading", { name: "Add your front photo again" })).toBeVisible();
-    await expect(page.getByText(/there is no second charge/)).toBeVisible();
+    await expect(page.getByText(/There is no second charge/)).toBeVisible();
 
     await addFrontPhoto(page);
     await page.getByText("These are photos of me").click();
     // Consent lived in memory and was lost with the reload, so it is asked again.
-    await page.getByRole("checkbox", { name: /photo is sent/ }).check();
+    await page.getByRole("checkbox", { name: /my photo goes to/ }).check();
     await page.getByRole("button", { name: "Create my report" }).click();
     await expect(page.getByRole("heading", { name: /Request received/ })).toBeVisible({ timeout: 30_000 });
     await expect(page.getByRole("heading", { name: /Your report is in your email/ })).toBeVisible({ timeout: 60_000 });
@@ -30,7 +30,7 @@ test.describe("payment and recovery", () => {
           method: "card",
           email: "e2e.buyer@example.com",
           adultConfirmed: true,
-          faceProcessingConsentVersion: "2026-10-13.v1",
+          faceProcessingConsentVersion: "2026-10-20.v2",
           termsVersion: "2026-10-11.v1",
           marketingOptIn: false,
         }),

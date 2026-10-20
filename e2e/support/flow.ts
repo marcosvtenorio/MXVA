@@ -10,11 +10,8 @@ async function cont(page: Page) {
 
 /** Walks the intake. `until` stops on that step (already loaded) without completing it. */
 export async function runOnboarding(page: Page, until: "photos" | "constraints" | "delivery" | "review" | "done" = "done") {
-  await page.goto("/start");
-  await page.getByRole("button", { name: "Start" }).click();
-  await page.waitForURL("**/onboarding/photo-guide");
-  await page.getByRole("button", { name: "Got it" }).click();
-  await page.waitForURL("**/onboarding/photos");
+  // The landing's Start links here: the intake opens on the photo step.
+  await page.goto("/onboarding/photos");
   if (until === "photos") return;
   await addFrontPhoto(page);
   await page.getByText("These are photos of me").click();
@@ -25,7 +22,7 @@ export async function runOnboarding(page: Page, until: "photos" | "constraints" 
   await page.waitForURL("**/onboarding/delivery");
   if (until === "delivery") return;
   await page.locator("#email").fill(TEST_EMAIL);
-  await page.getByRole("checkbox", { name: /photos are sent/ }).check();
+  await page.getByRole("checkbox", { name: /my photos go to/ }).check();
   await page.getByRole("checkbox", { name: /accept the Terms/ }).check();
   await cont(page);
   await page.waitForURL("**/onboarding/review");

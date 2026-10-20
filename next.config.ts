@@ -24,6 +24,13 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  // The intake starts on the photo step (the photo guide lives there); old links still land.
+  async redirects() {
+    return [
+      { source: "/start", destination: "/onboarding/photos", permanent: false },
+      { source: "/onboarding/photo-guide", destination: "/onboarding/photos", permanent: false },
+    ];
+  },
   async headers() {
     return [
       {

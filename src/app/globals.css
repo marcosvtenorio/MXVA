@@ -142,6 +142,8 @@
     width: 18px;
     height: 18px;
     border: 0 solid rgb(255 255 255 / 0.8);
+    /* A faint edge keeps the marks visible over a light photo wall too. */
+    filter: drop-shadow(0 0 1px rgb(17 20 23 / 0.45));
     pointer-events: none;
   }
   .crop-tl { top: 16px; left: 16px; border-top-width: 1px; border-left-width: 1px; }

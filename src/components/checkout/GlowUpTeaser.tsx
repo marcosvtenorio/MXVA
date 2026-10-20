@@ -2,6 +2,7 @@
 
 import { Lock } from "@/components/common/icons";
 import { usePhotoStore } from "@/features/photos/memory-store";
+import { EXAMPLE_BEFORE } from "@/lib/examples";
 
 /**
  * The buyer's own photo, ready for analysis, next to their locked concept. Everything here
@@ -11,7 +12,7 @@ import { usePhotoStore } from "@/features/photos/memory-store";
  */
 export function GlowUpTeaser() {
   const photo = usePhotoStore((s) => s.photos.front?.previewUrl);
-  const src = photo ?? "/examples/glowup-before.jpg";
+  const src = photo ?? EXAMPLE_BEFORE;
 
   return (
     <section aria-label="Your glow-up" className="mt-4">

@@ -2,15 +2,16 @@ import Link from "next/link";
 import { ConsentBanner } from "@/components/common/ConsentBanner";
 import { ArrowRight, CreditCard, Lock, Plus, Tick } from "@/components/common/icons";
 import { CropMarks, PlasterHead } from "@/components/common/StudioArt";
-import { ExampleCompare } from "@/components/checkout/ExampleCompare";
 import { PriceTag } from "@/components/checkout/PriceTag";
 import { AreaTabs, type AreaTab } from "@/components/marketing/AreaTabs";
+import { AnnotatedConcept, HeroProof } from "@/components/marketing/HeroProof";
 import { LandingFooter } from "@/components/marketing/LandingFooter";
 import { TrackedLink } from "@/components/marketing/TrackedLink";
 import { FOCUS_OPTIONS, PHOTO_REQUIREMENTS } from "@/features/onboarding/steps";
 import { LIBRARY } from "@/features/report/library";
-import { EVIDENCE_REGISTRY, getSource } from "@/features/report/references";
-import { publicConfig } from "@/lib/config";
+import { getSource } from "@/features/report/references";
+import { TYPICAL_DELIVERY, publicConfig } from "@/lib/config";
+import { EXAMPLE_AFTER, EXAMPLE_BEFORE } from "@/lib/examples";
 
 /*
  * Layout: one framed column, sections divided by hairline bands, an eyebrow capsule over
@@ -52,13 +53,6 @@ const EVIDENCE_LEVELS = [
   { level: "styling_opinion", detail: "Barber and stylist practice, labelled as opinion, never as science." },
 ] as const;
 
-const STATS = [
-  { value: String(LIBRARY.length), label: "recommendations a report can choose from" },
-  { value: String(EVIDENCE_REGISTRY.sources.length), label: "sources, each with its date" },
-  { value: String(FOCUS_OPTIONS.length), label: "areas of your face and grooming" },
-  { value: String(EVIDENCE_LEVELS.length), label: "evidence labels, on every step" },
-];
-
 /** Example schedule lines, taken from real templates (a report picks the ones that fit you). */
 function planLine(id: string, day: "day7" | "day30" | "day90") {
   const line = LIBRARY.find((template) => template.id === id)?.plan[day];
@@ -86,14 +80,6 @@ const CONCEPT_CHANGES = [
 
 const GUESSWORK = ["Copy a celebrity's haircut", "Buy whatever is trending", "Try ten products at once", "Give up after a week"];
 const WITH_MXVA = ["Add one front photo", "See your concept portrait", "Follow a ranked plan", "Check in at 7, 30 and 90 days"];
-
-const BUILT_AROUND = [
-  { title: "Your own face", detail: "Shape, features, hair and skin, read from the photo you add." },
-  { title: "What you won't change", detail: "Tell us what to leave alone, like your beard or your hair length." },
-  { title: "Effort and cost", detail: "Every step is ranked by fit, evidence, effort and cost, never by looks." },
-  { title: "Evidence", detail: "Each recommendation lists its sources, with dates." },
-  { title: "Who to ask", detail: "Questions to take to a barber, dermatologist or dentist." },
-];
 
 const REPORT_PARTS = [
   "An AI glow-up concept: your photo with the cut, skin, brows and beard that suit you",
@@ -124,7 +110,7 @@ const TRUST = [
 
 const AFTER_PAYING = [
   { title: "Request received", detail: "Confirmed on screen right away. You can close the page." },
-  { title: "Report by email", detail: "Your PDF arrives in about 3 minutes." },
+  { title: "Report by email", detail: `Your PDF arrives in ${TYPICAL_DELIVERY}.` },
   { title: "Automatic retries", detail: "If a step fails, we try again without asking you." },
   { title: "Never charged twice", detail: "If it still fails, you get a link to try again, free." },
 ];
@@ -142,7 +128,7 @@ const FAQ = [
   },
   {
     q: "How long does it take?",
-    a: "A few minutes to add your photo and answer the questions. After you pay, your PDF arrives by email in about 3 minutes.",
+    a: `A few minutes to add your photo and answer the questions. After you pay, your PDF arrives by email in ${TYPICAL_DELIVERY}.`,
   },
   {
     q: "Do I need an account?",
@@ -192,7 +178,7 @@ function SectionHead({
 
 function StartButton({ cta, className = "" }: { cta: "hero_start" | "footer_start"; className?: string }) {
   return (
-    <TrackedLink cta={cta} href="/start" className={`btn btn-arrow ${className}`}>
+    <TrackedLink cta={cta} href="/onboarding/photos" starts className={`btn btn-arrow ${className}`}>
       Start
       <span className="btn-arrow-dot">
         <ArrowRight size={18} />
@@ -205,12 +191,10 @@ function PaperMock({ className = "" }: { className?: string }) {
   return (
     <div className={`grid content-start gap-2 rounded-md bg-[#FBFBFA] p-4 shadow-[0_18px_40px_rgba(40,55,62,.3)] ${className}`} aria-hidden="true">
       <div className="grid grid-cols-2 gap-1.5">
-        <div className="stage h-24 rounded">
-          <PlasterHead className="h-full w-full" dimmed />
-        </div>
-        <div className="stage h-24 rounded">
-          <PlasterHead className="h-full w-full" />
-        </div>
+        {[EXAMPLE_BEFORE, EXAMPLE_AFTER].map((src) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img key={src} src={src} alt="" className="h-24 w-full rounded object-cover object-top" loading="lazy" />
+        ))}
       </div>
       {[90, 72, 84, 60, 78, 66].map((width) => (
         <i key={width} className="block h-1.5 rounded bg-[#D3D9DB]" style={{ width: `${width}%` }} />
@@ -224,7 +208,7 @@ function NumberedList({ items, onField = false }: { items: readonly string[]; on
     <ol className="grid">
       {items.map((line, index) => (
         <li key={line} className={`flex gap-5 border-t py-3 text-[15px] ${onField ? "border-current/20" : "border-rule"}`}>
-          <span className={`mono w-6 shrink-0 pt-0.5 ${onField ? "opacity-70" : "text-ink-2"}`}>[{index + 1}]</span>
+          <span className={`mono w-6 shrink-0 pt-0.5 ${onField ? "" : "text-ink-2"}`}>[{index + 1}]</span>
           {line}
         </li>
       ))}
@@ -252,7 +236,7 @@ export default function LandingPage() {
             <TrackedLink cta="sample_report" href="/sample-report" className="pill-link mono">
               Sample report
             </TrackedLink>
-            <TrackedLink cta="hero_start" href="/start" className="pill-link mono hidden bg-btn! text-on-btn shadow-none! min-[768px]:inline-flex">
+            <TrackedLink cta="hero_start" href="/onboarding/photos" starts className="pill-link mono hidden bg-btn! text-on-btn shadow-none! min-[768px]:inline-flex">
               Start
             </TrackedLink>
           </div>
@@ -260,32 +244,23 @@ export default function LandingPage() {
       </div>
 
       <main id="main" className="frame">
-        {/* Hero: headline and action, beside the lit stage. */}
+        {/* Hero: the proof (a real before and after) above the headline, the offer and Start. */}
         <section className="grid min-[1100px]:grid-cols-[1fr_1.1fr]">
-          <div className="order-2 flex flex-col justify-center px-4 pb-14 pt-8 min-[768px]:px-8 min-[1100px]:order-1 min-[1100px]:py-20">
+          <div className="order-2 flex flex-col justify-center px-4 pb-14 pt-5 min-[768px]:px-8 min-[768px]:pt-8 min-[1100px]:order-1 min-[1100px]:py-20">
             <span className="eyebrow mono self-start">Looksmaxxing report</span>
-            <h1 className="t-hero two-tone mt-5">
+            <h1 className="t-hero two-tone mt-4 min-[768px]:mt-5">
               Your face. <span>Your full glow&#8209;up.</span>
             </h1>
-            <p className="t-lead mt-4 max-w-[460px] text-ink-2 min-[768px]:text-[17px]">
-              Explore a personalized looksmaxxing roadmap and an AI concept portrait based on your own photos.
+            <p className="t-lead mt-3 max-w-[460px] text-ink-2 min-[768px]:mt-4">
+              A personalized looksmaxxing roadmap and an AI concept portrait, made from your own photo.
             </p>
-            <div className="mt-7 max-w-[420px]">
+            <div className="mt-5 max-w-[420px] min-[768px]:mt-7">
               <StartButton cta="hero_start" />
               <p className="mono mt-3 text-center text-ink-2 min-[1100px]:text-left">{price} once · PDF by email · photos not kept</p>
             </div>
           </div>
           <div className="order-1 p-3 min-[768px]:p-4 min-[1100px]:order-2 min-[1100px]:border-l min-[1100px]:border-rule">
-            <div className="stage h-[min(48dvh,540px)] min-h-[300px] min-[768px]:h-[520px] min-[1100px]:h-[680px]">
-              <PlasterHead className="absolute inset-x-0 bottom-0 h-[88%] w-full" />
-              <CropMarks />
-              <div className="readouts mono" aria-hidden="true">
-                <span>Light soft · left</span>
-                <span>Eye level</span>
-                <span className="max-[700px]:hidden">1 front · 2 optional</span>
-              </div>
-              <span className="capsule frost mono absolute bottom-12 left-4">Light test · your photo replaces this</span>
-            </div>
+            <HeroProof />
           </div>
         </section>
 
@@ -307,7 +282,7 @@ export default function LandingPage() {
           </div>
           <div className="px-4 pb-14 min-[768px]:px-8 min-[1100px]:border-l min-[1100px]:border-rule min-[1100px]:py-20">
             <div className="mx-auto max-w-[420px]">
-              <ExampleCompare />
+              <AnnotatedConcept />
             </div>
           </div>
         </section>
@@ -373,29 +348,7 @@ export default function LandingPage() {
 
         <Band />
 
-        {/* What the plan is built around: a narrow centred list. */}
-        <section aria-labelledby="built">
-          <div className="sec">
-            <SectionHead center eyebrow="Personal" id="built" title="Built around" rest="you." />
-          </div>
-          <ul className="mx-auto grid max-w-[640px] gap-3 border-t border-rule p-3 min-[768px]:border-x min-[768px]:p-4">
-            {BUILT_AROUND.map((item, index) => (
-              <li key={item.title} className="flex items-center gap-4 rounded-[16px] bg-raised p-3 shadow-[inset_0_0_0_1px_var(--color-rule)]">
-                <span className="stage mono grid h-16 w-20 shrink-0 place-items-center rounded-[10px]! text-[13px] text-[var(--on-image)]" aria-hidden="true">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <span>
-                  <span className="block text-[17px]">{item.title}</span>
-                  <span className="mt-0.5 block text-[14px] leading-[1.4] text-ink-2">{item.detail}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <Band />
-
-        {/* The library in numbers, and what each evidence label means. */}
+        {/* What each evidence label means, with how many library steps carry it. */}
         <section aria-labelledby="evidence">
           <div className="sec">
             <SectionHead
@@ -406,15 +359,7 @@ export default function LandingPage() {
               lead="You always know whether a step is settled science, early evidence or a stylist's judgement."
             />
           </div>
-          <dl className="grid grid-cols-2 gap-px border-y border-rule bg-rule min-[1100px]:grid-cols-4">
-            {STATS.map((stat) => (
-              <div key={stat.label} className="flex flex-col bg-ground px-4 py-6 min-[768px]:px-8 min-[768px]:py-10">
-                <dt className="order-2 mt-2 text-[14px] leading-[1.4] text-ink-2">{stat.label}</dt>
-                <dd className="order-1 text-[40px] leading-none tracking-[-0.03em] tabular-nums min-[1100px]:text-[56px]">{stat.value}</dd>
-              </div>
-            ))}
-          </dl>
-          <ul className="grid min-[768px]:grid-cols-3">
+          <ul className="grid border-t border-rule min-[768px]:grid-cols-3">
             {EVIDENCE_LEVELS.map((item) => (
               <li
                 key={item.level}
@@ -499,13 +444,16 @@ export default function LandingPage() {
         {/* A good photo: the lit stage beside the four requirements. */}
         <section className="grid min-[1100px]:grid-cols-2" aria-labelledby="photo">
           <div className="p-3 min-[768px]:p-4">
-            <div className="stage h-[360px] min-[768px]:h-[440px] min-[1100px]:h-full min-[1100px]:min-h-[520px]">
-              <PlasterHead className="absolute inset-x-0 bottom-0 h-[86%] w-full" />
+            <div className="stage h-[420px] min-[768px]:h-[520px] min-[1100px]:h-full min-[1100px]:min-h-[560px]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={EXAMPLE_BEFORE} alt="A good front photo: facing the camera at eye level, in soft window light" className="absolute inset-0 h-full w-full object-cover object-top" loading="lazy" />
               <CropMarks />
-              <div className="readouts mono" aria-hidden="true">
+              <div className="readouts mono frost right-10 top-10 rounded-[14px] px-3 py-2.5" aria-hidden="true">
                 <span>Window light</span>
                 <span>Arm&apos;s length</span>
+                <span>Eye level</span>
               </div>
+              <span className="capsule frost mono absolute bottom-10 left-10">Fictional AI-generated person</span>
             </div>
           </div>
           <div className="sec flex flex-col min-[1100px]:border-l min-[1100px]:border-rule">
@@ -522,7 +470,7 @@ export default function LandingPage() {
                   <span className="mono w-6 shrink-0 pt-1 text-ink-2">[{index + 1}]</span>
                   <span>
                     <span className="block text-[17px]">{item.title}</span>
-                    <span className="mt-0.5 block text-[14px] leading-[1.4] text-ink-2">{item.detail}</span>
+                    <span className="mt-0.5 block text-[15px] leading-[1.4] text-ink-2">{item.detail}</span>
                   </span>
                 </li>
               ))}
@@ -551,7 +499,7 @@ export default function LandingPage() {
                   {index === 1 && (
                     <div className="absolute inset-0 grid content-center justify-center gap-2 px-6">
                       {["Keep my beard", "No hair dye", "Low budget"].map((chip, chipIndex) => (
-                        <span key={chip} className={`capsule frost text-[14px] ${chipIndex === 0 ? "font-semibold" : ""}`}>
+                        <span key={chip} className={`capsule frost text-[15px] ${chipIndex === 0 ? "font-semibold" : ""}`}>
                           {chip}
                         </span>
                       ))}
@@ -589,7 +537,7 @@ export default function LandingPage() {
                   <Tick size={18} className="mt-0.5 shrink-0 text-ink-2" />
                   <span>
                     <span className="block text-[17px]">{item.title}</span>
-                    <span className="mt-0.5 block text-[14px] leading-[1.4] text-ink-2">{item.detail}</span>
+                    <span className="mt-0.5 block text-[15px] leading-[1.4] text-ink-2">{item.detail}</span>
                   </span>
                 </li>
               ))}
@@ -602,7 +550,7 @@ export default function LandingPage() {
                 </p>
                 <p className="flex items-baseline justify-between gap-3">
                   <span className="text-[44px] leading-none tracking-[-0.03em] tabular-nums">{price}</span>
-                  <span className="text-[13px] opacity-80">one-time</span>
+                  <span className="text-[15px]">one-time</span>
                 </p>
               </div>
               <div className="mx-auto grid w-full max-w-[400px] gap-3">
@@ -615,7 +563,7 @@ export default function LandingPage() {
             {TRUST.map(({ icon: Icon, text }) => (
               <li
                 key={text}
-                className="flex items-center gap-3 border-rule px-4 py-4 text-[14px] text-ink-2 not-first:border-t min-[768px]:px-8 min-[768px]:not-first:border-l min-[768px]:not-first:border-t-0"
+                className="flex items-center gap-3 border-rule px-4 py-4 text-[15px] text-ink-2 not-first:border-t min-[768px]:px-8 min-[768px]:not-first:border-l min-[768px]:not-first:border-t-0"
               >
                 <Icon size={18} className="shrink-0" />
                 {text}

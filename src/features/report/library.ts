@@ -56,7 +56,7 @@ export const LIBRARY: readonly RecommendationTemplate[] = [
     plan: {
       day7: "Start daily SPF 30+ each morning (face, ears, neck).",
       day30: "Keep SPF daily; reapply when outdoors for more than two hours.",
-      day90: "SPF is now automatic — keep a spare in your bag.",
+      day90: "SPF is now automatic. Keep a spare in your bag.",
     },
   },
   {

@@ -16,7 +16,7 @@ export function stepFromPath(pathname: string): StepDefinition | undefined {
   return byPath.get(pathname.replace(/\/+$/, "") || "/");
 }
 
-/** `/onboarding/[step]` slug → step id (never matches /start). */
+/** `/onboarding/[step]` slug → step id. */
 export function stepFromSlug(slug: string): StepDefinition | undefined {
   return stepFromPath(`/onboarding/${slug}`);
 }

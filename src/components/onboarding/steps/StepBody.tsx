@@ -4,7 +4,7 @@ import { InlineError } from "@/components/common/InlineError";
 import type { StepDefinition } from "@/features/onboarding/steps";
 import { StepDescription, StepHeading } from "../StepHeading";
 
-/** Question and answers as one group anchored above the action (thumb zone). */
+/** Question and answers as one group anchored above the action (thumb zone); from 768px, under the meter. */
 export function StepBody({
   definition,
   error,
@@ -18,7 +18,7 @@ export function StepBody({
 }) {
   const errorId = `${definition.id}-error`;
   return (
-    <div className="flex flex-1 flex-col justify-end px-5 pb-2 pt-8">
+    <div className="flex flex-1 flex-col justify-end px-5 pb-2 pt-8 min-[768px]:justify-start min-[768px]:pt-12">
       {heading ?? <StepHeading tail={definition.tail}>{definition.heading}</StepHeading>}
       {definition.description ? <StepDescription>{definition.description}</StepDescription> : null}
       <div className="mt-6" aria-describedby={error ? errorId : undefined}>

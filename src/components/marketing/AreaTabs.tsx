@@ -22,7 +22,8 @@ export function AreaTabs({ areas }: { areas: AreaTab[] }) {
 
   return (
     <div>
-      <div className="overflow-x-auto px-4 pb-1 [scrollbar-width:none] min-[768px]:px-8 [&::-webkit-scrollbar]:hidden">
+      {/* The strip scrolls sideways on phones: its right edge fades so the cut-off tab reads as "more". */}
+      <div className="overflow-x-auto px-4 pb-1 [mask-image:linear-gradient(90deg,#000_calc(100%-48px),transparent)] [scrollbar-width:none] min-[768px]:px-8 min-[1100px]:[mask-image:none] [&::-webkit-scrollbar]:hidden">
         <div role="tablist" aria-label="Areas" className="inline-flex gap-1 rounded-full p-1 shadow-[inset_0_0_0_1px_var(--color-rule)]">
           {areas.map((item, index) => (
             <button
@@ -43,7 +44,7 @@ export function AreaTabs({ areas }: { areas: AreaTab[] }) {
                 if (event.key === "Home") move(0);
                 if (event.key === "End") move(areas.length - 1);
               }}
-              className={`min-h-9 whitespace-nowrap rounded-full px-4 text-[14px] transition-colors duration-200 ${
+              className={`min-h-11 whitespace-nowrap rounded-full px-4 text-[15px] transition-colors duration-200 ${
                 index === active ? "bg-btn text-on-btn" : "text-ink-2 hover:text-ink"
               }`}
             >
@@ -69,7 +70,7 @@ export function AreaTabs({ areas }: { areas: AreaTab[] }) {
             <p className="mono mt-3 text-ink-2">
               {card.effort} effort · {card.cost} · {card.when}
             </p>
-            <p className="mt-auto pt-6 text-[12px] leading-[1.4] text-ink-2">{card.source}</p>
+            <p className="mt-auto pt-6 text-[15px] leading-[1.4] text-ink-2">{card.source}</p>
           </article>
         ))}
       </div>

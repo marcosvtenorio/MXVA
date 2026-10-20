@@ -31,8 +31,8 @@ export function useStepGuard(step: StepId): { ready: boolean } {
 
   const redirect = !hydrated
     ? undefined
-    : ageRefused && step !== "start"
-      ? "/start"
+    : ageRefused && step !== "photos"
+      ? "/onboarding/photos"
       : (() => {
           const target = resolveAccessibleStep(step, flow);
           if (target.id === step) return undefined;
@@ -41,13 +41,13 @@ export function useStepGuard(step: StepId): { ready: boolean } {
 
   useEffect(() => {
     if (!redirect) return;
-    if (redirect === "/onboarding/photos" && flow.photoGuideAcknowledged) {
-      // Photos the buyer had added were dropped by a reload: say so on the photo step.
+    if (redirect === "/onboarding/photos" && flow.photoGuideAcknowledged && !ageRefused) {
+      // The buyer had got past the photo step and a reload dropped the photos: say so there.
       usePhotoStore.getState().setClearedNotice(true);
       track("photos_cleared_by_reload", {});
     }
     router.replace(redirect);
-  }, [redirect, router, flow.photoGuideAcknowledged]);
+  }, [redirect, router, flow.photoGuideAcknowledged, ageRefused]);
 
   return { ready: hydrated && !redirect };
 }

@@ -11,7 +11,7 @@ async function axe(page: Page) {
 }
 
 test.describe("accessibility (axe, WCAG 2.1 AA)", () => {
-  for (const path of ["/", "/start", "/sample-report", "/privacy", "/help"]) {
+  for (const path of ["/", "/onboarding/photos", "/sample-report", "/privacy", "/help"]) {
     test(`no serious violations on ${path}`, async ({ page }) => {
       await page.goto(path);
       await page.waitForLoadState("networkidle");
@@ -23,7 +23,6 @@ test.describe("accessibility (axe, WCAG 2.1 AA)", () => {
     test.slow();
     await runOnboarding(page, "photos");
     await axe(page);
-    await page.goto("/start");
     await runOnboarding(page, "constraints");
     await axe(page);
     // The photo step with a photo in (its file inputs lose their visible labels) and the review list.
@@ -61,7 +60,7 @@ test.describe("responsive", () => {
   for (const width of [320, 375, 768, 1440]) {
     test(`no horizontal scroll at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
-      for (const path of ["/", "/start", "/sample-report"]) {
+      for (const path of ["/", "/onboarding/photos", "/sample-report"]) {
         await page.goto(path);
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
         expect(overflow, `${path} at ${width}px`).toBeLessThanOrEqual(0);

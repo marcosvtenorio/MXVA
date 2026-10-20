@@ -16,10 +16,11 @@ Rounds are compared in `JUDGE.md`.
 
 ## The flow judged
 
-Landing `/` (first visit, cookie choice open) → `/start` → photo guide → photos (empty,
-then one photo added) → avoid (constraints) → delivery (email and consents) → review →
-checkout (Pix first) → Pix code → processing → delivered. Also `/sample-report`, `/help`,
-`/privacy` as the templates of the secondary pages.
+Landing `/` (first visit, cookie choice open) → photos (empty, then one photo added; the
+photo guide lives here since round 2) → avoid (constraints) → delivery (email and consents)
+→ review → checkout (Pix first) → Pix code → processing → delivered. Also `/sample-report`,
+`/help`, `/privacy` as the templates of the secondary pages. `/start` and the separate photo
+guide were removed in round 2 (their old links redirect to the photo step).
 
 ## The direction as built
 
@@ -36,8 +37,9 @@ checkout (Pix first) → Pix code → processing → delivered. Also `/sample-re
   1100px, section padding 56/16px on phones and 80/32px from 768px, thin "bands" between
   sections (0, 80, 120px), one type scale (hero 36/48/60, section 28/40/48, card 18/20/24,
   lead 15/16).
-- Richness: the lit seamless backdrop, a real before/after example (owner-supplied),
-  studio readouts and crop marks, the glow-up teaser on checkout.
+- Richness: the lit seamless backdrop, a real before/after example (owner-supplied) in the
+  landing hero since round 2, studio readouts and crop marks, the glow-up teaser on checkout.
+  The plaster head now marks only empty and waiting states (empty photo slot, processing).
 - Signature: "Key light", the reveal of the concept. It now happens in the emailed PDF,
   not on screen (no report is shown in the browser by design), so the stills can only show
   its echoes (photo readouts, the before/after slider).
@@ -58,6 +60,8 @@ checkout (Pix first) → Pix code → processing → delivered. Also `/sample-re
 - The **drawn cartoon face** in the photo slots and on checkout ("Today"): it is the test
   fixture standing in for the buyer's own selfie, not design imagery.
 - The masked test email `j•••@example.com` and the simulated Pix code.
+- The live delivery estimate on processing: the simulated queue says "about a minute"; the
+  real one says about 3 minutes, the time quoted before paying.
 - Real-network speed, real-device feel, motion timing (stills only; local dev server).
 
 ## Open decisions (the owner's)

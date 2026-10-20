@@ -13,7 +13,7 @@ const skipDevPreview = (page) =>
     for (const s of document.querySelectorAll("span.mono")) if (/^(Development preview|Sandbox)$/.test(s.textContent.trim())) s.closest("div.grid")?.setAttribute("data-judge-ignore", "");
   });
 
-export default {
+const config = {
   name: "MXVA",
   baseURL: "http://localhost:3400",
   widths: [390, 768, 1440],
@@ -30,10 +30,13 @@ export default {
     { name: "sample-report", path: "/sample-report" },
     { name: "help", path: "/help" },
     { name: "privacy", path: "/privacy" },
-    // The funnel, as a buyer walks it.
-    { name: "start", path: "/start", cta: "Start" },
-    { name: "photo-guide", act: (page) => button(page, "Start"), waitFor: "**/onboarding/photo-guide" },
-    { name: "photos", act: (page) => button(page, "Got it"), waitFor: "**/onboarding/photos" },
+    // The funnel, as a buyer walks it: the landing's Start opens the photo step (since round 2).
+    {
+      name: "photos",
+      path: "/",
+      act: (page) => page.getByRole("main").getByRole("link", { name: "Start" }).first().click(),
+      waitFor: "**/onboarding/photos",
+    },
     {
       name: "photos-added",
       act: async (page, { fixture }) => {
@@ -49,7 +52,7 @@ export default {
       name: "review",
       act: async (page) => {
         await page.locator("#email").fill("judge.buyer@example.com");
-        await page.getByRole("checkbox", { name: /photos are sent/ }).check();
+        await page.getByRole("checkbox", { name: /my photos go to/ }).check();
         await page.getByRole("checkbox", { name: /accept the Terms/ }).check();
         await button(page, "Continue");
       },
@@ -86,3 +89,5 @@ export default {
     },
   ],
 };
+
+export default config;

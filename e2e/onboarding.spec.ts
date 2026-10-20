@@ -1,15 +1,27 @@
 import { expect, test } from "@playwright/test";
-import { runOnboarding } from "./support/flow";
+import { addFrontPhoto, runOnboarding } from "./support/flow";
 
 test.describe("onboarding rules", () => {
-  test("starting confirms age and terms in one step, then goes straight to the photo", async ({ page }) => {
-    await page.goto("/start");
-    await expect(page.getByText(/By continuing, you confirm you're 18 or older/)).toBeVisible();
-    await expect(page.getByRole("link", { name: "Terms of Use" })).toHaveAttribute("href", "/terms");
-    await expect(page.getByRole("link", { name: "Privacy Policy" })).toHaveAttribute("href", "/privacy");
+  test("Start on the landing opens the photo step, which holds the photo guide", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("main").getByRole("link", { name: "Start" }).first().click();
+    await page.waitForURL("**/onboarding/photos");
+    await expect(page.getByRole("heading", { name: "For a good photo" })).toBeVisible();
     await expect(page.getByRole("radio")).toHaveCount(0);
-    await page.getByRole("button", { name: "Start" }).click();
-    await page.waitForURL("**/onboarding/photo-guide");
+    // Old links to the removed start and guide screens still land on the photo step.
+    for (const old of ["/start", "/onboarding/photo-guide"]) {
+      await page.goto(old);
+      await page.waitForURL("**/onboarding/photos");
+    }
+  });
+
+  test("the photo step asks for 18 or older once, and can't be passed without it", async ({ page }) => {
+    await runOnboarding(page, "photos");
+    await addFrontPhoto(page);
+    await expect(page.getByText("These are photos of me, and I'm 18 or older.")).toBeVisible();
+    await page.getByRole("button", { name: "Use these photos" }).click();
+    await expect(page.getByText("Confirm these are photos of you.")).toBeVisible();
+    await expect(page).toHaveURL(/\/onboarding\/photos$/);
   });
 
   test("no aesthetic questions: the plan is decided from the photo", async ({ page }) => {
@@ -26,7 +38,7 @@ test.describe("onboarding rules", () => {
 
   test("deep links fall back to the first incomplete step", async ({ page }) => {
     await page.goto("/onboarding/review");
-    await page.waitForURL("**/start");
+    await page.waitForURL("**/onboarding/photos");
   });
 
   test("no consent, no checkout", async ({ page }) => {
@@ -51,6 +63,6 @@ test.describe("onboarding rules", () => {
   test("focus moves to the question on each step and progress is announced", async ({ page }) => {
     await runOnboarding(page, "photos");
     await expect(page.getByRole("heading", { level: 1 })).toBeFocused();
-    await expect(page.getByRole("progressbar", { name: "Onboarding progress" })).toHaveAttribute("aria-valuenow", "3");
+    await expect(page.getByRole("progressbar", { name: "Onboarding progress" })).toHaveAttribute("aria-valuenow", "1");
   });
 });

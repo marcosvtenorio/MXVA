@@ -90,7 +90,8 @@ function FrontSlot() {
         ) : (
           <PlasterHead className="absolute inset-x-0 bottom-0 h-[78%] w-full" />
         )}
-        <CropMarks corners={["tl", "tr"]} />
+        {/* With a photo in, the check readout takes the top-right corner: above the eyes, not over them. */}
+        <CropMarks corners={photo ? ["tl"] : ["tl", "tr"]} />
         {photo ? (
           <div className="readouts mono frost key-light-on right-4 top-4 rounded-[14px] px-3 py-2.5">
             <span className="settle grid gap-1.5">
@@ -101,7 +102,14 @@ function FrontSlot() {
               ))}
             </span>
           </div>
-        ) : null}
+        ) : (
+          // The photo guide in three words, until a photo is in.
+          <div className="readouts mono right-10 top-10" aria-hidden="true">
+            <span>Eye level</span>
+            <span>Arm&apos;s length</span>
+            <span>Window light</span>
+          </div>
+        )}
         <span className="capsule frost mono absolute bottom-4 left-4 max-[359px]:hidden">Front</span>
         <div className="absolute bottom-4 right-4 flex gap-2">
           <label htmlFor={cameraId} className="capsule frost min-h-11 cursor-pointer gap-2 px-4 text-[15px] font-semibold">
@@ -204,7 +212,7 @@ export function PhotoCapture({ frontOnly = false }: { frontOnly?: boolean }) {
           <ProfileTile slot="right" />
         </div>
       ) : null}
-      <label className="mt-5 flex cursor-pointer items-start gap-3 text-[15px] leading-[1.4]">
+      <label className="mt-2.5 flex min-h-11 cursor-pointer items-start gap-3 py-2.5 text-[15px] leading-[1.4]">
         <input type="checkbox" className="checkbox" checked={ownership} onChange={(event) => setOwnership(event.currentTarget.checked)} />
         <span>These are photos of me, and I&apos;m 18 or older.</span>
       </label>

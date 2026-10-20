@@ -92,7 +92,7 @@ const orderBody = {
   method: "card",
   email: "card.buyer@example.com",
   adultConfirmed: true,
-  faceProcessingConsentVersion: "2026-10-13.v1",
+  faceProcessingConsentVersion: "2026-10-20.v2",
   termsVersion: "2026-10-11.v1",
   marketingOptIn: false,
   countryHint: "US",

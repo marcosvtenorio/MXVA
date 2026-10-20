@@ -35,38 +35,20 @@ export type StepDefinition = {
   skippable: boolean;
 };
 
-export const TOTAL_STEPS = 6;
+export const TOTAL_STEPS = 4;
 
 /**
  * The intake. No aesthetic questions: buyers want the full glow-up, so the plan and the
  * concept are decided from their photo. They only tell us what to avoid and where to send it.
+ * The landing's Start opens the photo step directly; the photo guide lives on that step.
  */
 export const STEPS: readonly StepDefinition[] = [
   {
-    id: "start",
-    short: "Start",
-    number: 1,
-    path: "/start",
-    heading: "Your face. Your full glow-up plan.",
-    description:
-      "Upload a selfie and get your AI glow-up concept plus a step-by-step looksmaxxing plan made for your face.",
-    skippable: false,
-  },
-  {
-    id: "photo-guide",
-    short: "Photo guide",
-    number: 2,
-    path: "/onboarding/photo-guide",
-    heading: "How to take your photos",
-    description: "One front photo is required. Left and right profiles are optional and make the plan sharper.",
-    skippable: false,
-  },
-  {
     id: "photos",
-    short: "Photos",
-    number: 3,
+    short: "Photo",
+    number: 1,
     path: "/onboarding/photos",
-    heading: "Add your photos",
+    heading: "Add your front photo",
     description:
       "Photos are used temporarily to create your report. They aren't saved in our photo database. External AI/email services handle data as explained in our Privacy Policy.",
     skippable: false,
@@ -74,7 +56,7 @@ export const STEPS: readonly StepDefinition[] = [
   {
     id: "constraints",
     short: "Avoid",
-    number: 4,
+    number: 2,
     path: "/onboarding/constraints",
     heading: "Anything your plan should avoid?",
     description: "Optional. We'll pick everything else from your photo.",
@@ -83,7 +65,7 @@ export const STEPS: readonly StepDefinition[] = [
   {
     id: "delivery",
     short: "Delivery",
-    number: 5,
+    number: 3,
     path: "/onboarding/delivery",
     heading: "Where should we send your report?",
     description: "Your PDF report arrives by email after payment. That email is your permanent copy.",
@@ -92,7 +74,7 @@ export const STEPS: readonly StepDefinition[] = [
   {
     id: "review",
     short: "Review",
-    number: 6,
+    number: 4,
     path: "/onboarding/review",
     heading: "Check everything before checkout",
     description: "Nothing has been analyzed yet. Your report is created only after payment.",
@@ -227,5 +209,4 @@ export const PHOTO_REQUIREMENTS = [
   { title: "A neutral expression", detail: "Relaxed face, mouth closed or a natural smile." },
 ] as const;
 
-export const REFRESH_LOSS_NOTICE =
-  "Your photos only live in this tab. Reloading or closing it clears them — your other answers stay.";
+export const REFRESH_LOSS_NOTICE = "Your photos only live in this tab. Reloading or closing it clears them; your other answers stay.";

@@ -8,8 +8,9 @@ is the evidence. Brief: [BRIEF.md](BRIEF.md). Config: [judge.config.mjs](judge.c
 
 1. Start the simulated server; the command is at the top of `judge.config.mjs`. It never calls
    OpenAI, Stripe, AbacatePay or Resend.
-2. Run `node ~/.claude/skills/web-judge/scripts/judge.mjs design/judge/judge.config.mjs --out design/judge/shots/r2 --prev design/judge/shots/r1`.
-3. Give the critic the new shots, then append "Round 2" below.
+2. Run `node ~/.claude/skills/web-judge/scripts/judge.mjs design/judge/judge.config.mjs --out design/judge/shots/r3 --prev design/judge/shots/r2`
+   (next round: r3 against r2).
+3. Give the critic the new shots, then append the round below.
 
 Shots are gitignored and regenerated each run.
 
@@ -151,3 +152,160 @@ No score changes; 51 / 80 stands.
 - Hover states.
 - Dark mode beyond 4 pages.
 - Real selfies.
+
+---
+
+## Round 2: 2026-10-20 (the five round-1 asks applied, current style kept)
+
+- Owner's request: "apply all five and deploy". Same server, widths, Brazil visitor and
+  Instagram user agent as round 1. The flow is now landing → photos (guide inside) → avoid
+  → delivery → review → checkout → Pix code → processing → delivered.
+- New critic: the round-1 critic was no longer available. It scored against round 1 as the
+  baseline and said where it differs.
+
+### What changed
+
+1. **Offer in the phone fold.** The hero is a 3:2 before/after above the H1. At 390 the H1,
+   sub-line, Start and the price line sit above the cookie bar. The cookie bar is about 115px,
+   with two outline buttons, and reserves its height at the page bottom and in scroll-padding.
+2. **Proof first.** The owner's before/after (fictional AI-generated person) leads: side by
+   side on phone and tablet, the slider from 1100px. The plaster head is kept for empty and
+   waiting states only. "Built around you" and the stats strip are cut. The concept section
+   shows the after image with numbered markers; the photo section, report mock and sample
+   report use the real example.
+3. **Flow screens composed.** From 768px content is top-aligned under the meter. From
+   1100px a 480px form sits beside a 520px studio stage with the step's readouts. Checkout
+   is two columns from 1100px, without the sticky pay bar.
+4. **Craft.** "Sent" and "Light · off" on frost glass; overlays inset from the crop marks;
+   44px tabs with a right-edge fade; 44px Edit, footer and consent-row targets; one delivery
+   time before paying ("about 3 minutes"); "one-time" and the report labels in ink; the pay
+   bar hides once a Pix code is out and reserves scroll-padding; the Pix code well is
+   hairlines; em dashes removed; phone reading text at 15px.
+5. **Five screens before paying.** /start removed (Start opens the photo step; old links
+   redirect), the photo guide folded into the photo step, 18+ asked once (the photo
+   checkbox, which now sets the age confirmation the order needs), the processing consent
+   shortened (consent version bumped to `2026-10-20.v2`).
+
+**Not done:** moving the Terms acceptance under the Pay button. It changes the legal
+acceptance gate, so it waits for the owner's decision and legal review; the Terms checkbox
+stays on the delivery step. The critic accepted this and won't ask again.
+
+### Scan: 0 FAIL, 24 warn (round 1: 11 FAIL, 74 warn)
+
+| page | 390 | 768 | 1440 | 390 dark |
+|---|---|---|---|---|
+| landing | 0F 1w | 0F 2w | 0F 2w | 0F 1w |
+| sample-report | 0F 0w | 0F 0w | 0F 0w | |
+| help | 0F 0w | 0F 0w | 0F 0w | |
+| privacy | 0F 0w | 0F 0w | 0F 0w | |
+| photos | 0F 1w | 0F 1w | 0F 1w | |
+| photos-added | 0F 1w | 0F 1w | 0F 1w | 0F 1w |
+| constraints | 0F 0w | 0F 0w | 0F 0w | |
+| delivery | 0F 0w | 0F 0w | 0F 0w | |
+| review | 0F 0w | 0F 0w | 0F 0w | |
+| checkout | 0F 3w | 0F 3w | 0F 2w | 0F 2w |
+| pix-code | 0F 1w | 0F 0w | 0F 0w | |
+| processing | 0F 0w | 0F 0w | 0F 0w | |
+| delivered | 0F 0w | 0F 0w | 0F 0w | 0F 0w |
+
+Warnings left, each answered:
+
+- `gradients` (landing, photos): the lit softbox is the concept's material, not
+  decoration. The critic agrees.
+- `shadows` 13 at 768 and 1440 (landing): kept for now. Raised paper mocks, price card and
+  pills.
+- `console-error` 401 `/api/orders/current` on checkout: real, not visual, still to fix.
+- `small-reading` 12px Pix code string: a machine string under a 54px Copy button. Kept.
+
+The scanner was corrected during this round:
+
+- **Retry after a dev reload.** It now waits and walks the page again once when the dev
+  server reloads it.
+- **Inner scroll restored.** Its contrast probe scrolled an overflow:hidden box (the 768 hero
+  photos were 28px taller than their frame). That moved the crop marks in the shots, and
+  the critic saw it. The probe now restores those offsets before shooting, and the photos
+  now fit their frame.
+
+### Scores (critic, round 2)
+
+| # | Line | R1 | R2 | Evidence |
+|---|---|---|---|---|
+| 1 | Concept on the pixel | 4 | 4 | Crop marks, frost capsules and readouts run from the hero through every 1440 step stage, processing and delivered. Help and privacy are still plain. |
+| 2 | Not the category average | 3 | 3 | No black, neon or scores, but a side-by-side before/after is the category's own hero, and every section opens the same way. |
+| 3 | Not the anti-slop average | 3 | 3 | Real images break up the top half. From pricing to the footer it is still check rows, dot rows, "NO" rows and FAQ hairlines. |
+| 4 | Hierarchy | 3 | **4** | Phone fold: before/after, then H1, then Start, the only ink pill. At 1440 photos-added the example stage outweighs the buyer's photo. |
+| 5 | Typography | 4 | 4 | 8 sizes on the phone landing (was 12 to 13). Flow titles jump between 28 and 40px; the review H1 is three lines at 390. |
+| 6 | Colour | 4 | 4 | Bone, slate, ink; slate for meter and selection; dark mode its own studio. Stray notes: the amber teaser glow, the skin-tinted markers. |
+| 7 | Richness | 3 | **4** | The real example is in the hero, concept, report mock, photo section and both sliders; 1440 steps have a stage. It is the same face 6 to 8 times. |
+| 8 | Rhythm and space | 3 | 3 | Phone landing 13,968px (was 14,791; asked 12,500). Empty 120px bands at 1440; dead gap in the 1440 concept column; empty band above the 390 delivery H1. |
+| 9 | Craft details | 3 | 3 | Round 1's list is fixed. New slips: 768 crop marks, 1440 disclosure under the cookie card, translucent markers, readout over the eyes, "profile" vs "side". |
+| 10 | Responsive fluency | 3 | **4** | 1440 steps and checkout composed, cookie bar slim. 768 is still mostly the stacked phone; pinned pills sit over text at 1440. |
+| 11 | Signature | 3 | 3 | The before/after leads with "same face, same pose, same light", but a slider is the category's device, and dim to lit is still subtle. |
+| 12 | Five-second clarity | 2 | **4** | Phone fold, above the cookie bar: proof, category, H1, sub-line, Start, price. The price is 11px grey mono and reads as fine print. |
+| 13 | Flow and friction | 3 | **4** | Four steps plus checkout, 18+ once, guide inside the photo step, Pix default. Delivery still stacks three checkboxes; the empty photo step's button looks enabled. |
+| 14 | Trust and honesty | 4 | 4 | One delivery time, price, one-time and money-back at Pay, consents unticked. Cracks: "leaner jawline" (legal pending), the 1440 disclosure half-covered. |
+| 15 | Accessibility in practice | 3 | **4** | 0 FAIL, contrast fixed, 44px targets, nothing covers focus. Still many 11px mono labels; markers low contrast. |
+| 16 | The feature test | 3 | 3 | The 1440 hero and the photo-step stage are portfolio-grade; the scroll below is one section template a dozen times. |
+
+**Total: 58 / 80** (round 1: 51, +7). 10 of 16 lines at 4 or above (round 1: 4). None below 3.
+Not done by the stop rule (needs 12 of 16 at 4 or above).
+
+Critic's verdict: "Round 2 fixed what cost the most. The phone fold now sells (proof, offer,
+price, Start, nothing covering it), the funnel is five screens, and the desktop steps are
+composed studio scenes. What holds it below done is a long templated scroll, a handful of
+new slips, and a signature that is still the category's before/after rather than something
+only MXVA does."
+
+Round-1 asks: 1 landed; 2 landed (the page shrank less than asked); 3 landed; 4 landed;
+5 partly landed (Terms move declined pending legal review).
+
+### Fixed after scoring (verified by re-shoot in `shots/r2-fixes`, not rescored)
+
+The slips in line 9 were introduced this round and fixed before deploying:
+
+- 768 hero: the photos fit their frame; all four crop marks show, with a faint edge so they
+  read on a light wall; Before/After sit on the marks' baseline.
+- 1440 hero: the disclosure is inside the stage ("Same face, pose and light · fictional
+  AI-generated person"), clear of the cookie bar.
+- Concept markers: solid bone discs with an ink numeral and a hairline ring.
+- Photo check readout: in the top-right corner, above the eyes.
+- Review: "No side photos (optional)".
+
+### Critic's next five asks
+
+Ask 1 (registration) is done: it is the "Fixed after scoring" list above. Asks 2 to 5 are
+not applied yet; they are for round 3.
+
+2. **Rhythm: subtract.**
+   - Delete "The difference" section; it repeats How it works. This brings the phone page
+     to about 12,500px.
+   - Bands at 768 and 1440: 48px, no side rails.
+   - 1440 concept: the list 40px under the lead.
+   - 390 delivery: content top-aligned 32px under the meter.
+3. **Break the section skeleton.**
+   - Eyebrow capsules on 4 sections only: Concept, Your report, Pricing, Questions.
+   - In "Seven areas", a 3:2 before/after detail crop of the example per tab.
+4. **Make the readout the signature.**
+   - The hero's after side carries a readout glass: "[1] CUT · [2] SKIN · [3] BROWS ·
+     [4] BEARD".
+   - Dim to lit readable in a still: processing backdrop about `#4A5560`, delivered with a
+     brighter softbox and a firm key shadow.
+5. **One flow title size and a calmer desktop photo step.**
+   - Flow H1s at 32px on phones and 40px from 1100px.
+   - Review H1 on two lines.
+   - 1440 photos: the guide under the example; the example shrinks to a 200px thumbnail
+     once a photo is in.
+   - Static pill at the end of the column from 1100px.
+   - A disabled "Add a front photo" pill until a photo and 18+ are set.
+
+### Could not judge
+
+- Motion: slider drag, readouts, the light sweep on the checkout "Today" tile, cookie
+  entrance, reduced motion.
+- Instagram's real in-app browser bars and safe areas.
+- A real selfie under the readout glass.
+- Focus rings and hover states.
+- Validation and error states, and the card path.
+- Real Pix polling and network speed.
+- The emailed PDF.
+- The 1100px breakpoint itself, landscape phones, and dark mode beyond 4 pages.

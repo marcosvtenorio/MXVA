@@ -141,7 +141,7 @@ export function PixPayment({
           {busy ? <span className="btn-spinner" aria-hidden="true" /> : <Lock size={15} />}
           {busy ? "Creating your Pix code…" : `Pay ${price} with Pix`}
         </button>
-        <p className="text-center text-[13px] leading-[1.4] text-ink-2">You get a code to paste in your bank app. Approved in seconds.</p>
+        <p className="text-center text-[15px] leading-[1.4] text-ink-2">You get a code to paste in your bank app. Approved in seconds.</p>
       </div>
     );
   }
@@ -167,7 +167,8 @@ export function PixPayment({
     </button>
   );
   const code = (
-    <div className="rounded-[12px] bg-ground px-3.5 py-2.5 shadow-[inset_0_0_0_1px_var(--color-rule)]">
+    // Hairlines, not a box: it already sits inside the payment panel.
+    <div className="border-y border-rule py-2.5">
       <p className="mono text-ink-2" id="pix-code-label">
         Pix Copia e Cola
       </p>

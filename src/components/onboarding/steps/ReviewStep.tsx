@@ -8,7 +8,7 @@ import { AVOID_OPTIONS_COPY, type OptionCopy } from "@/features/onboarding/steps
 import { useOnboardingStore } from "@/features/onboarding/store";
 import { useStepNav } from "@/features/onboarding/use-flow";
 import { usePhotoStore } from "@/features/photos/memory-store";
-import { OnboardingFrame } from "../OnboardingFrame";
+import { OnboardingFrame, StepStage } from "../OnboardingFrame";
 import { StepHeading } from "../StepHeading";
 import { StepActions } from "./StepBody";
 
@@ -23,7 +23,11 @@ function Row({ title, value, href }: { title: string; value: string; href: strin
       <dd className="row-start-2 text-[16px] leading-snug">{value || "—"}</dd>
       {/* Inside a <dd>: a <dl> group may only hold terms and descriptions. */}
       <dd className="col-start-2 row-span-2 row-start-1 self-center">
-        <Link href={href} className="text-[15px] font-semibold underline-offset-2 hover:underline" aria-label={`Edit ${title.toLowerCase()}`}>
+        <Link
+          href={href}
+          className="-mx-3 inline-flex min-h-11 items-center px-3 text-[15px] font-semibold underline-offset-2 hover:underline"
+          aria-label={`Edit ${title.toLowerCase()}`}
+        >
           Edit
         </Link>
       </dd>
@@ -50,8 +54,9 @@ export function ReviewStep() {
       step="review"
       onBack={nav.goBack}
       action={<StepActions continueLabel={nav.pending ? "Opening checkout…" : "Continue to checkout"} busy={nav.pending} onContinue={continueToCheckout} />}
+      stage={<StepStage readouts={["Front photo · ready", "Nothing analysed yet"]} caption="Your report is made after payment" />}
     >
-      <div className="px-5 pb-2 pt-6">
+      <div className="px-5 pb-2 pt-6 min-[768px]:pt-12">
         <StepHeading size="title" tail="Nothing is analyzed until you pay.">
           Check everything before checkout.
         </StepHeading>
@@ -66,7 +71,7 @@ export function ReviewStep() {
               <Tick size={16} className="text-positive" /> Front photo ready
             </p>
             <p className="text-[13px] text-ink-2">
-              {profiles === 0 ? "No profile photos (optional)" : `${profiles} profile photo${profiles > 1 ? "s" : ""}`} · in this tab only
+              {profiles === 0 ? "No side photos (optional)" : `${profiles} side photo${profiles > 1 ? "s" : ""}`} · in this tab only
             </p>
           </div>
         </div>
@@ -88,7 +93,7 @@ export function ReviewStep() {
             <span className="text-[40px] leading-none tracking-[-0.03em] tabular-nums">{price}</span>
             <span className="text-[15px] text-ink-2">one-time · no subscription</span>
           </p>
-          <p className="mt-3 text-[13px] leading-[1.4] text-ink-2">
+          <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">
             We don&apos;t keep your photos. They stay in this tab until payment, then go to our server and AI providers only to make your report.
           </p>
         </div>

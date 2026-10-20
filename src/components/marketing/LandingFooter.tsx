@@ -2,7 +2,7 @@ import Link from "next/link";
 import { publicConfig } from "@/lib/config";
 
 const COLUMNS = [
-  { title: "Product", links: [{ href: "/start", label: "Start" }, { href: "/sample-report", label: "Sample report" }] },
+  { title: "Product", links: [{ href: "/onboarding/photos", label: "Start" }, { href: "/sample-report", label: "Sample report" }] },
   { title: "Help", links: [{ href: "/help", label: "Help" }, { href: "/refunds", label: "Refunds" }] },
   { title: "Legal", links: [{ href: "/privacy", label: "Privacy" }, { href: "/terms", label: "Terms" }] },
 ];
@@ -15,16 +15,18 @@ export function LandingFooter() {
         {COLUMNS.map((column) => (
           <nav key={column.title} aria-label={column.title}>
             <p className="mono text-ink-2">{column.title}</p>
-            <ul className="mt-3 grid gap-2 text-[15px]">
+            <ul className="mt-1 grid text-[15px]">
               {column.links.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href}>{link.label}</Link>
+                  <Link href={link.href} className="inline-flex min-h-11 items-center">
+                    {link.label}
+                  </Link>
                 </li>
               ))}
             </ul>
           </nav>
         ))}
-        <p className="text-[13px] leading-[1.45] text-ink-2">
+        <p className="text-[15px] leading-[1.45] text-ink-2">
           {publicConfig.brandName} gives grooming and presentation guidance for adults. It is not medical, dermatological or dental advice.
         </p>
       </div>

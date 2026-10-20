@@ -4,7 +4,7 @@ import { z } from "zod";
 // ─── Versions of the texts a buyer agrees to. Bump when the wording changes. ───
 export const TERMS_VERSION = "2026-10-11.v1";
 // v2026-10-13: the emailed PDF shows the buyer's photo next to the concept (before and after).
-export const FACE_PROCESSING_CONSENT_VERSION = "2026-10-13.v1";
+export const FACE_PROCESSING_CONSENT_VERSION = "2026-10-20.v2";
 
 // ─── Option vocabularies (ids are stable API values; labels live in steps.ts) ───
 export const GOALS = ["clear_skin", "brow_definition", "smile", "hair", "grooming", "overall"] as const;
