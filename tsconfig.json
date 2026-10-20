@@ -43,7 +43,9 @@
     ".next-stress/types/**/*.ts",
     ".next-stress/dev/types/**/*.ts",
     ".next-shot/types/**/*.ts",
-    ".next-shot/dev/types/**/*.ts"
+    ".next-shot/dev/types/**/*.ts",
+    ".next-judge/types/**/*.ts",
+    ".next-judge/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
