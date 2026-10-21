@@ -14,11 +14,14 @@ export function CompareFrame({
   eager = false,
   labels = "bottom",
   imageClassName = "",
+  after,
 }: {
   className?: string;
   eager?: boolean;
   labels?: "top" | "bottom";
   imageClassName?: string;
+  /** Replaces the "After" capsule (the landing's readout glass). */
+  after?: React.ReactNode;
 }) {
   const [split, setSplit] = useState(50);
   const frame = useRef<HTMLDivElement>(null);
@@ -75,7 +78,7 @@ export function CompareFrame({
         <Compare size={20} />
       </div>
       <span className={`capsule frost mono absolute ${beforeAt}`}>Before</span>
-      <span className={`capsule frost mono absolute ${afterAt}`}>After</span>
+      {after ?? <span className={`capsule frost mono absolute ${afterAt}`}>After</span>}
     </div>
   );
 }

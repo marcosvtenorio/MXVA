@@ -20,12 +20,15 @@ export function OnboardingFrame({
   onBack,
   action,
   stage,
+  footnote,
   children,
 }: {
   step: StepId;
   onBack: () => void;
   action: React.ReactNode;
   stage?: React.ReactNode;
+  /** Fine print under the action (one copy, at every width). */
+  footnote?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const { ready } = useStepGuard(step);
@@ -67,8 +70,10 @@ export function OnboardingFrame({
           <main id="main" className="flex flex-1 flex-col" aria-busy={!ready}>
             {ready ? children : null}
           </main>
-          {/* Sticky: right under a short form, pinned to the bottom of a long one. */}
-          {ready ? <div className="action-bar w-full">{action}</div> : null}
+          {/* Phones and tablets: sticky, right under a short form and pinned under a long one.
+              From 1100px: at the end of the form, never over its text. */}
+          {ready ? <div className="action-bar w-full min-[1100px]:static min-[1100px]:bg-none">{action}</div> : null}
+          {ready && footnote ? <div className="px-5 pb-8 pt-1">{footnote}</div> : null}
         </div>
         {ready && stage ? <div className="sticky top-8 mt-12 hidden min-[1100px]:block">{stage}</div> : null}
       </div>
@@ -79,12 +84,23 @@ export function OnboardingFrame({
 /**
  * The studio beside the form (1100px and up): the buyer's own front photo under the key
  * light, or `src` (an example), with the step's readouts. Decorative: the form says it all.
+ * `className` replaces the default height.
  */
-export function StepStage({ readouts, caption, src }: { readouts: readonly string[]; caption?: string; src?: string }) {
+export function StepStage({
+  readouts,
+  caption,
+  src,
+  className = "h-[min(640px,calc(100dvh-140px))] min-h-[460px]",
+}: {
+  readouts: readonly string[];
+  caption?: string;
+  src?: string;
+  className?: string;
+}) {
   const front = usePhotoStore((state) => state.photos.front?.previewUrl);
   const image = src ?? front;
   return (
-    <div className="stage h-[min(640px,calc(100dvh-140px))] min-h-[460px]" aria-hidden="true">
+    <div className={`stage ${className}`} aria-hidden="true">
       {image ? (
         // In-memory object URL of the buyer's photo (never stored), or a first-party example.
         // eslint-disable-next-line @next/next/no-img-element

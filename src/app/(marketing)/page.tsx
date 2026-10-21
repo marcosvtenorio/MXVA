@@ -3,7 +3,7 @@ import { ConsentBanner } from "@/components/common/ConsentBanner";
 import { ArrowRight, CreditCard, Lock, Plus, Tick } from "@/components/common/icons";
 import { CropMarks, PlasterHead } from "@/components/common/StudioArt";
 import { PriceTag } from "@/components/checkout/PriceTag";
-import { AreaTabs, type AreaTab } from "@/components/marketing/AreaTabs";
+import { AreaTabs, type AreaDetail, type AreaTab } from "@/components/marketing/AreaTabs";
 import { AnnotatedConcept, HeroProof } from "@/components/marketing/HeroProof";
 import { LandingFooter } from "@/components/marketing/LandingFooter";
 import { TrackedLink } from "@/components/marketing/TrackedLink";
@@ -14,8 +14,8 @@ import { TYPICAL_DELIVERY, publicConfig } from "@/lib/config";
 import { EXAMPLE_AFTER, EXAMPLE_BEFORE } from "@/lib/examples";
 
 /*
- * Layout: one framed column, sections divided by hairline bands, an eyebrow capsule over
- * each light two-tone heading. Breakpoints at 768px and 1100px (see .frame, .band, .sec and
+ * Layout: one framed column, sections divided by 48px hairline bands, light two-tone headings
+ * (an eyebrow capsule only on the four sections that orient the page). Breakpoints at 768px and 1100px (see .frame, .band, .sec and
  * the .t-* type scale in globals.css). Every figure below is read from the report library.
  */
 
@@ -24,9 +24,21 @@ const COST_LABELS = { free: "Free", low: "Low cost", medium: "Medium cost", prof
 const HORIZON_LABELS = { now: "Start now", "30d": "Within 30 days", "90d": "Within 90 days", professional: "Optional consult" } as const;
 const EFFORT_LABELS = { low: "Low", medium: "Medium", high: "High" } as const;
 
+/** Where each area sits on the example photo, and what the plan does there (no claims beyond the plan). */
+const AREA_DETAILS: Record<(typeof FOCUS_OPTIONS)[number]["id"], AreaDetail> = {
+  skin: { x: 34, y: 50, note: "clearer, more even" },
+  brows: { x: 60, y: 33, note: "cleaned up and shaped" },
+  eye_area: { x: 50, y: 38, note: "rest and brow grooming" },
+  hair: { x: 52, y: 10, note: "a cut and colour for the face" },
+  facial_hair: { x: 52, y: 67, note: "shaped to fit" },
+  smile: { x: 52, y: 57, note: "care steps, questions for a dentist" },
+  jaw_presentation: { x: 64, y: 64, note: "grooming, framing, photo angles" },
+};
+
 const AREAS: AreaTab[] = FOCUS_OPTIONS.map((option) => ({
   id: option.id,
   label: option.label,
+  detail: AREA_DETAILS[option.id],
   // Everyday steps first; referrals only appear in reports when the buyer asks.
   cards: LIBRARY.filter((template) => template.area === option.id)
     .toSorted((a, b) => Number(Boolean(a.onlyIfAsked)) - Number(Boolean(b.onlyIfAsked)))
@@ -77,9 +89,6 @@ const CONCEPT_CHANGES = [
   "Beard, stubble or a clean shave, whichever fits",
   "The same face, pose and light, so you still recognise yourself",
 ];
-
-const GUESSWORK = ["Copy a celebrity's haircut", "Buy whatever is trending", "Try ten products at once", "Give up after a week"];
-const WITH_MXVA = ["Add one front photo", "See your concept portrait", "Follow a ranked plan", "Check in at 7, 30 and 90 days"];
 
 const REPORT_PARTS = [
   "An AI glow-up concept: your photo with the cut, skin, brows and beard that suit you",
@@ -148,6 +157,7 @@ function Band() {
   return <div aria-hidden="true" className="band" />;
 }
 
+/** `eyebrow` only on the four sections that orient the page (concept, report, pricing, questions). */
 function SectionHead({
   eyebrow,
   id,
@@ -157,7 +167,7 @@ function SectionHead({
   center = false,
   onField = false,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   id: string;
   title: string;
   rest: string;
@@ -167,8 +177,8 @@ function SectionHead({
 }) {
   return (
     <div className={center ? "text-center" : ""}>
-      <span className={`eyebrow mono ${onField ? "frost shadow-none!" : ""}`}>{eyebrow}</span>
-      <h2 id={id} className="t-section two-tone mt-5">
+      {eyebrow ? <span className={`eyebrow mono mb-5 ${onField ? "frost shadow-none!" : ""}`}>{eyebrow}</span> : null}
+      <h2 id={id} className="t-section two-tone">
         {title} <span>{rest}</span>
       </h2>
       {lead && <p className={`t-lead mt-4 max-w-[520px] ${center ? "mx-auto" : ""} ${onField ? "opacity-80" : "text-ink-2"}`}>{lead}</p>}
@@ -276,7 +286,7 @@ export default function LandingPage() {
               rest="Upgraded."
               lead="Your report opens with a portrait of you after the changes that suit your face, so you can see the plan before you start it."
             />
-            <div className="mt-8 min-[1100px]:mt-auto min-[1100px]:pt-10">
+            <div className="mt-8 min-[1100px]:mt-10">
               <NumberedList items={CONCEPT_CHANGES} />
             </div>
           </div>
@@ -293,7 +303,6 @@ export default function LandingPage() {
         <section id="areas" className="scroll-mt-20 pb-1" aria-labelledby="areas-title">
           <div className="sec pb-8! min-[768px]:pb-10!">
             <SectionHead
-              eyebrow="What it covers"
               id="areas-title"
               title="Seven areas."
               rest="One plan."
@@ -305,54 +314,10 @@ export default function LandingPage() {
 
         <Band />
 
-        {/* Guesswork against the MXVA way, as two rows of steps. */}
-        <section aria-labelledby="approach">
-          <div className="sec">
-            <SectionHead
-              center
-              eyebrow="The difference"
-              id="approach"
-              title="Stop guessing."
-              rest="Start with your face."
-              lead="Most glow-up advice is written for everyone. Yours starts from your photo and what you want to keep."
-            />
-          </div>
-          <div className="grid gap-3 border-t border-rule p-3 min-[768px]:p-4">
-            {[
-              { label: "Guesswork", steps: GUESSWORK, lit: false },
-              { label: "With MXVA", steps: WITH_MXVA, lit: true },
-            ].map((row) => (
-              <div
-                key={row.label}
-                className={`grid gap-5 rounded-[20px] p-5 min-[1100px]:grid-cols-[200px_1fr] min-[1100px]:items-end min-[1100px]:p-7 ${
-                  row.lit ? "field-lit" : "bg-raised shadow-[inset_0_0_0_1px_var(--color-rule)]"
-                }`}
-              >
-                <p className="t-card">{row.label}</p>
-                <ol className="grid gap-4 min-[768px]:grid-cols-2 min-[1100px]:grid-cols-4">
-                  {row.steps.map((step, index) => (
-                    <li key={step}>
-                      <div className="flex items-center gap-2" aria-hidden="true">
-                        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${row.lit ? "bg-current" : "bg-rule"}`} />
-                        <span className={`h-px flex-1 ${row.lit ? "bg-current opacity-30" : "bg-rule"}`} />
-                      </div>
-                      <p className={`mono mt-3 ${row.lit ? "" : "text-ink-2"}`}>Step {index + 1}</p>
-                      <p className="mt-1 text-[15px]">{step}</p>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <Band />
-
         {/* What each evidence label means, with how many library steps carry it. */}
         <section aria-labelledby="evidence">
           <div className="sec">
             <SectionHead
-              eyebrow="Evidence"
               id="evidence"
               title="Every step,"
               rest="labelled."
@@ -411,7 +376,6 @@ export default function LandingPage() {
           <div className="sec">
             <SectionHead
               center
-              eyebrow="Your 90 days"
               id="schedule"
               title="This week, this month,"
               rest="this season."
@@ -458,13 +422,12 @@ export default function LandingPage() {
           </div>
           <div className="sec flex flex-col min-[1100px]:border-l min-[1100px]:border-rule">
             <SectionHead
-              eyebrow="Your photo"
               id="photo"
               title="A good photo."
               rest="Four simple things."
               lead="The report reads your face from this photo, so a clear one makes a better plan. It stays in your browser until you pay."
             />
-            <ol className="mt-8 grid min-[1100px]:mt-auto min-[1100px]:pt-10">
+            <ol className="mt-8 grid min-[1100px]:mt-10">
               {PHOTO_REQUIREMENTS.map((item, index) => (
                 <li key={item.title} className="flex gap-5 border-t border-rule py-4">
                   <span className="mono w-6 shrink-0 pt-1 text-ink-2">[{index + 1}]</span>
@@ -483,7 +446,7 @@ export default function LandingPage() {
         {/* How it works: three cards with a picture on top. */}
         <section id="how" className="scroll-mt-20" aria-labelledby="how-title">
           <div className="sec">
-            <SectionHead center eyebrow="How it works" id="how-title" title="Three steps." rest="No account." lead="From your phone, in a few minutes." />
+            <SectionHead center id="how-title" title="Three steps." rest="No account." lead="From your phone, in a few minutes." />
           </div>
           <ol className="grid border-t border-rule min-[768px]:grid-cols-3">
             {STEPS.map((step, index) => (
@@ -578,7 +541,6 @@ export default function LandingPage() {
         <section aria-labelledby="delivery">
           <div className="sec">
             <SectionHead
-              eyebrow="After you pay"
               id="delivery"
               title="Nobody waits on a screen."
               rest="It comes to you."
@@ -608,7 +570,7 @@ export default function LandingPage() {
         {/* Privacy and limits, side by side. */}
         <section className="grid min-[768px]:grid-cols-2" aria-labelledby="privacy">
           <div className="sec">
-            <SectionHead eyebrow="Privacy" id="privacy" title="Plainly." rest="Your photos aren't kept." />
+            <SectionHead id="privacy" title="Plainly." rest="Your photos aren't kept." />
             <p className="t-lead mt-4 max-w-[480px] text-ink-2">
               Photos stay in your browser until you pay. Then they go to our server and AI providers only to create your report, and they are
               not saved in our photo database. AI and email providers handle data under their own terms, which our Privacy Policy explains. We
@@ -616,8 +578,7 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="sec border-rule pt-0! min-[768px]:border-l min-[768px]:pt-20!">
-            <span className="eyebrow mono">Limits</span>
-            <h2 className="t-section two-tone mt-5">
+            <h2 className="t-section two-tone">
               What we won&apos;t do. <span>Ever.</span>
             </h2>
             <ul className="mt-6 grid text-[15px]">

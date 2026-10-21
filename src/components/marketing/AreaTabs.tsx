@@ -1,9 +1,34 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
+import { EXAMPLE_AFTER, EXAMPLE_BEFORE } from "@/lib/examples";
 
 export type AreaCard = { id: string; title: string; evidence: string; effort: string; cost: string; when: string; source: string };
-export type AreaTab = { id: string; label: string; cards: AreaCard[] };
+/** Where to look on the example (percent of the photo) and what the plan does there. */
+export type AreaDetail = { x: number; y: number; note: string };
+export type AreaTab = { id: string; label: string; detail: AreaDetail; cards: AreaCard[] };
+
+/** The example's before and after, cropped to one area: the face seen up close, not again. */
+function DetailPair({ label, detail }: { label: string; detail: AreaDetail }) {
+  const crop = (src: string) => ({ backgroundImage: `url(${src})`, backgroundSize: "300% auto", backgroundPosition: `${detail.x}% ${detail.y}%` });
+  return (
+    <figure className="flex flex-col min-[768px]:col-span-2 min-[1100px]:row-span-2">
+      <div
+        role="img"
+        aria-label={`The example's ${label.toLowerCase()}, before and after its concept`}
+        className="stage grid aspect-[3/2] grid-cols-2 grid-rows-1 rounded-[16px]! min-[768px]:aspect-[2/1] min-[1100px]:aspect-auto min-[1100px]:min-h-[360px] min-[1100px]:flex-1"
+      >
+        <div style={crop(EXAMPLE_BEFORE)} />
+        <div style={crop(EXAMPLE_AFTER)} />
+        <span className="capsule frost mono absolute bottom-3 left-3">Before</span>
+        <span className="capsule frost mono absolute bottom-3 right-3">After</span>
+      </div>
+      <figcaption className="mono mt-2 text-ink-2">
+        {label} · {detail.note}
+      </figcaption>
+    </figure>
+  );
+}
 
 /** One tab per face area; each panel shows real recommendations from the report library. */
 export function AreaTabs({ areas }: { areas: AreaTab[] }) {
@@ -60,6 +85,7 @@ export function AreaTabs({ areas }: { areas: AreaTab[] }) {
         tabIndex={0}
         className="mt-6 grid gap-3 border-t border-rule p-3 min-[768px]:grid-cols-2 min-[768px]:p-4 min-[1100px]:grid-cols-4"
       >
+        <DetailPair label={area.label} detail={area.detail} />
         {area.cards.map((card) => (
           <article
             key={card.id}

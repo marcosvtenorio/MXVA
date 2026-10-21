@@ -57,6 +57,7 @@
   --bd-lo: #7f909a;
   --on-image: #111417;
   --frost: rgba(255, 255, 255, 0.55);
+  --hotspot: rgb(255 255 255 / 0.85);
   --gutter: 20px;
   color-scheme: light dark;
 }
@@ -67,6 +68,7 @@
     --bd-lo: #161c20;
     --on-image: #eceff0;
     --frost: rgba(20, 26, 30, 0.55);
+    --hotspot: rgb(255 255 255 / 0.2);
   }
 }
 
@@ -115,6 +117,17 @@
     letter-spacing: -0.025em;
     text-wrap: balance;
   }
+  /* The one title size of the buying flow (steps, checkout, processing). */
+  .t-flow {
+    font-weight: 400;
+    font-size: 32px;
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+  }
+  @media (min-width: 1100px) {
+    .t-flow { font-size: 40px; line-height: 1.05; letter-spacing: -0.035em; }
+  }
   .two-tone > span {
     color: var(--color-ink-2);
   }
@@ -134,8 +147,14 @@
       radial-gradient(120% 70% at 22% 18%, var(--bd-hi) 0%, transparent 58%),
       linear-gradient(180deg, var(--bd) 0%, var(--bd-lo) 100%);
   }
+  /* Light off (waiting) and key light on (sent): the two states must read apart in a still. */
   .stage-off {
-    background: linear-gradient(180deg, #6f7b81, #556167);
+    background: linear-gradient(180deg, #55616a, #3f4a52);
+  }
+  .stage-lit {
+    background:
+      radial-gradient(110% 65% at 20% 14%, var(--hotspot) 0%, transparent 55%),
+      linear-gradient(180deg, var(--bd) 0%, var(--bd-lo) 100%);
   }
   .crop {
     position: absolute;
@@ -194,6 +213,8 @@
   }
   .btn:active { transform: scale(0.98); }
   .btn:disabled, .btn[aria-disabled="true"] { opacity: 0.38; cursor: not-allowed; transform: none; }
+  /* Looks unavailable but still answers a tap (with what is missing). */
+  .btn[data-inactive] { opacity: 0.38; }
   /* Working (a step loading, checkout opening): stays legible, with a turning ring. */
   .btn[aria-busy="true"] { opacity: 0.82; cursor: progress; }
   .btn-spinner {
@@ -263,11 +284,15 @@
   .band {
     border-top: 1px solid var(--color-rule);
   }
+  /* A 48px beat between sections; it paints over the frame's side rails, so the break reads as a gap. */
   @media (min-width: 768px) {
-    .band { height: 80px; border-bottom: 1px solid var(--color-rule); }
-  }
-  @media (min-width: 1100px) {
-    .band { height: 120px; }
+    .band {
+      position: relative;
+      height: 48px;
+      margin-inline: -1px;
+      border-bottom: 1px solid var(--color-rule);
+      background: var(--color-ground);
+    }
   }
   /* Section padding: 56px on phones, 80px from tablets up. */
   .sec { padding: 56px 16px; }

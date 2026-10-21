@@ -57,9 +57,8 @@ export function ReviewStep() {
       stage={<StepStage readouts={["Front photo · ready", "Nothing analysed yet"]} caption="Your report is made after payment" />}
     >
       <div className="px-5 pb-2 pt-6 min-[768px]:pt-12">
-        <StepHeading size="title" tail="Nothing is analyzed until you pay.">
-          Check everything before checkout.
-        </StepHeading>
+        <StepHeading tail="Then check out.">Check everything.</StepHeading>
+        <p className="mt-2 text-[15px] leading-[1.4] text-ink-2">Nothing is analyzed until you pay.</p>
 
         <div className="mt-6 flex items-center gap-4 rounded-[20px] bg-raised p-3 shadow-[inset_0_0_0_1px_var(--color-rule)]">
           {front ? (

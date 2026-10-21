@@ -35,14 +35,18 @@ guide were removed in round 2 (their old links redirect to the photo step).
   uppercase labels, counters, prices in tables). Two-tone headlines (ink, then ink-2).
 - Landing system (since 2026-10-20): framed column up to 1360px, breakpoints at 768 and
   1100px, section padding 56/16px on phones and 80/32px from 768px, thin "bands" between
-  sections (0, 80, 120px), one type scale (hero 36/48/60, section 28/40/48, card 18/20/24,
-  lead 15/16).
+  sections (a hairline on phones, 48px from 768px since round 3), one type scale (hero
+  36/48/60, section 28/40/48, card 18/20/24, lead 15/16). Eyebrow capsules on four sections
+  only (Concept, Your report, Pricing, Questions) since round 3. Flow titles: one size,
+  32px on phones and 40px from 1100px.
 - Richness: the lit seamless backdrop, a real before/after example (owner-supplied) in the
   landing hero since round 2, studio readouts and crop marks, the glow-up teaser on checkout.
   The plaster head now marks only empty and waiting states (empty photo slot, processing).
 - Signature: "Key light", the reveal of the concept. It now happens in the emailed PDF,
   not on screen (no report is shown in the browser by design), so the stills can only show
-  its echoes (photo readouts, the before/after slider).
+  its echoes: the photo-check readout glass, which since round 3 also reads out the hero's
+  after side ("[1] cut [2] skin [3] brows [4] beard"), and the dim (waiting) to lit (sent)
+  stage on processing.
 
 ## Refused defaults (do not ask for them back)
 

@@ -3,9 +3,10 @@ import { useId } from "react";
 /**
  * The matte plaster light-test head (DIRECTION.md, richness). A stand-in for the buyer's
  * own photo wherever none exists yet. Gradient ids are per instance (useId) so several
- * heads can share a page.
+ * heads can share a page. `dimmed`: the light is off (waiting); `lit`: the key light is on,
+ * with a firm cast shadow to the right (sent).
  */
-export function PlasterHead({ className, dimmed = false }: { className?: string; dimmed?: boolean }) {
+export function PlasterHead({ className, dimmed = false, lit = false }: { className?: string; dimmed?: boolean; lit?: boolean }) {
   const id = useId().replace(/:/g, "");
   return (
     <svg
@@ -14,7 +15,7 @@ export function PlasterHead({ className, dimmed = false }: { className?: string;
       preserveAspectRatio="xMidYMax meet"
       aria-hidden="true"
       focusable="false"
-      style={dimmed ? { filter: "brightness(.6) saturate(.8)" } : undefined}
+      style={dimmed ? { filter: "brightness(.48) saturate(.8)" } : undefined}
     >
       <defs>
         <radialGradient id={`h${id}`} cx=".36" cy=".3" r=".8">
@@ -39,7 +40,7 @@ export function PlasterHead({ className, dimmed = false }: { className?: string;
           <stop offset="1" stopColor="#919CA0" />
         </linearGradient>
         <radialGradient id={`c${id}`} cx=".5" cy=".5" r=".5">
-          <stop offset="0" stopColor="#55656E" stopOpacity=".42" />
+          <stop offset="0" stopColor="#55656E" stopOpacity={lit ? ".78" : ".42"} />
           <stop offset="1" stopColor="#55656E" stopOpacity="0" />
         </radialGradient>
         <filter id={`f${id}`} x="-50%" y="-50%" width="200%" height="200%">

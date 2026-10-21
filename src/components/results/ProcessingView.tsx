@@ -232,8 +232,8 @@ export function ProcessingView() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-raised">
-      <div className={`stage relative h-[52dvh] min-h-[300px] rounded-none ${lightOff ? "stage-off" : ""}`}>
-        {mode.kind === "reselect" && front ? null : <PlasterHead className="absolute inset-x-0 bottom-[30px] h-[78%] w-full" dimmed={lightOff} />}
+      <div className={`stage relative h-[52dvh] min-h-[300px] rounded-none ${lightOff ? "stage-off" : "stage-lit"}`}>
+        {mode.kind === "reselect" && front ? null : <PlasterHead className="absolute inset-x-0 bottom-[30px] h-[78%] w-full" dimmed={lightOff} lit={!lightOff} />}
         <span className="crop crop-tl" style={{ top: "calc(env(safe-area-inset-top) + 16px)" }} aria-hidden="true" />
         <span className="crop crop-tr" style={{ top: "calc(env(safe-area-inset-top) + 16px)" }} aria-hidden="true" />
         {/* On frost glass, clear of the crop marks: legible on the dim and the lit stage alike. */}
@@ -243,11 +243,11 @@ export function ProcessingView() {
       </div>
       <Sheet>
         <main id="main" aria-live="polite">
-          {mode.kind === "checking" ? <h1 className="title-28">Checking your payment…</h1> : null}
+          {mode.kind === "checking" ? <h1 className="t-flow">Checking your payment…</h1> : null}
 
           {mode.kind === "waiting_payment" ? (
             <>
-              <h1 className="title-28 two-tone">
+              <h1 className="t-flow two-tone">
                 Confirming your payment. <span>This takes a few seconds.</span>
               </h1>
               <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">We wait for the payment provider to confirm before making anything.</p>
@@ -256,7 +256,7 @@ export function ProcessingView() {
 
           {mode.kind === "not_paid" ? (
             <>
-              <h1 className="title-28 two-tone">
+              <h1 className="t-flow two-tone">
                 No payment yet. <span>Nothing was charged.</span>
               </h1>
               <Link href="/checkout" className="btn mt-6">Back to checkout</Link>
@@ -265,7 +265,7 @@ export function ProcessingView() {
 
           {mode.kind === "sending" ? (
             <>
-              <h1 className="title-28 two-tone">
+              <h1 className="t-flow two-tone">
                 Payment confirmed. <span>Sending your photo.</span>
               </h1>
               <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">This takes a few seconds.</p>
@@ -275,7 +275,7 @@ export function ProcessingView() {
           {mode.kind === "queued" ? (
             mode.ticket ? (
               <>
-                <h1 className="title-28 two-tone">
+                <h1 className="t-flow two-tone">
                   Request received. <span>Your report arrives by email in {minutes(mode.ticket.etaMinutes)}.</span>
                 </h1>
                 {mode.ticket.position > 1 ? (
@@ -287,7 +287,7 @@ export function ProcessingView() {
               </>
             ) : (
               <>
-                <h1 className="title-28 two-tone">
+                <h1 className="t-flow two-tone">
                   Your report is being made. <span>It arrives by email.</span>
                 </h1>
                 <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">You can close this page. You won&apos;t pay again.</p>
@@ -297,7 +297,7 @@ export function ProcessingView() {
 
           {mode.kind === "reselect" ? (
             <>
-              <h1 className="title-28">Add your front photo again</h1>
+              <h1 className="t-flow">Add your front photo again</h1>
               <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">{mode.reason ?? RESELECT_COPY}</p>
               <div className="mt-5">
                 <PhotoCapture frontOnly />
@@ -327,7 +327,7 @@ export function ProcessingView() {
 
           {mode.kind === "elsewhere" ? (
             <>
-              <h1 className="title-28 two-tone">
+              <h1 className="t-flow two-tone">
                 Your report is on its way. <span>It arrives by email.</span>
               </h1>
               <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">Another tab is sending your photo. You won&apos;t pay again.</p>
@@ -348,7 +348,7 @@ export function ProcessingView() {
 
           {mode.kind === "delivered" ? (
             <>
-              <h1 className="title-28 two-tone">
+              <h1 className="t-flow two-tone">
                 Your report is in your email. <span>It&apos;s your permanent copy.</span>
               </h1>
               <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">
@@ -359,7 +359,7 @@ export function ProcessingView() {
 
           {mode.kind === "request_error" ? (
             <>
-              <h1 className="title-28 two-tone">
+              <h1 className="t-flow two-tone">
                 We couldn&apos;t send your photo. <span>Your payment is safe.</span>
               </h1>
               <InlineError id="processing-error">{mode.message}</InlineError>
@@ -376,7 +376,7 @@ export function ProcessingView() {
 
           {mode.kind === "failed" ? (
             <>
-              <h1 className="title-28 two-tone">
+              <h1 className="t-flow two-tone">
                 That didn&apos;t finish. <span>Your payment is safe.</span>
               </h1>
               <InlineError id="processing-error">
@@ -395,7 +395,7 @@ export function ProcessingView() {
 
           {mode.kind === "support" ? (
             <>
-              <h1 className="title-28">We need to help with this one.</h1>
+              <h1 className="t-flow">We need to help with this one.</h1>
               <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">{mode.message}</p>
               <Link href="/help" className="btn btn-secondary mt-6">Contact support</Link>
             </>

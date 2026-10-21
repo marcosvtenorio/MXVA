@@ -76,7 +76,7 @@ export const STEPS: readonly StepDefinition[] = [
     short: "Review",
     number: 4,
     path: "/onboarding/review",
-    heading: "Check everything before checkout",
+    heading: "Check everything",
     description: "Nothing has been analyzed yet. Your report is created only after payment.",
     skippable: false,
   },

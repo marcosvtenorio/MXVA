@@ -9,12 +9,10 @@ import { useEffect, useRef } from "react";
 export function StepHeading({
   children,
   tail,
-  size = "display",
   className = "",
 }: {
   children: React.ReactNode;
   tail?: string;
-  size?: "display" | "title";
   className?: string;
 }) {
   const ref = useRef<HTMLHeadingElement>(null);
@@ -22,7 +20,7 @@ export function StepHeading({
     ref.current?.focus({ preventScroll: true });
   }, []);
   return (
-    <h1 ref={ref} tabIndex={-1} className={`${size === "display" ? "display" : "title-28"} two-tone outline-none ${className}`}>
+    <h1 ref={ref} tabIndex={-1} className={`t-flow two-tone outline-none ${className}`}>
       {children}
       {tail ? <span> {tail}</span> : null}
     </h1>

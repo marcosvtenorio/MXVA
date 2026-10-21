@@ -378,7 +378,7 @@ export function CheckoutView() {
         {/* From 1100px: the decision (heading, photo, payment) on the left, the details beside it. */}
         <main id="main" className="min-[1100px]:grid min-[1100px]:grid-cols-[480px_440px] min-[1100px]:items-start min-[1100px]:justify-between">
           <div>
-            <h1 className="title-28 two-tone mt-4">
+            <h1 className="t-flow two-tone mt-4">
               Your glow-up is
               <br />
               <span>one step away.</span>

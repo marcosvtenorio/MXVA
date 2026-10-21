@@ -4,7 +4,7 @@ import { InlineError } from "@/components/common/InlineError";
 import type { StepDefinition } from "@/features/onboarding/steps";
 import { StepDescription, StepHeading } from "../StepHeading";
 
-/** Question and answers as one group anchored above the action (thumb zone); from 768px, under the meter. */
+/** Question and answers as one group, 32px under the meter (48px from 768px), the action below. */
 export function StepBody({
   definition,
   error,
@@ -18,7 +18,7 @@ export function StepBody({
 }) {
   const errorId = `${definition.id}-error`;
   return (
-    <div className="flex flex-1 flex-col justify-end px-5 pb-2 pt-8 min-[768px]:justify-start min-[768px]:pt-12">
+    <div className="flex flex-1 flex-col px-5 pb-2 pt-8 min-[768px]:pt-12">
       {heading ?? <StepHeading tail={definition.tail}>{definition.heading}</StepHeading>}
       {definition.description ? <StepDescription>{definition.description}</StepDescription> : null}
       <div className="mt-6" aria-describedby={error ? errorId : undefined}>
@@ -34,12 +34,15 @@ export function StepActions({
   onSkip,
   continueLabel = "Continue",
   busy = false,
+  inactive = false,
 }: {
   onContinue: () => void;
   onSkip?: () => void;
   continueLabel?: string;
   /** The next screen is loading: the tap registered, further taps are ignored. */
   busy?: boolean;
+  /** Dimmed until the step is complete, yet a working button: a tap says what is missing. */
+  inactive?: boolean;
 }) {
   return (
     <div className={onSkip ? "grid grid-cols-[auto_1fr] gap-3" : undefined}>
@@ -48,7 +51,7 @@ export function StepActions({
           Skip
         </button>
       ) : null}
-      <button type="button" className="btn" onClick={busy ? undefined : onContinue} aria-busy={busy || undefined}>
+      <button type="button" className="btn" onClick={busy ? undefined : onContinue} aria-busy={busy || undefined} data-inactive={inactive || undefined}>
         {busy ? <span className="btn-spinner" aria-hidden="true" /> : null}
         {continueLabel}
       </button>
