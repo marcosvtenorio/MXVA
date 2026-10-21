@@ -540,7 +540,7 @@ export function CheckoutView() {
               <span className="inline-flex items-center gap-1.5">
                 <Lock size={12} /> Secure payment
               </span>
-              <span>Photos never stored</span>
+              <span>Photos not kept</span>
               <span>No second charges</span>
             </p>
             {/* The bottom padding keeps the last rows clear of the sticky pay bar. */}

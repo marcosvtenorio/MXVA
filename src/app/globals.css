@@ -213,8 +213,8 @@
   }
   .btn:active { transform: scale(0.98); }
   .btn:disabled, .btn[aria-disabled="true"] { opacity: 0.38; cursor: not-allowed; transform: none; }
-  /* Looks unavailable but still answers a tap (with what is missing). */
-  .btn[data-inactive] { opacity: 0.38; }
+  /* Looks unavailable but still answers a tap (with what is missing); its label stays readable. */
+  .btn[data-inactive] { background: var(--color-rule); color: var(--color-ink-2); }
   /* Working (a step loading, checkout opening): stays legible, with a turning ring. */
   .btn[aria-busy="true"] { opacity: 0.82; cursor: progress; }
   .btn-spinner {

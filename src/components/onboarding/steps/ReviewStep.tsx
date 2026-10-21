@@ -54,7 +54,12 @@ export function ReviewStep() {
       step="review"
       onBack={nav.goBack}
       action={<StepActions continueLabel={nav.pending ? "Opening checkout…" : "Continue to checkout"} busy={nav.pending} onContinue={continueToCheckout} />}
-      stage={<StepStage readouts={["Front photo · ready", "Nothing analysed yet"]} caption="Your report is made after payment" />}
+      stage={<StepStage readouts={["Front photo · ready", "Email · set"]} caption="Your report is made after payment" />}
+      footnote={
+        <p className="text-[15px] leading-[1.4] text-ink-2">
+          We don&apos;t keep your photos. They stay in this tab until payment, then go to our server and AI providers only to make your report.
+        </p>
+      }
     >
       <div className="px-5 pb-2 pt-6 min-[768px]:pt-12">
         <StepHeading tail="Then check out.">Check everything.</StepHeading>
@@ -81,21 +86,11 @@ export function ReviewStep() {
           <Row title="Report goes to" value={state.email} href="/onboarding/delivery" />
         </dl>
 
-        <div className="mt-6 border-t border-rule pt-5">
-          <p className="mono text-ink-2">Included</p>
-          <ul className="mt-3 grid gap-2 text-[15px] leading-[1.4]">
-            <li className="flex gap-2"><Tick size={16} className="mt-0.5 flex-none text-ink-2" />An AI concept portrait from your own front photo</li>
-            <li className="flex gap-2"><Tick size={16} className="mt-0.5 flex-none text-ink-2" />A PDF roadmap: 5 to 10 priorities, a 7, 30 and 90-day plan, every source</li>
-            <li className="flex gap-2"><Tick size={16} className="mt-0.5 flex-none text-ink-2" />Delivered by email. The email is your permanent copy.</li>
-          </ul>
-          <p className="mt-4 flex items-baseline gap-3">
-            <span className="text-[40px] leading-none tracking-[-0.03em] tabular-nums">{price}</span>
-            <span className="text-[15px] text-ink-2">one-time · no subscription</span>
-          </p>
-          <p className="mt-3 text-[15px] leading-[1.4] text-ink-2">
-            We don&apos;t keep your photos. They stay in this tab until payment, then go to our server and AI providers only to make your report.
-          </p>
-        </div>
+        {/* What's included is listed on checkout, the next screen; here, just the price. */}
+        <p className="mt-6 flex items-baseline gap-3 border-t border-rule pt-5">
+          <span className="whitespace-nowrap text-[40px] leading-none tracking-[-0.03em] tabular-nums">{price}</span>
+          <span className="text-[15px] text-ink-2">one-time · no subscription</span>
+        </p>
       </div>
     </OnboardingFrame>
   );

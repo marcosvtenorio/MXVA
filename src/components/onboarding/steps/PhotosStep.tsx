@@ -47,7 +47,10 @@ function PhotoGuideStage() {
             <img src={EXAMPLE_BEFORE} alt="" className="absolute inset-0 h-full w-full object-cover" />
             <span className="capsule frost mono absolute bottom-3 left-3">Example</span>
           </div>
-          <figcaption className="mono pb-1 text-ink-2">A good photo · fictional AI-generated person</figcaption>
+          <figcaption className="mono pb-1 text-ink-2">
+            <span className="block">A good photo ·</span>
+            <span className="block">Fictional AI-generated person</span>
+          </figcaption>
         </figure>
       ) : (
         <StepStage

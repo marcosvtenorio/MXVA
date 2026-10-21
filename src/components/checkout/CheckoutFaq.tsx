@@ -8,7 +8,7 @@ const QUESTIONS: readonly (readonly [string, string])[] = [
     "What if something goes wrong?",
     "If your report can't be made, we email you a link to try again at no cost, or you get a full refund. You never pay twice.",
   ],
-  ["What happens to my photo?", "It's used only to make your report and is never stored. Your report lives in your inbox, not on our servers."],
+  ["What happens to my photo?", "It's used only to make your report and isn't kept after it. Your report lives in your inbox, not on our servers."],
 ];
 
 /** The questions people ask right before paying, answered in one line each. */

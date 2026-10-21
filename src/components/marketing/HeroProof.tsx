@@ -1,9 +1,8 @@
-import { Fragment } from "react";
 import { CompareFrame } from "@/components/checkout/ExampleCompare";
 import { CropMarks } from "@/components/common/StudioArt";
 import { EXAMPLE_AFTER, EXAMPLE_BEFORE } from "@/lib/examples";
 
-/** The concept's changes, numbered as in the concept list: the studio's readout for the after side. */
+/** The concept's changes, in the order of the concept list: the studio's readout for the after side. */
 const CHANGES = ["Cut", "Skin", "Brows", "Beard"] as const;
 
 /** Where the concept changed the example: numbered markers that match the list beside it. */
@@ -31,10 +30,8 @@ function AfterReadout({ className = "" }: { className?: string }) {
   return (
     <div className={`readouts mono frost top-auto rounded-[14px] px-3 py-2.5 text-left ${className}`}>
       <span>After</span>
-      {CHANGES.map((change, index) => (
-        <span key={change}>
-          [{index + 1}] {change}
-        </span>
+      {CHANGES.map((change) => (
+        <span key={change}>{change}</span>
       ))}
     </div>
   );
@@ -73,18 +70,8 @@ export function HeroProof() {
       </div>
       {/* From 1100px the disclosure is inside the stage, clear of the cookie bar. */}
       <figcaption className="mono mt-2 px-1 text-ink-2 min-[1100px]:sr-only">
-        <span className="text-ink min-[768px]:hidden">
-          After:{" "}
-          {/* Each item holds together; the line can break between items. */}
-          {CHANGES.map((change, index) => (
-            <Fragment key={change}>
-              <span className="whitespace-nowrap">
-                [{index + 1}] {change} ·
-              </span>{" "}
-            </Fragment>
-          ))}
-        </span>
-        Fictional AI-generated person
+        <span className="block text-ink min-[768px]:hidden">After · {CHANGES.join(" · ")}</span>
+        <span className="block">Fictional AI-generated person</span>
       </figcaption>
     </figure>
   );

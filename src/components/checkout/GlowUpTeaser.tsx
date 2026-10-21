@@ -7,7 +7,7 @@ import { EXAMPLE_BEFORE } from "@/lib/examples";
 /**
  * The buyer's own photo, ready for analysis, next to their locked concept. Everything here
  * happens in the browser: the photo is an in-memory object URL and the "scan" is CSS.
- * Nothing has been analysed yet, and the copy says so. Kept short, so the payment panel
+ * Nothing has been analyzed yet, and the copy says so. Kept short, so the payment panel
  * starts on the first screen.
  */
 export function GlowUpTeaser() {
@@ -39,7 +39,7 @@ export function GlowUpTeaser() {
           </div>
         </figure>
       </div>
-      <p className="mono mt-2.5 text-ink-2">{photo ? "Your photo is ready · 7 areas queued" : "7 areas analysed from your photo"}</p>
+      <p className="mono mt-2.5 text-ink-2">{photo ? "Your photo is ready · 7 areas queued" : "7 areas analyzed from your photo"}</p>
     </section>
   );
 }

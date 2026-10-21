@@ -10,7 +10,8 @@ export type AreaTab = { id: string; label: string; detail: AreaDetail; cards: Ar
 
 /** The example's before and after, cropped to one area: the face seen up close, not again. */
 function DetailPair({ label, detail }: { label: string; detail: AreaDetail }) {
-  const crop = (src: string) => ({ backgroundImage: `url(${src})`, backgroundSize: "300% auto", backgroundPosition: `${detail.x}% ${detail.y}%` });
+  // 200%: each half is at most 360px wide, so the 720px source is never stretched past its size.
+  const crop = (src: string) => ({ backgroundImage: `url(${src})`, backgroundSize: "200% auto", backgroundPosition: `${detail.x}% ${detail.y}%` });
   return (
     <figure className="flex flex-col min-[768px]:col-span-2 min-[1100px]:row-span-2">
       <div
